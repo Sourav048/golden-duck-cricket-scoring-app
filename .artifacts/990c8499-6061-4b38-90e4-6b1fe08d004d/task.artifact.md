@@ -1,0 +1,6 @@
+- [x] Add retirement commentary strings to `strings.xml`.
+- [x] Implement `recordRetired` and update `undoLastBall` in `Innings.kt`.
+- [x] Refactor `commitRetired` in `MainActivity.kt` for slot correction and recording.
+- [x] Update `undoBall` in `MainActivity.kt` to handle manual retirement balls.
+- [x] Verify build and functionality.
+- [x] Create walkthrough.

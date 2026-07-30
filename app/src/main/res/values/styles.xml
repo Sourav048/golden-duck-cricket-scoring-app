@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- High-Contrast Text with Dynamic Shadow "Outline" -->
+    <style name="HighContrastText" parent="android:Widget.TextView">
+        <item name="android:shadowColor">#30000000</item> <!-- Subtle dark shadow for light mode -->
+        <item name="android:shadowDx">1</item>
+        <item name="android:shadowDy">1</item>
+        <item name="android:shadowRadius">1.5</item>
+    </style>
+</resources>

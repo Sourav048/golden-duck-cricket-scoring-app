@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="12dp"
+    android:paddingHorizontal="16dp"
+    android:gravity="start">
+
+    <!-- Left Column: Over and Icon -->
+    <LinearLayout
+        android:id="@+id/layoutCommLeftColumn"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:id="@+id/tvCommOver"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.1"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
+            android:layout_marginBottom="6dp"/>
+
+        <FrameLayout
+            android:id="@+id/layoutCommIcon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="@drawable/circle_bg_grey">
+
+            <TextView
+                android:id="@+id/tvCommIconText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="0"
+                android:textColor="?attr/colorOnPrimary"
+                android:textSize="11sp"
+                android:textStyle="bold"/>
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- Right Column: Narrative Text -->
+    <TextView
+        android:id="@+id/tvCommText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="16dp"
+        tools:text="Bowler to Batter, no run."
+        android:textSize="14sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:lineSpacingExtra="2dp"/>
+
+</LinearLayout>

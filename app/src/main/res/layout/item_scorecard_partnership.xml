@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp"
+    android:gravity="center_vertical"
+    android:background="?attr/colorSurface">
+
+    <!-- Batter 1 Stats (Left) -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="start|center_vertical">
+
+        <TextView
+            android:id="@+id/tvPshipBatter1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Batter 1"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tvPshipB1Stats"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" 5(6)"
+            android:textSize="13sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:alpha="0.8" />
+    </LinearLayout>
+
+    <!-- Partnership Total (Center) -->
+    <TextView
+        android:id="@+id/tvPshipTotal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="17(11)"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurface"
+        android:gravity="center"
+        android:layout_marginHorizontal="8dp" />
+
+    <!-- Batter 2 Stats (Right) -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="end|center_vertical">
+
+        <TextView
+            android:id="@+id/tvPshipBatter2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Batter 2"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tvPshipB2Stats"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" 12(5)"
+            android:textSize="13sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:alpha="0.8" />
+    </LinearLayout>
+
+</LinearLayout>

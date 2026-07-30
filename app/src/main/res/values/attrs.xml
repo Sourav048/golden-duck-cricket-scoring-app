@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Custom theme attributes to avoid hardcoded colors -->
+    <attr name="runHighlight" format="color" />
+    <attr name="wicketHighlight" format="color" />
+    <attr name="boundaryHighlight" format="color" />
+    <attr name="extraHighlight" format="color" />
+    <attr name="dotBallHighlight" format="color" />
+
+    <!-- Ranking Highlights (Prestige) -->
+    <attr name="prestigeGold" format="color" />
+    <attr name="prestigeOrange" format="color" />
+    <attr name="prestigePurple" format="color" />
+</resources>

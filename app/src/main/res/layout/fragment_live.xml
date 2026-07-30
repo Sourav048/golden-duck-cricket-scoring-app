@@ -1,0 +1,352 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/lottieCelebration"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:elevation="10dp"
+        android:visibility="gone"
+        app:lottie_autoPlay="false"
+        app:lottie_loop="false" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="12dp"
+        android:clipToPadding="false">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Striker Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardStriker"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="?attr/colorPrimaryContainer"
+            android:layout_marginBottom="6dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/ivStrikerPhoto"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:scaleType="centerCrop"
+                    android:background="?attr/colorSurface"
+                    android:src="@android:drawable/ic_menu_gallery"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.LargeComponent"
+                    android:layout_marginEnd="12dp"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView android:id="@+id/tvStrikerName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Striker*" android:textColor="?attr/colorOnPrimaryContainer" android:textSize="14sp" android:textStyle="bold" android:layout_marginBottom="4dp"/>
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="start">
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statStrikerR" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statStrikerB" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statStriker4s" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statStriker6s" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statStrikerSR" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Non-Striker Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardNonStriker"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:strokeWidth="1dp"
+            app:strokeColor="?attr/colorOutline"
+            android:layout_marginBottom="6dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/ivNonStrikerPhoto"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:scaleType="centerCrop"
+                    android:background="?attr/colorSurface"
+                    android:src="@android:drawable/ic_menu_gallery"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.LargeComponent"
+                    android:layout_marginEnd="12dp"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView android:id="@+id/tvNonStrikerName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Non-Striker" android:textColor="?attr/colorOnSurface" android:textSize="14sp" android:layout_marginBottom="4dp"/>
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="start">
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statNonStrikerR" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statNonStrikerB" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statNonStriker4s" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statNonStriker6s" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statNonStrikerSR" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Bowler Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardBowler"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="?attr/colorPrimaryContainer"
+            android:layout_marginBottom="6dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp">
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/ivBowlerPhoto"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:scaleType="centerCrop"
+                    android:background="?attr/colorSurface"
+                    android:src="@android:drawable/ic_menu_gallery"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.LargeComponent"
+                    android:layout_marginEnd="12dp"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView android:id="@+id/tvBowlerName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Bowler" android:textColor="?attr/colorOnPrimaryContainer" android:textSize="14sp" android:textStyle="bold" android:layout_marginBottom="4dp"/>
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="start">
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statBowlerO" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statBowlerM" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statBowlerR" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statBowlerW" />
+                        <include layout="@layout/item_stat_unit" android:id="@+id/statBowlerECO" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Extras & Partnership Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardExtrasPship"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:strokeWidth="1dp"
+            app:strokeColor="?attr/colorOutline"
+            android:layout_marginBottom="12dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="12dp"
+                android:gravity="center_vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Extras: " android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant"/>
+                <TextView android:id="@+id/tvExtras" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurface"/>
+                <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Partnership: " android:textSize="12sp" android:textColor="?attr/colorOnSurfaceVariant"/>
+                <TextView android:id="@+id/tvPartnership" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0(0)" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurface"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Over Summary Bar (Recent Balls & Win Prob) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurfaceVariant"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingEnd="8dp">
+                <TextView
+                    android:id="@+id/tvWinProbLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="TeamA 50% - 50% TeamB"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:gravity="center_horizontal"/>
+                <ProgressBar
+                    android:id="@+id/pbWinProb"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="4dp"
+                    android:max="100"
+                    android:progress="50"
+                    android:progressTint="?attr/colorPrimary"
+                    android:progressBackgroundTint="?attr/colorError"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="24dp"
+                android:background="?attr/colorOutline"
+                android:layout_marginHorizontal="4dp"
+                android:alpha="0.3"/>
+
+            <HorizontalScrollView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:scrollbars="none"
+                android:overScrollMode="never"
+                android:paddingStart="8dp">
+                <LinearLayout
+                    android:id="@+id/recentBallsContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical" />
+            </HorizontalScrollView>
+        </LinearLayout>
+
+        <!-- Scoring Grid with Protector Overlay -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Buttons Grid -->
+                <GridLayout
+                    android:id="@+id/gridScoring"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="4"
+                    android:useDefaultMargins="true">
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn0" style="@style/Widget.Material3.Button.TonalButton" android:layout_columnWeight="1" android:text="0" app:cornerRadius="8dp" android:minHeight="44dp" android:tag="custom_color"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn1" style="@style/Widget.Material3.Button.TonalButton" android:layout_columnWeight="1" android:text="1" app:cornerRadius="8dp" android:minHeight="44dp" android:tag="custom_color"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn2" style="@style/Widget.Material3.Button.TonalButton" android:layout_columnWeight="1" android:text="2" app:cornerRadius="8dp" android:minHeight="44dp" android:tag="custom_color"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn3" style="@style/Widget.Material3.Button.TonalButton" android:layout_columnWeight="1" android:text="3" app:cornerRadius="8dp" android:minHeight="44dp" android:tag="custom_color"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn4" style="@style/Widget.Material3.Button.TonalButton" android:layout_columnWeight="1" android:text="4" app:cornerRadius="8dp" android:minHeight="44dp" app:backgroundTint="?attr/colorPrimaryContainer" android:textColor="?attr/colorOnPrimaryContainer" android:tag="custom_color"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn6" style="@style/Widget.Material3.Button.TonalButton" android:layout_columnWeight="1" android:text="6" app:cornerRadius="8dp" android:minHeight="44dp" app:backgroundTint="?attr/colorPrimaryContainer" android:textColor="?attr/colorOnPrimaryContainer" android:tag="custom_color"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnWide" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_columnWeight="1" android:text="WD" app:cornerRadius="8dp" android:minHeight="44dp" android:tag="custom_color"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnNoBall" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_columnWeight="1" android:text="NB" app:cornerRadius="8dp" android:minHeight="44dp" android:tag="custom_color"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnBye" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_columnWeight="1" android:text="B" app:cornerRadius="8dp" android:minHeight="44dp" android:tag="custom_color"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnLegBye" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_columnWeight="1" android:text="LB" app:cornerRadius="8dp" android:minHeight="44dp" android:tag="custom_color"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnWicket" android:layout_columnSpan="2" android:layout_columnWeight="2" android:text="WICKET" android:backgroundTint="?attr/colorError" android:textColor="?attr/colorOnError" app:cornerRadius="8dp" android:minHeight="44dp" android:tag="custom_color"/>
+                </GridLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOverthrow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Overthrow"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    app:backgroundTint="?attr/colorSecondary"
+                    android:textColor="?attr/colorOnSecondary"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="4dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Unlock/Protector Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnScoreGuard"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="FIRST BALL"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:cornerRadius="12dp"
+                app:backgroundTint="?attr/colorPrimary"
+                android:textColor="#FFFFFF"
+                android:layout_gravity="center"
+                android:elevation="8dp" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUndo"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Undo"
+                style="@style/Widget.Material3.Button.TonalButton"
+                app:backgroundTint="?attr/colorSecondaryContainer"
+                android:textColor="?attr/colorOnSecondaryContainer"
+                android:layout_marginEnd="4dp"/>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMatchMore"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="More"
+                style="@style/Widget.Material3.Button.TonalButton"
+                app:backgroundTint="?attr/colorSecondary"
+                android:textColor="?attr/colorOnSecondary"/>
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnFinishMatch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_finish_match"
+            style="@style/Widget.Material3.Button.TonalButton"
+            app:backgroundTint="?attr/colorPrimaryContainer"
+            android:textColor="?attr/colorOnPrimaryContainer"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNextInnings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_start_2nd_innings"
+            android:visibility="gone"
+            app:backgroundTint="?attr/colorPrimary"
+            android:textColor="?attr/colorOnPrimary"
+            android:layout_marginBottom="8dp"/>
+
+    </LinearLayout>
+    </ScrollView>
+</FrameLayout>

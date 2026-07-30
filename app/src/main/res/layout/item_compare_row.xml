@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="8dp"
+    android:gravity="center_vertical">
+
+    <!-- Value 1 -->
+    <TextView
+        android:id="@+id/tvCompareVal1"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="0"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurface"
+        android:gravity="center"
+        android:background="@drawable/rounded_stat_bg_light"
+        android:paddingVertical="6dp"
+        android:layout_marginEnd="12dp" />
+
+    <!-- Label -->
+    <TextView
+        android:id="@+id/tvCompareLabel"
+        android:layout_width="140dp"
+        android:layout_height="wrap_content"
+        android:text="MATCHES"
+        android:textSize="10sp"
+        android:textColor="@color/blue_medium"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:alpha="0.8"
+        android:letterSpacing="0.05" />
+
+    <!-- Value 2 -->
+    <TextView
+        android:id="@+id/tvCompareVal2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="0"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurface"
+        android:gravity="center"
+        android:background="@drawable/rounded_stat_bg_light"
+        android:paddingVertical="6dp"
+        android:layout_marginStart="12dp" />
+
+</LinearLayout>

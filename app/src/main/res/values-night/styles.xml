@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- High-Contrast Text with Dynamic Shadow "Outline" for Dark Mode -->
+    <style name="HighContrastText" parent="android:Widget.TextView">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:shadowColor">#80FFFFFF</item> <!-- Brighter white shadow for dark mode -->
+        <item name="android:shadowDx">0.5</item>
+        <item name="android:shadowDy">0.5</item>
+        <item name="android:shadowRadius">1.5</item>
+    </style>
+</resources>

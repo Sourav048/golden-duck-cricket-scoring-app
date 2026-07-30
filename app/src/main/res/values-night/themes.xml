@@ -1,0 +1,62 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Dark Mode specific theme -->
+    <style name="Base.Theme.Scoring" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary (Teal - Dark) -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorOnPrimary">@color/colorOnPrimary</item>
+        <item name="colorPrimaryContainer">@color/surface_card</item>
+        <item name="colorOnPrimaryContainer">@color/colorPrimary</item>
+
+        <!-- Secondary (Slate - Dark) -->
+        <item name="colorSecondary">@color/colorAccent</item>
+        <item name="colorOnSecondary">@color/colorOnAccent</item>
+        <item name="colorSecondaryContainer">@color/surface_elevated</item>
+        <item name="colorOnSecondaryContainer">@color/colorAccent</item>
+
+        <!-- Background & Surface (Dark) -->
+        <item name="android:windowBackground">@color/bg_main</item>
+        <item name="colorSurface">@color/surface_card</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">#252A34</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorOutline">#FFFFFF</item>
+
+        <!-- Custom Highlights Mapping (Dark) -->
+        <item name="runHighlight">@color/run_highlight</item>
+        <item name="wicketHighlight">@color/wicket_highlight</item>
+        <item name="boundaryHighlight">@color/boundary_highlight</item>
+        <item name="extraHighlight">@color/extra_slate</item>
+        <item name="dotBallHighlight">@color/dot_ball_grey</item>
+
+        <!-- Prestige Mapping (Dark) -->
+        <item name="prestigeGold">@color/accent_amber</item>
+        <item name="prestigeOrange">@color/prestige_orange</item>
+        <item name="prestigePurple">@color/prestige_purple</item>
+
+        <item name="colorControlNormal">@color/colorPrimary</item>
+        <item name="colorSwitchThumbNormal">@color/colorPrimary</item>
+
+        <item name="cardViewStyle">@style/Widget.Material3.CardView.Elevated</item>
+
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+    </style>
+
+    <style name="CustomMaterialSwitch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="thumbTint">@color/switch_thumb_selector</item>
+        <item name="trackTint">@color/switch_track_selector</item>
+        <item name="trackDecorationTint">@color/switch_track_outline_selector</item>
+    </style>
+
+    <style name="Theme.Scoring" parent="Base.Theme.Scoring">
+        <item name="materialSwitchStyle">@style/CustomMaterialSwitch</item>
+    </style>
+
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/bg_main</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Scoring</item>
+    </style>
+</resources>

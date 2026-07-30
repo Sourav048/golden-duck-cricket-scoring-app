@@ -1,0 +1,4 @@
+- [ ] Simplify `activity_player_compare.xml` with `LinearLayout` and theme-aware colors
+- [ ] Implement robust `updatePlayerSlot` in `PlayerCompareActivity.kt`
+- [ ] Call `updatePlayerSlot` in `onCreate` for initial state
+- [ ] Verify visibility in Light and Dark modes

@@ -1,0 +1,7 @@
+- [x] Create `DLSUtility.kt` with resource tables and target calculation logic.
+- [x] Rename "Revise Target/Overs" to "Apply DLS" in `LiveScoringFragment.kt`.
+- [x] Implement `handleApplyDLS()` in `MainActivity.kt`.
+    - [x] Create revised overs input dialog.
+    - [x] Create DLS explanation and confirmation dialog (Accept/Reject).
+    - [x] Implement Apply logic (update model, add commentary, update UI).
+- [x] Verify DLS logic with sample scenarios.

@@ -1,0 +1,57 @@
+# Gradle files
+.gradle/
+build/
+!gradle-wrapper.jar
+
+# Local configuration
+/local.properties
+local.properties
+
+# IntelliJ / Android Studio
+*.iml
+.idea/
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated files
+captures/
+.externalNativeBuild/
+.cxx/
+*.log
+*.tmp
+*.lock
+
+# APKs / outputs
+*.apk
+*.ap_
+*.dex
+*.class
+
+# Keystore files (important: never commit signing keys)
+*.jks
+*.keystore
+
+# Crash reports / profiling
+*.stacktrace
+*.hprof
+
+# Sensitive files
+Backup-codes-*.txt
+
+# Custom project extras
+*.cricket
+package com.example.scoring mainactivity;.txt
+scorecardwith.png
+finalicon-clean.png
+scorecardwith-clean.png
+final_app_icon-clean.png
+app_icon.png
+

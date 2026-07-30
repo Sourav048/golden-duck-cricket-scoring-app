@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?attr/android:windowBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <!-- Team A -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:id="@+id/tvSquadTitleA"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Team A"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:paddingVertical="8dp"
+                android:gravity="center"
+                android:background="?attr/colorPrimary"
+                android:textColor="?attr/colorOnPrimary" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvSquadA"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="?attr/colorOutline"
+            android:alpha="0.2" />
+
+        <!-- Team B -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:id="@+id/tvSquadTitleB"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Team B"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:paddingVertical="8dp"
+                android:gravity="center"
+                android:background="?attr/colorSecondary"
+                android:textColor="?attr/colorOnSecondary" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvSquadB"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

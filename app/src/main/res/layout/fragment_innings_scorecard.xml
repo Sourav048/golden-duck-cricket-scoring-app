@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/android:windowBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Sleek Score Header -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorPrimary"
+            android:paddingVertical="14dp"
+            android:paddingHorizontal="16dp">
+
+            <TextView
+                android:id="@+id/tvInningsTeamName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TEAM NAME"
+                android:textColor="?attr/colorOnPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:textAllCaps="true" />
+
+            <TextView
+                android:id="@+id/tvInningsScore"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0/0 (0.0)"
+                android:textColor="?attr/colorOnPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true" />
+        </RelativeLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="?attr/colorSurfaceVariant"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="10dp"
+            android:alpha="0.8"
+            android:weightSum="1.0">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.3" android:text="Batter" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" android:text="R" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" android:text="B" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" android:text="4s" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" android:text="6s" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.15" android:text="SR" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.15" android:text="Mins" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvBatters"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false"
+            android:background="?attr/colorSurface" />
+
+        <!-- Extras Row -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="14dp"
+            android:background="?attr/colorSurfaceVariant">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Extras" android:textSize="14sp" android:textStyle="bold" android:textColor="?attr/colorOnSurface" android:layout_alignParentStart="true" />
+            <TextView android:id="@+id/tvExtrasValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 (b 0, lb 0, w 0, nb 0, p 0)" android:textSize="13sp" android:textStyle="bold" android:textColor="?attr/colorOnSurface" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+
+        <!-- Total Row -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="14dp"
+            android:background="?attr/colorSurfaceVariant">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Total" android:textSize="15sp" android:textStyle="bold" android:textColor="?attr/colorOnSurface" android:layout_alignParentStart="true" />
+            <TextView android:id="@+id/tvTotalValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0-0 (0.0 Overs, CRR: 0.00)" android:textSize="15sp" android:textStyle="bold" android:textColor="?attr/colorOnSurface" android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+
+        <!-- Yet to Bat Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+            <TextView
+                android:id="@+id/tvYetToBatLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Yet to bat"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary"
+                android:layout_marginBottom="6dp" />
+            <TextView android:id="@+id/tvYetToBat" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="-" android:textSize="14sp" android:textColor="?attr/colorOnSurfaceVariant" android:lineSpacingExtra="4dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="?attr/colorSurfaceVariant"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="10dp"
+            android:alpha="0.8"
+            android:weightSum="1.0">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.3" android:text="Bowler" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" android:text="O" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" android:text="M" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" android:text="R" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" android:text="W" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" android:text="NB" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" android:text="WD" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" android:text="ECO" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvBowlers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false"
+            android:background="?attr/colorSurface" />
+
+        <!-- Fall of Wickets Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="16dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/colorSurfaceVariant"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.3" android:text="FALL OF WICKETS" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant"/>
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.3" android:text="SCORE (OVER)" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="end"/>
+            </LinearLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvFow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:background="?attr/colorSurface" />
+        </LinearLayout>
+
+        <!-- Partnerships Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/colorSurfaceVariant"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="10dp">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="PARTNERSHIPS" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant"/>
+            </LinearLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvPartnerships"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:background="?attr/colorSurface" />
+        </LinearLayout>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

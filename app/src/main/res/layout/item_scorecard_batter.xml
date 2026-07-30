@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp"
+    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground"
+    android:weightSum="1.0">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.3"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvScorecardName"
+            style="@style/HighContrastText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="Player Name"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvScorecardDismissal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="not out"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <TextView android:id="@+id/tvScorecardR" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" tools:text="0" android:textColor="?attr/colorOnSurface" android:textSize="15sp" android:textStyle="bold" android:gravity="center" />
+    <TextView android:id="@+id/tvScorecardB" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" tools:text="0" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="14sp" android:gravity="center" />
+    <TextView android:id="@+id/tvScorecard4s" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" tools:text="0" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="14sp" android:gravity="center" />
+    <TextView android:id="@+id/tvScorecard6s" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" tools:text="0" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="14sp" android:gravity="center" />
+    <TextView android:id="@+id/tvScorecardSR" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.15" tools:text="0.0" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="14sp" android:gravity="center" />
+    <TextView android:id="@+id/tvScorecardMins"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.15"
+        tools:text="0m 0s"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="13sp"
+        app:autoSizeTextType="uniform"
+        app:autoSizeMinTextSize="8sp"
+        app:autoSizeMaxTextSize="13sp"
+        android:maxLines="1"
+        android:gravity="center" />
+
+</LinearLayout>

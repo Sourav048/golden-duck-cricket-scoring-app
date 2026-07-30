@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp"
+    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground"
+    android:weightSum="1.0">
+
+    <TextView
+        android:id="@+id/tvScorecardBowlName"
+        style="@style/HighContrastText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.3"
+        tools:text="Bowler Name"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView android:id="@+id/tvScorecardBowlO" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" tools:text="0.0" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="13sp" android:gravity="center" />
+    <TextView android:id="@+id/tvScorecardBowlM" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" tools:text="0" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="13sp" android:gravity="center" />
+    <TextView android:id="@+id/tvScorecardBowlR" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" tools:text="0" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="13sp" android:gravity="center" />
+    <TextView android:id="@+id/tvScorecardBowlW" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" tools:text="0" android:textColor="?attr/colorOnSurface" android:textSize="14sp" android:textStyle="bold" android:gravity="center" />
+    <TextView android:id="@+id/tvScorecardBowlNB" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" tools:text="0" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="13sp" android:gravity="center" />
+    <TextView android:id="@+id/tvScorecardBowlWD" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" tools:text="0" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="13sp" android:gravity="center" />
+    <TextView android:id="@+id/tvScorecardBowlEco" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.1" tools:text="0.00" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="13sp" android:gravity="center" />
+
+</LinearLayout>

@@ -1,0 +1,7 @@
+- [ ] Fix Live Footer (Recent Balls) latency and logic
+    - [ ] Update `MainActivity.kt` to push `overBallsList` immediately
+    - [ ] Refine `reconstructCurrentOverState` in `MainActivity.kt`
+    - [ ] Ensure `undoBall` triggers immediate UI sync
+    - [ ] Verify fix for "one-ball-late" display issue
+- [ ] Verify resumption logic for footer
+- [ ] Verify undo logic for footer

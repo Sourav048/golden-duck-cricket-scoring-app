@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="28dp"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/tvInningsCompleteTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="FIRST INNINGS COMPLETE"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textAllCaps="true"
+        android:textColor="?attr/colorPrimary"
+        android:gravity="center" />
+
+    <TextView
+        android:id="@+id/tvInningsCompleteScore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Red Team scored 46/0 Runs in 3 Overs"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginTop="16dp"
+        android:textColor="?attr/colorOnSurface"
+        android:alpha="0.9" />
+
+    <TextView
+        android:id="@+id/tvInningsCompleteTarget"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Target: 47 Runs in 18 Balls"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginTop="12dp"
+        android:textColor="?attr/colorOnSurface" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnNextInningsDialog"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="Next Innings"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:cornerRadius="30dp"
+        android:layout_marginTop="32dp"
+        style="@style/Widget.Material3.Button" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnDismissDialog"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dismiss"
+        android:layout_marginTop="8dp"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+</LinearLayout>
