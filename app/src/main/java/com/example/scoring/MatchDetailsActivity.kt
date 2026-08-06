@@ -198,14 +198,15 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
 
     override fun updateUI() {
         for (f in supportFragmentManager.fragments) {
-            if (f is InningsScorecardFragment) f.updateUI()
-            if (f is MatchInfoFragment) f.updateUI(match)
-            if (f is CommentaryFragment) f.updateUI()
-            if (f is MatchSummaryFragment) {
-                f.setData(matchEntity, statsEntities?.toMutableList())
+            when (f) {
+                is InningsScorecardFragment -> f.updateUI()
+                is ScorecardFragment -> f.updateUI()
+                is MatchInfoFragment -> f.updateUI(match)
+                is CommentaryFragment -> f.updateUI()
+                is MatchSummaryFragment -> f.setData(matchEntity, statsEntities?.toMutableList())
+                is OversFragment -> f.updateUI()
+                is SquadFragment -> f.updateUI()
             }
-            if (f is OversFragment) f.updateUI()
-            if (f is SquadFragment) f.updateUI()
         }
     }
 

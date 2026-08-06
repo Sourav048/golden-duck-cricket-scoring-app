@@ -20,13 +20,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    applicationVariants.all {
-        outputs.all {
-            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output.outputFileName = "Golden_Duck_v${defaultConfig.versionName}.apk"
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = true

@@ -61,6 +61,10 @@ class OversFragment : Fragment() {
 
     fun updateUI() {
         if (!isAdded) return
+        
+        // Ensure team tabs are set up if they weren't (e.g. after configuration change)
+        setupTeamTabs()
+
         childFragmentManager.fragments.forEach {
             if (it is TeamOversListFragment) it.updateUI()
         }

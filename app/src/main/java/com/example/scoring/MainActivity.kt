@@ -196,6 +196,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
         currentMatchId?.let { outState.putString("matchId", it) }
         outState.putStringArrayList("teamANames", teamANames)
         outState.putStringArrayList("teamBNames", teamBNames)
+        outState.putBoolean("isFinished", isFinished)
+        outState.putBoolean("isAbandoned", isAbandoned)
+        outState.putBoolean("isScorer", isScorer)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -267,6 +270,14 @@ class MainActivity : BaseActivity(), ScoringProvider {
             vm.overBowlerRuns = overBowlerRuns
             vm.overWickets = overWickets
             vm.playerStatCache = playerStatCache
+
+            vm.teamANames = teamANames
+            vm.teamBNames = teamBNames
+            vm.nameToIdMap = nameToIdMap
+            vm.photoMap = photoMap
+            vm.isFinished = isFinished
+            vm.isAbandoned = isAbandoned
+            vm.isScorer = isScorer
         }
     }
 
@@ -296,6 +307,16 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 this.playerStatCache.clear()
                 this.playerStatCache.putAll(vm.playerStatCache)
                 
+                this.teamANames = vm.teamANames
+                this.teamBNames = vm.teamBNames
+                this.nameToIdMap.clear()
+                this.nameToIdMap.putAll(vm.nameToIdMap)
+                this.photoMap.clear()
+                this.photoMap.putAll(vm.photoMap)
+                this.isFinished = vm.isFinished
+                this.isAbandoned = vm.isAbandoned
+                this.isScorer = vm.isScorer
+
                 // Finalize restoration
                 this.currentMatchId = savedInstanceState.getString("matchId")
                 this.teamAName = match?.teamA
@@ -3551,11 +3572,16 @@ class MainActivity : BaseActivity(), ScoringProvider {
             }
         }
 
-        liveFragment?.updateUI(striker, nonStriker, bowler, innings, pshipRuns, pshipBalls)
-        scorecardFragment?.updateUI()
-        commentaryFragment?.updateUI()
-        if (oversFragment?.isAdded == true) oversFragment?.updateUI()
-        squadFragment?.updateUI()
+        for (f in supportFragmentManager.fragments) {
+            when (f) {
+                is LiveScoringFragment -> f.updateUI(striker, nonStriker, bowler, innings, pshipRuns, pshipBalls)
+                is ScorecardFragment -> f.updateUI()
+                is CommentaryFragment -> f.updateUI()
+                is OversFragment -> f.updateUI()
+                is SquadFragment -> f.updateUI()
+                is MatchInfoFragment -> f.updateUI(match)
+            }
+        }
         
         viewModel?.let {
             it.striker.value = striker

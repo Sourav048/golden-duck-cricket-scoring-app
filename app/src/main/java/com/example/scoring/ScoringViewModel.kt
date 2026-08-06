@@ -19,6 +19,13 @@ class ScoringViewModel : ViewModel() {
     var overRuns: Int = 0
     var overBowlerRuns: Int = 0
     var overWickets: Int = 0
+    var teamANames: ArrayList<String?>? = null
+    var teamBNames: ArrayList<String?>? = null
+    var nameToIdMap: MutableMap<String?, String?> = mutableMapOf()
+    var photoMap: MutableMap<String?, String?> = mutableMapOf()
+    var isFinished: Boolean = false
+    var isAbandoned: Boolean = false
+    var isScorer: Boolean = true
     var playerStatCache: MutableMap<String?, Player> = mutableMapOf()
 
     fun update(

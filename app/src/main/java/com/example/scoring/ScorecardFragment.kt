@@ -71,6 +71,10 @@ class ScorecardFragment : Fragment() {
 
     fun updateUI() {
         if (!isAdded) return
+        
+        // Ensure innings tabs are set up if they weren't (e.g. after configuration change)
+        setupInningsTabs()
+
         for (f in childFragmentManager.fragments) {
             if (f is InningsScorecardFragment && f.isAdded) {
                 f.updateUI()
