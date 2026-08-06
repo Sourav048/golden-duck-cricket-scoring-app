@@ -32,7 +32,6 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
     override val nameToIdMap: MutableMap<String?, String?> = HashMap()
     override val photoMap: MutableMap<String?, String?> = HashMap()
     override val commentary: MutableList<CommentaryEntry?> = ArrayList()
-    private var oversFragment: OversFragment? = null
     override val overBallsList: MutableList<String?> = ArrayList()
     override var isScorer: Boolean = false
     override var isFinished: Boolean = false
@@ -154,6 +153,8 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
     }
 
     private fun setupTabs() {
+        if (viewPager?.adapter != null) return
+
         val currentMatch = matchEntity
         val currentStats = statsEntities?.toMutableList()
 
@@ -164,13 +165,17 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                     1 -> MatchSummaryFragment().apply { setData(currentMatch, currentStats) }
                     2 -> ScorecardFragment()
                     3 -> CommentaryFragment()
-                    4 -> OversFragment().also { oversFragment = it }
+                    4 -> OversFragment()
                     else -> SquadFragment()
                 }
             }
             override fun getItemCount(): Int = 6
+            override fun getItemId(position: Int): Long = position.toLong()
+            override fun containsItem(itemId: Long): Boolean = itemId in 0..5
         }
 
+        viewPager?.offscreenPageLimit = 5
+        
         val tabs = tabLayout ?: return
         val pager = viewPager ?: return
 
@@ -185,8 +190,10 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
             }
         }.attach()
         
-        // Make "Summary" (index 1) the default tab
-        viewPager?.setCurrentItem(1, false)
+        // Make "Summary" (index 1) the default tab if starting fresh
+        if (viewPager?.currentItem == 0) {
+            viewPager?.setCurrentItem(1, false)
+        }
     }
 
     override fun updateUI() {

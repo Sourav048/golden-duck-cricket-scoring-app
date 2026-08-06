@@ -10,6 +10,16 @@ class ScoringViewModel : ViewModel() {
     val bowler = MutableLiveData<Player?>()
     val commentary = MutableLiveData<MutableList<CommentaryEntry?>?>()
     val overBalls = MutableLiveData<MutableList<String?>?>()
+    
+    // Resumption state for Config Changes
+    var nextBatsmanIdx: Int = 0
+    var teamABatting: Boolean = false
+    var isFreeHitActive: Boolean = false
+    var currentBowlerInSpell: String? = null
+    var overRuns: Int = 0
+    var overBowlerRuns: Int = 0
+    var overWickets: Int = 0
+    var playerStatCache: MutableMap<String?, Player> = mutableMapOf()
 
     fun update(
         m: Match?,

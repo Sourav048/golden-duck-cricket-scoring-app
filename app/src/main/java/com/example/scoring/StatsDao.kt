@@ -58,10 +58,10 @@ interface StatsDao {
     @Query("SELECT s.playerId, s.playerName, p.photoUri, (MAX(s.wicketsTaken * 1000 + (1000 - s.runsConceded))) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id GROUP BY s.playerId, s.playerName ORDER BY total DESC LIMIT 10")
     fun getBestBowlingInnings(): List<PlayerTotalStat?>?
 
-    @Query("SELECT s.playerId, s.playerName, p.photoUri, CAST((SUM(s.runsConceded) * 10000.0 / SUM(s.wicketsTaken)) AS INTEGER) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id GROUP BY s.playerId, s.playerName HAVING SUM(s.wicketsTaken) > 0 ORDER BY total ASC LIMIT 10")
+    @Query("SELECT s.playerId, s.playerName, p.photoUri, CAST((SUM(s.runsConceded) * 100.0 / SUM(s.wicketsTaken)) AS INTEGER) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id GROUP BY s.playerId, s.playerName HAVING SUM(s.wicketsTaken) >= 3 ORDER BY total ASC LIMIT 10")
     fun getBestBowlingAverage(): List<PlayerTotalStat?>?
 
-    @Query("SELECT s.playerId, s.playerName, p.photoUri, CAST((SUM(s.runsConceded) * 60000.0 / SUM(s.ballsBowled)) AS INTEGER) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id GROUP BY s.playerId, s.playerName HAVING SUM(s.ballsBowled) > 0 ORDER BY total ASC LIMIT 10")
+    @Query("SELECT s.playerId, s.playerName, p.photoUri, CAST((SUM(s.runsConceded) * 600.0 / SUM(s.ballsBowled)) AS INTEGER) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id GROUP BY s.playerId, s.playerName HAVING SUM(s.ballsBowled) > 0 ORDER BY total ASC LIMIT 10")
     fun getBestEconomy(): List<PlayerTotalStat?>?
 
     @Query("SELECT s.playerId, s.playerName, p.photoUri, SUM(s.hattricks) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id GROUP BY s.playerId, s.playerName ORDER BY total DESC LIMIT 10")

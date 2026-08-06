@@ -10,7 +10,7 @@ import java.util.concurrent.Executors
 
 @Database(
     entities = [PlayerEntity::class, MatchEntity::class, PlayerMatchStatEntity::class, DraftMatchEntity::class],
-    version = 2,
+    version = 4,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)

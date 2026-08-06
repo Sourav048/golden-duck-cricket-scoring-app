@@ -32,6 +32,8 @@ class MatchEntity {
     var firstInningsRuns: Int = 0
     @JvmField
     var firstInningsWickets: Int = 0
+    @JvmField
+    var firstInningsRetiredHurtCount: Int = 0
 
     // 2nd innings summary (filled after match ends)
     @JvmField
@@ -40,6 +42,8 @@ class MatchEntity {
     var secondInningsRuns: Int = 0
     @JvmField
     var secondInningsWickets: Int = 0
+    @JvmField
+    var secondInningsRetiredHurtCount: Int = 0
 
     @JvmField
     var playerOfTheMatchName: String? = null
@@ -104,6 +108,12 @@ class MatchEntity {
     var currentBowlerName: String? = null
     var nextBatsmanIdx: Int = 0
     var isTeamABatting: Boolean = false
+
+    @JvmField
+    var strikerEntryTime: Long = 0
+    @JvmField
+    var nonStrikerEntryTime: Long = 0
+
     @JvmField
     var ballsJson1: List<Ball?>? = null
     @JvmField
@@ -156,6 +166,7 @@ class MatchEntity {
 
             Innings(battingTeamName, bowlingTeamName, totalOvers, maxW).also { innings ->
                 revisedOvers?.let { innings.revisedMaxOvers = it }
+                innings.retiredHurtCount = firstInningsRetiredHurtCount
                 innings.balls = ArrayList(ballsJson1?.filterNotNull() ?: emptyList())
                 innings.fallOfWickets = ArrayList(fowJson1?.filterNotNull() ?: emptyList())
                 innings.partnerships = ArrayList(pshipJson1?.filterNotNull() ?: emptyList())
@@ -180,6 +191,7 @@ class MatchEntity {
                 innings.target = i1.totalRuns + 1
                 revisedTarget?.let { innings.revisedTarget = it }
                 revisedOvers?.let { innings.revisedMaxOvers = it }
+                innings.retiredHurtCount = secondInningsRetiredHurtCount
                 innings.balls = ArrayList(ballsJson2?.filterNotNull() ?: emptyList())
                 innings.fallOfWickets = ArrayList(fowJson2?.filterNotNull() ?: emptyList())
                 innings.partnerships = ArrayList(pshipJson2?.filterNotNull() ?: emptyList())
@@ -222,6 +234,7 @@ class MatchEntity {
                 entity.firstInningsTeam = i.battingTeam
                 entity.firstInningsRuns = i.totalRuns
                 entity.firstInningsWickets = i.totalWickets
+                entity.firstInningsRetiredHurtCount = i.retiredHurtCount
                 entity.ballsJson1 = ArrayList(i.balls)
                 entity.fowJson1 = ArrayList(i.fallOfWickets)
                 entity.pshipJson1 = ArrayList(i.partnerships)
@@ -233,6 +246,7 @@ class MatchEntity {
                 entity.secondInningsTeam = i.battingTeam
                 entity.secondInningsRuns = i.totalRuns
                 entity.secondInningsWickets = i.totalWickets
+                entity.secondInningsRetiredHurtCount = i.retiredHurtCount
                 entity.ballsJson2 = ArrayList(i.balls)
                 entity.fowJson2 = ArrayList(i.fallOfWickets)
                 entity.pshipJson2 = ArrayList(i.partnerships)

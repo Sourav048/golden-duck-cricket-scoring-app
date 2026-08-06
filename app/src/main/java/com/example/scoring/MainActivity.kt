@@ -192,6 +192,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        syncToViewModel()
         currentMatchId?.let { outState.putString("matchId", it) }
         outState.putStringArrayList("teamANames", teamANames)
         outState.putStringArrayList("teamBNames", teamBNames)
@@ -217,7 +218,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
         initConfettiColors()
         bindUI()
-        initData()
+        initData(savedInstanceState)
         setupTabs()
     }
 
@@ -250,9 +251,69 @@ class MainActivity : BaseActivity(), ScoringProvider {
         tabLayout = findViewById(R.id.tabLayoutScoring)
     }
 
-    private fun initData() {
-        val intent = intent ?: return
+    private fun syncToViewModel() {
+        viewModel?.let { vm ->
+            vm.match.value = match
+            vm.striker.value = striker
+            vm.nonStriker.value = nonStriker
+            vm.bowler.value = bowler
+            vm.commentary.value = commentary
+            vm.overBalls.value = overBallsList
+            vm.nextBatsmanIdx = nextBatsmanIdx
+            vm.teamABatting = teamABatting
+            vm.isFreeHitActive = isFreeHitActive
+            vm.currentBowlerInSpell = currentBowlerInSpell
+            vm.overRuns = overRuns
+            vm.overBowlerRuns = overBowlerRuns
+            vm.overWickets = overWickets
+            vm.playerStatCache = playerStatCache
+        }
+    }
 
+    private fun initData(savedInstanceState: Bundle?) {
+        // 1. Try restoring from ViewModel (handles config changes like theme/rotation)
+        if (savedInstanceState != null && viewModel?.match?.value != null) {
+            viewModel?.let { vm ->
+                this.match = vm.match.value
+                this.striker = vm.striker.value
+                this.nonStriker = vm.nonStriker.value
+                this.bowler = vm.bowler.value
+                
+                this.commentary.clear()
+                this.commentary.addAll(vm.commentary.value ?: ArrayList())
+                
+                this.overBallsList.clear()
+                this.overBallsList.addAll(vm.overBalls.value ?: ArrayList())
+                
+                this.nextBatsmanIdx = vm.nextBatsmanIdx
+                this.teamABatting = vm.teamABatting
+                this.isFreeHitActive = vm.isFreeHitActive
+                this.currentBowlerInSpell = vm.currentBowlerInSpell
+                this.overRuns = vm.overRuns
+                this.overBowlerRuns = vm.overBowlerRuns
+                this.overWickets = vm.overWickets
+                
+                this.playerStatCache.clear()
+                this.playerStatCache.putAll(vm.playerStatCache)
+                
+                // Finalize restoration
+                this.currentMatchId = savedInstanceState.getString("matchId")
+                this.teamAName = match?.teamA
+                this.teamBName = match?.teamB
+                this.overs = match?.totalOvers ?: 0
+                this.isRuleRunsOnWide = match?.ruleRunsOnWide ?: true
+                this.isRuleFreeHit = match?.ruleFreeHit ?: true
+                this.isRuleRunsOnBye = match?.ruleRunsOnBye ?: true
+                this.isRuleOverthrow = match?.ruleOverthrow ?: true
+                this.ruleEveryPlayerBats = match?.ruleEveryPlayerBats ?: true
+
+                updateUI()
+                return
+            }
+        }
+
+        // 2. Try restoring from saved state (handles theme/rotation if VM was cleared)
+        val intent = intent ?: return
         currentMatchId = intent.getStringExtra("matchId")
         if (currentMatchId != null) {
             resumeMatch(currentMatchId)
@@ -483,16 +544,21 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 for (s in stats) {
                     if (s == null) continue
                     val p = s.toPlayer()
-                    // Crucial: Only current innings players should have a running clock.
-                    // Historical players from the 1st innings should have entryTime cleared.
-                    p.entryTime = 0 
-                    
-                    // Safety check for dismissal info restoration
-                    if (p.isOut && (p.dismissalInfo == "not out" || p.dismissalInfo.isEmpty())) {
+                
+                // Restore entry time from database to keep the clock running correctly
+                if (p.name?.trim() == me.currentStrikerName?.trim()) {
+                    p.entryTime = me.strikerEntryTime
+                } else if (p.name?.trim() == me.currentNonStrikerName?.trim()) {
+                    p.entryTime = me.nonStrikerEntryTime
+                } else {
+                    p.entryTime = 0
+                }
+                            // Safety check for dismissal info restoration
+                    if (p.isOut && (p.dismissalInfo == "not out" || p.dismissalInfo.isNullOrEmpty())) {
                         p.dismissalInfo = "out"
                     }
                     
-                    playerStatCache[p.name!!.trim()] = p
+                    p.name?.trim()?.let { playerStatCache[it] = p }
                 }
 
                 val firstTeam = m.firstInnings?.battingTeam ?: m.teamA
@@ -1035,6 +1101,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
     }
 
     private fun recalculateMatchState() {
+        syncToViewModel()
         viewModel?.let {
             it.updateScore(match?.currentInnings?.totalRuns ?: 0, match?.currentInnings?.totalWickets ?: 0)
             it.updateCommentary(commentary)
@@ -1244,6 +1311,14 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val curInn = match?.currentInnings
         curInn?.addCommentary(curInn.oversDisplay, "MATCH OVER", null, "FACT")
         curInn?.addCommentary(curInn.oversDisplay, result, null, "FACT")
+
+        val now = System.currentTimeMillis()
+        val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val sdfDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+        val dateStr = sdfDate.format(Date(now)).uppercase()
+        val timeStr = sdfTime.format(Date(now))
+        val endMsg = "Match Ended at $timeStr on $dateStr"
+        curInn?.addCommentary(curInn.oversDisplay, endMsg, null, "FACT")
         
         syncUnifiedCommentary()
 
@@ -2315,6 +2390,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
     }
 
     private fun processRunOutWithRuns(runs: Int, bt: BallType) {
+        val originalStriker = striker
         if (runs % 2 != 0) swapBatsmen()
 
         val onFielderSelected: (Player, String, String) -> Unit = { outP, thrower, breaker ->
@@ -2341,7 +2417,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     else -> null
                 }
                 val manualBat = if (bt == BallType.NORMAL) runs else 0
-                commitWicket(outP, striker, dStr, bt, runs, true, fielderForRecord, manualBat, isStrikerEnd)
+                commitWicket(outP, originalStriker, dStr, bt, runs, true, fielderForRecord, manualBat, isStrikerEnd)
             }
 
             if (nonStriker == null) {
@@ -2442,12 +2518,13 @@ class MainActivity : BaseActivity(), ScoringProvider {
     }
 
     private fun processObstructingFieldWithRuns(runs: Int) {
+        val originalStriker = striker
         if (runs % 2 != 0) swapBatsmen()
 
         if (nonStriker == null) {
             // Single batter mode: Striker is the only one who can be out at Striker's End
             striker?.let { outP ->
-                commitWicket(outP, striker, "Obstructed the field", BallType.NORMAL, runs, false, null, runs, true)
+                commitWicket(outP, originalStriker, "Obstructed the field", BallType.NORMAL, runs, false, null, runs, true)
             }
         } else {
             showOutPlayerSelection("Who obstructed the field?") { outP ->
@@ -2464,7 +2541,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                             swapBatsmen()
                         }
                         
-                        commitWicket(outP, striker, "Obstructed the field", BallType.NORMAL, runs, false, null, runs, isStrikerEnd)
+                        commitWicket(outP, originalStriker, "Obstructed the field", BallType.NORMAL, runs, false, null, runs, isStrikerEnd)
                     }
                     setCancelable(false)
                 }
@@ -2692,12 +2769,21 @@ class MainActivity : BaseActivity(), ScoringProvider {
     }
 
     private fun showOutPlayerSelection(title: String, callback: (Player?) -> Unit) {
-        val items = arrayOf("${striker?.name} (Striker)", "${nonStriker?.name} (Non-Striker)")
+        val activePlayers = listOfNotNull(striker, nonStriker)
+        if (activePlayers.isEmpty()) {
+            callback(null)
+            return
+        }
+
+        val items = activePlayers.map { p ->
+            val role = if (p == striker) "(Striker)" else "(Non-Striker)"
+            "${p.name} $role"
+        }.toTypedArray()
 
         showDynamicDialog {
             setTitle(title)
-            setItems(items) { d, w ->
-                callback(if (w == 0) striker else nonStriker)
+            setItems(items) { _, w ->
+                callback(activePlayers[w])
             }
         }
     }
@@ -2774,6 +2860,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 } else {
                     val p = getPlayerFromCache(selection)
                     if (p?.dismissalInfo == "retired hurt") {
+                        match?.currentInnings?.playerReturned(p)
                         p.dismissalInfo = "not out"
                     }
                     p?.entryTime = System.currentTimeMillis()
@@ -2794,6 +2881,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
     }
 
     override fun showRetiredPlayerSelection(isHurt: Boolean) {
+        val activePlayers = listOfNotNull(striker, nonStriker)
+        if (activePlayers.size == 1) {
+            commitRetired(activePlayers[0], isHurt)
+            return
+        }
+
         val title = if (isHurt) "Who is retired hurt?" else "Who is retired out?"
         showOutPlayerSelection(title) { outP ->
             if (outP == null) return@showOutPlayerSelection
@@ -2807,7 +2900,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val msg = if (isHurt) getString(R.string.retired_hurt_msg, p.name) else getString(R.string.retired_out_msg, p.name)
 
         // Record the event in the Innings (adds dummy ball for Undo)
-        match?.currentInnings?.recordRetired(p, !isHurt, info, striker?.name, nonStriker?.name)
+        // Pass the current bowler's name to avoid the "FIELD" bowler bug
+        match?.currentInnings?.recordRetired(p, !isHurt, info, striker?.name, nonStriker?.name, bowler?.name)
         
         // Add commentary
         match?.currentInnings?.addCommentary("FACT", msg, null, "FACT")
@@ -2816,8 +2910,22 @@ class MainActivity : BaseActivity(), ScoringProvider {
         // Clear the slot
         if (wasStriker) striker = null else nonStriker = null
         
-        showBatsmanSelectionDialog(wasStriker)
         updateUI()
+
+        val battingTeam = if (teamABatting) teamANames else teamBNames
+        val available = battingTeam?.filterNotNull()?.filter { name ->
+            val player = getPlayerFromCache(name)
+            player != null && !player.isOut && name != striker?.name && name != nonStriker?.name
+        } ?: emptyList()
+
+        if (available.isEmpty() && striker == null && nonStriker == null) {
+            // No more batsmen at all -> Trigger completion flow
+            checkInningsCompletion(match?.currentInnings!!)
+        } else {
+            showBatsmanSelectionDialog(wasStriker)
+        }
+        
+        saveMatchToDatabase(isFinished, isAbandoned, true)
     }
 
     override fun handlePenaltyFlow() {
@@ -3239,6 +3347,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
             this.isTeamABatting = this@MainActivity.teamABatting
             this.isFreeHitActive = this@MainActivity.isFreeHitActive
             this.currentBowlerInSpell = this@MainActivity.currentBowlerInSpell
+            this.strikerEntryTime = striker?.entryTime ?: 0
+            this.nonStrikerEntryTime = nonStriker?.entryTime ?: 0
         }
         val now = System.currentTimeMillis()
         val finalStatsList = mutableListOf<Player>()

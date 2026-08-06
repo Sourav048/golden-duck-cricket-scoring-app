@@ -30,6 +30,8 @@ class Innings {
     var legByes: Int = 0
     @JvmField
     var penalties: Int = 0
+    @JvmField
+    var retiredHurtCount: Int = 0
 
     @JvmField
     var revisedTarget: Int? = null
@@ -69,11 +71,14 @@ class Innings {
         fallOfWickets.add(FowEvent(p.name, totalRuns, totalWickets, this.oversDisplay))
     }
 
-    fun recordRetired(p: Player, isWicket: Boolean, info: String, sName: String?, nsName: String?) {
+    fun recordRetired(p: Player, isWicket: Boolean, info: String, sName: String?, nsName: String?, bName: String? = null) {
+        val now = System.currentTimeMillis()
         if (isWicket) totalWickets++
+        else if (info == "retired hurt") retiredHurtCount++
+        
         p.isOut = isWicket
         p.dismissalInfo = info
-        p.exitTime = System.currentTimeMillis()
+        p.exitTime = now
         if (p.entryTime > 0) {
             p.minutesPlayed += ((p.exitTime - p.entryTime) / 1000).toInt()
             p.entryTime = 0
@@ -84,11 +89,19 @@ class Innings {
         }
 
         // Add dummy ball record for Undo targeting
-        val ball = Ball(0, BallType.PENALTY, isWicket, sName, "FIELD", 0, nsName).apply {
+        // Use the provided bowler name or "RETIRED" to avoid "FIELD" creation
+        val actualBowler = bName ?: "RETIRED"
+        val ball = Ball(0, BallType.PENALTY, isWicket, sName, actualBowler, 0, nsName).apply {
             this.outPlayerName = p.name
             this.dismissalInfo = info
         }
         balls.add(ball)
+    }
+
+    fun playerReturned(p: Player?) {
+        if (p?.dismissalInfo == "retired hurt" && retiredHurtCount > 0) {
+            retiredHurtCount--
+        }
     }
 
     val currentPshipRuns: Int
@@ -117,9 +130,13 @@ class Innings {
         byes = 0
         legByes = 0
         penalties = 0
+        retiredHurtCount = 0
         for (b in balls) {
             totalRuns += b.runs
             if (b.isWicket) totalWickets++
+            if (b.dismissalInfo == "retired hurt") {
+                retiredHurtCount++
+            }
             when (b.type) {
                 BallType.NORMAL -> {
                     legalBalls++
@@ -154,6 +171,9 @@ class Innings {
             revisedTarget?.let { rt -> if (totalRuns >= rt) return true }
 
             if (maxWickets > 0 && totalWickets >= maxWickets) {
+                // If there are Retired Hurt players who could return, the innings is not complete 
+                // until they either return and get out, or the user decides otherwise.
+                if (retiredHurtCount > 0) return false
                 return true
             }
 
@@ -399,6 +419,8 @@ class Innings {
 
         if (last.isWicket || last.dismissalInfo?.contains("retired") == true) {
             if (last.isWicket && totalWickets > 0) totalWickets--
+            else if (last.dismissalInfo == "retired hurt" && retiredHurtCount > 0) retiredHurtCount--
+            
             val actualOut = outPlayer ?: facingBatsman
             actualOut.isOut = false
             actualOut.dismissalInfo = "not out"

@@ -69,7 +69,8 @@ class TeamOversListFragment : Fragment() {
         var runsAtEnd = 0
         var wicketsAtEnd = 0
 
-        for (ball in innings.balls) {
+        for (i in innings.balls.indices) {
+            val ball = innings.balls[i]
             currentOverBalls.add(ball)
             runsAtEnd += ball.runs
             if (ball.isWicket) wicketsAtEnd++
@@ -83,7 +84,7 @@ class TeamOversListFragment : Fragment() {
                     OverSummary(
                         overNum = summaries.size + 1,
                         scoreAtEnd = "$runsAtEnd-$wicketsAtEnd",
-                        bowlerName = ball.bowlerName ?: "Bowler",
+                        bowlerName = getActualBowler(innings, i),
                         batterNames = extractBatterNames(currentOverBalls),
                         balls = currentOverBalls.toList(),
                         totalOverRuns = calculateOverRuns(currentOverBalls)
@@ -100,7 +101,7 @@ class TeamOversListFragment : Fragment() {
                 OverSummary(
                     overNum = summaries.size + 1,
                     scoreAtEnd = "$runsAtEnd-$wicketsAtEnd",
-                    bowlerName = currentOverBalls.last().bowlerName ?: "Bowler",
+                    bowlerName = getActualBowler(innings, innings.balls.size - 1),
                     batterNames = extractBatterNames(currentOverBalls),
                     balls = currentOverBalls.toList(),
                     totalOverRuns = calculateOverRuns(currentOverBalls),
@@ -110,6 +111,32 @@ class TeamOversListFragment : Fragment() {
         }
 
         return summaries
+    }
+
+    private fun getActualBowler(innings: Innings, currentIndex: Int): String {
+        // Look at the ball at currentIndex. If it's not "FIELD", return it.
+        val currentBall = innings.balls.getOrNull(currentIndex)
+        if (currentBall != null && currentBall.bowlerName != "FIELD" && currentBall.bowlerName != "PENALTY") {
+            return currentBall.bowlerName ?: "Bowler"
+        }
+        
+        // If it is "FIELD", search backwards for the most recent valid bowler name in this innings
+        for (j in currentIndex downTo 0) {
+            val b = innings.balls[j]
+            if (b.bowlerName != null && b.bowlerName != "FIELD" && b.bowlerName != "PENALTY") {
+                return b.bowlerName!!
+            }
+        }
+        
+        // If still not found, search forwards (in case retirement happened before first ball)
+        for (j in currentIndex until innings.balls.size) {
+            val b = innings.balls[j]
+            if (b.bowlerName != null && b.bowlerName != "FIELD" && b.bowlerName != "PENALTY") {
+                return b.bowlerName!!
+            }
+        }
+
+        return currentBall?.bowlerName ?: "Bowler"
     }
 
     private fun extractBatterNames(balls: List<Ball>): String {
@@ -169,7 +196,7 @@ class TeamOversListFragment : Fragment() {
             }
 
             val bgColor = when {
-                b.isWicket -> "#B71C1C".toColorInt()
+                b.isWicket || b.dismissalInfo?.contains("retired", ignoreCase = true) == true -> "#B71C1C".toColorInt()
                 b.runs == 6 -> "#2E7D32".toColorInt()
                 b.runs == 4 -> "#EF6C00".toColorInt()
                 b.type == BallType.WIDE -> "#FFB300".toColorInt()
@@ -191,6 +218,8 @@ class TeamOversListFragment : Fragment() {
                 val widePenalty = if (match?.ruleRunsOnWide == false) 0 else 1
                 
                 text = when {
+                    b.dismissalInfo == "retired hurt" -> "RH"
+                    b.dismissalInfo == "retired out" -> "RO"
                     b.isWicket -> {
                         val runsRan = when (b.type) {
                             BallType.WIDE -> b.runs - widePenalty
