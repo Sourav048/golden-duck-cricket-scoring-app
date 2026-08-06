@@ -14,10 +14,17 @@ android {
         applicationId = "com.example.scoring"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    applicationVariants.all {
+        outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "Golden_Duck_v${defaultConfig.versionName}.apk"
+        }
     }
 
     buildTypes {
