@@ -79,7 +79,7 @@ interface StatsDao {
     @Query("SELECT s.playerId, s.playerName, p.photoUri, SUM(s.sixesConceded) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id WHERE s.playerName NOT IN ('FIELD', 'PENALTY', 'RETIRED') GROUP BY s.playerId, s.playerName ORDER BY total DESC LIMIT 10")
     fun getMostSixesConceded(): List<PlayerTotalStat?>?
 
-    @Query("SELECT s.playerId, s.playerName, p.photoUri, (SUM(s.runsScored) + SUM(s.sixes)*2 + SUM(s.fours) + SUM(s.wicketsTaken)*25 + SUM(s.maidens)*15 + SUM(s.dotBalls)*2) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id WHERE s.playerName NOT IN ('FIELD', 'PENALTY', 'RETIRED') GROUP BY s.playerId, s.playerName HAVING total > 0 ORDER BY total DESC LIMIT 10")
+    @Query("SELECT s.playerId, s.playerName, p.photoUri, (SUM(s.runsScored) + SUM(s.sixes)*2 + SUM(s.fours) + SUM(s.wicketsTaken)*25 + SUM(s.maidens)*15 + SUM(s.dotBalls)*2 + SUM(s.catches)*8 + SUM(s.stumpings)*12 + SUM(s.runOuts)*12) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id WHERE s.playerName NOT IN ('FIELD', 'PENALTY', 'RETIRED') GROUP BY s.playerId, s.playerName HAVING total > 0 ORDER BY total DESC LIMIT 10")
     fun getOverallRankings(): List<PlayerTotalStat?>?
 
     @Query("SELECT s.playerId, s.playerName, p.photoUri, (SUM(s.runsScored) + SUM(s.sixes)*2 + SUM(s.fours)) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id WHERE s.playerName NOT IN ('FIELD', 'PENALTY', 'RETIRED') GROUP BY s.playerId, s.playerName HAVING total > 0 ORDER BY total DESC LIMIT 10")
@@ -87,6 +87,7 @@ interface StatsDao {
 
     @Query("SELECT s.playerId, s.playerName, p.photoUri, (SUM(s.wicketsTaken)*25 + SUM(s.maidens)*15 + SUM(s.dotBalls)*2) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id WHERE s.playerName NOT IN ('FIELD', 'PENALTY', 'RETIRED') GROUP BY s.playerId, s.playerName HAVING total > 0 ORDER BY total DESC LIMIT 10")
     fun getBowlingRankings(): List<PlayerTotalStat?>?
+
     @Query("SELECT s.playerId, s.playerName, p.photoUri, SUM(s.catches) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id WHERE s.playerName NOT IN ('FIELD', 'PENALTY', 'RETIRED') GROUP BY s.playerId, s.playerName HAVING total > 0 ORDER BY total DESC LIMIT 10")
     fun getMostCatches(): List<PlayerTotalStat?>?
 
