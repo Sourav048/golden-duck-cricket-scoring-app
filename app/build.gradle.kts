@@ -28,6 +28,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+
+            applicationVariants.all {
+                val variant = this
+                variant.outputs.all {
+                    val output = this as com.android.build.gradle.internal.api.ApkVariantOutputImpl
+                    output.outputFileName = "Golden_Duck_v${variant.versionName}.apk"
+                }
+            }
         }
 
         debug {
