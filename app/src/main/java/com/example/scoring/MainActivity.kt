@@ -562,6 +562,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 photoMap.putAll(me.photoMap?.filterKeys { it != null }?.map { it.key!!.trim() to it.value }?.toMap() ?: emptyMap())
                 nameToIdMap.putAll(me.nameToIdMap?.filterKeys { it != null }?.map { it.key!!.trim() to it.value }?.toMap() ?: emptyMap())
 
+                this.playerStatCache.clear()
                 for (s in stats) {
                     if (s == null) continue
                     val p = s.toPlayer()

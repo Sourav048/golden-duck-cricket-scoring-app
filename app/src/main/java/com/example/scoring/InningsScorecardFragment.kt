@@ -79,14 +79,11 @@ class InningsScorecardFragment : Fragment() {
             tvTeamName?.text = battingTeamName?.uppercase()
 
             val maxO: Int = innings.revisedMaxOvers ?: innings.maxOvers
-            var scoreStr = String.format(
+            val scoreStr = String.format(
                 Locale.US, "%d/%d (%s/%d Ov)",
                 innings.totalRuns, innings.totalWickets, innings.oversDisplay, maxO,
             )
 
-            if (!isFirstInnings) {
-                scoreStr += " | Target: " + match.target
-            }
             tvScore?.text = scoreStr
 
             val extrasDetail = String.format(

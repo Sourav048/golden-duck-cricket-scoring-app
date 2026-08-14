@@ -55,4 +55,21 @@
         android:background="?attr/colorOutline"
         android:alpha="0.1" />
 
+    <TextView
+        android:id="@+id/tvH2HBadge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="RIVALRY BADGE"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="@color/card_red"
+        android:gravity="center"
+        android:layout_marginTop="12dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
+        android:background="@drawable/rounded_stat_bg_light"
+        android:elevation="2dp"
+        android:letterSpacing="0.02"
+        android:visibility="gone" />
+
 </LinearLayout>

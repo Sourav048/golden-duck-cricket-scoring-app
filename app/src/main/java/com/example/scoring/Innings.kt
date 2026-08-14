@@ -207,8 +207,8 @@ class Innings {
             commentary.removeAt(0)
         }
         // Also remove any FACT that was added immediately before it (like target reminder)
-        if (commentary.isNotEmpty() && commentary[0]?.type == "FACT" && 
-            commentary[0]?.text?.contains("Innings Complete") != true && 
+        if (commentary.isNotEmpty() && commentary[0]?.type == "FACT" &&
+            commentary[0]?.text?.contains("Innings Complete") != true &&
             commentary[0]?.text?.contains("Match Started") != true) {
             commentary.removeAt(0)
         }

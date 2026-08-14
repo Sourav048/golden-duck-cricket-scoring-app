@@ -32,6 +32,8 @@ class PlayerCompareActivity : BaseActivity() {
     var p2: PlayerEntity? = null
     var s1_overall: CareerStats? = null
     var s2_overall: CareerStats? = null
+    var s1_recent: CareerStats? = null
+    var s2_recent: CareerStats? = null
     var h2h_all: H2HStats? = null
 
     private var tvName1: TextView? = null
@@ -156,17 +158,48 @@ class PlayerCompareActivity : BaseActivity() {
         if (player1 == null || player2 == null) return
         
         AppDatabase.ioExecutor.execute {
-            val raw1 = db?.statsDao()?.getStatsByPlayer(player1.id)?.filterNotNull() ?: emptyList()
-            val raw2 = db?.statsDao()?.getStatsByPlayer(player2.id)?.filterNotNull() ?: emptyList()
+            val stats1 = db?.statsDao()?.getStatsByPlayer(player1.id)?.filterNotNull() ?: emptyList()
+            val stats2 = db?.statsDao()?.getStatsByPlayer(player2.id)?.filterNotNull() ?: emptyList()
             
-            s1_overall = CareerStats(raw1.toMutableList())
-            s2_overall = CareerStats(raw2.toMutableList())
+            // Map match dates and details for sorting and clutch logic
+            val matchDao = db?.matchDao()
+            val matchMap = mutableMapOf<String, MatchEntity>()
             
-            val p1MatchIds = raw1.map { it.matchId }.toSet()
-            val shared1 = raw1.filter { raw2.any { r2 -> r2.matchId == it.matchId } }
-            val shared2 = raw2.filter { p1MatchIds.contains(it.matchId) }
+            val allSharedMatchIds = (stats1.map { it.matchId } + stats2.map { it.matchId }).filterNotNull().distinct()
+            for (mId in allSharedMatchIds) {
+                matchDao?.getMatchById(mId)?.let { matchMap[mId] = it }
+            }
             
-            h2h_all = H2HStats(shared1.toMutableList(), shared2.toMutableList())
+            fun getRecentStats(playerStats: List<PlayerMatchStatEntity>): CareerStats {
+                val sorted = playerStats.sortedByDescending { ps ->
+                    matchMap[ps.matchId]?.playedAt ?: 0L
+                }
+                return CareerStats(sorted.take(5).toMutableList(), matchMap)
+            }
+
+            s1_overall = CareerStats(stats1.toMutableList(), matchMap)
+            s2_overall = CareerStats(stats2.toMutableList(), matchMap)
+            s1_recent = getRecentStats(stats1)
+            s2_recent = getRecentStats(stats2)
+            
+            // Find shared matches where they were on OPPOSITE teams
+            val oppositionMatches = mutableListOf<Pair<PlayerMatchStatEntity, PlayerMatchStatEntity>>()
+            val sharedMatchIds = stats1.map { it.matchId }.intersect(stats2.map { it.matchId }.toSet())
+            
+            val matchEntities = mutableListOf<MatchEntity>()
+            
+            for (mId in sharedMatchIds) {
+                if (mId == null) continue
+                val s1 = stats1.find { it.matchId == mId }
+                val s2 = stats2.find { it.matchId == mId }
+                
+                if (s1 != null && s2 != null && s1.teamName != s2.teamName) {
+                    oppositionMatches.add(s1 to s2)
+                    matchMap[mId]?.let { matchEntities.add(it) }
+                }
+            }
+            
+            h2h_all = H2HStats(oppositionMatches, matchEntities, player1.name ?: "", player2.name ?: "")
             
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
@@ -234,7 +267,7 @@ class PlayerCompareActivity : BaseActivity() {
         container.addView(row)
     }
 
-    class CareerStats internal constructor(stats: MutableList<PlayerMatchStatEntity>) {
+    class CareerStats internal constructor(stats: MutableList<PlayerMatchStatEntity>, matchMap: Map<String, MatchEntity>? = null) {
         var matches: Int
         var batInns: Int = 0
         var runs: Int = 0
@@ -263,12 +296,19 @@ class PlayerCompareActivity : BaseActivity() {
         var eco: Double
         var bAvg: Double
         var bSR: Double
+        var boundaryPct: Double
+        var settingAvg: Double = 0.0
+        var chasingAvg: Double = 0.0
 
         init {
             val uniqueMatchIds = mutableSetOf<String?>()
             var bBalls = 0
             var bowlBalls = 0
             var rConceded = 0
+            
+            var sRuns = 0; var sOuts = 0
+            var cRuns = 0; var cOuts = 0
+
             for (s in stats) {
                 uniqueMatchIds.add(s.matchId)
                 if (s.runsScored > 0 || s.ballsFaced > 0 || s.isOut) {
@@ -280,6 +320,18 @@ class PlayerCompareActivity : BaseActivity() {
                     if (!s.isOut) no++
                     if (s.runsScored > highest) highest = s.runsScored
                     if (s.runsScored >= 100) f100++ else if (s.runsScored >= 80) f80++ else if (s.runsScored >= 50) f50++ else if (s.runsScored >= 30) f30++
+                
+                    // "Clutch" calculation (Setting vs Chasing)
+                    val m = matchMap?.get(s.matchId)
+                    if (m != null) {
+                        if (s.teamName == m.secondInningsTeam) {
+                            cRuns += s.runsScored
+                            if (s.isOut) cOuts++
+                        } else {
+                            sRuns += s.runsScored
+                            if (s.isOut) sOuts++
+                        }
+                    }
                 }
                 if (s.ballsBowled > 0) {
                     bowlInns++
@@ -304,83 +356,126 @@ class PlayerCompareActivity : BaseActivity() {
             eco = if (bowlBalls > 0) (rConceded.toDouble() / bowlBalls) * 6.0 else 0.0
             bAvg = if (wickets > 0) rConceded.toDouble() / wickets else 0.0
             bSR = if (wickets > 0) bowlBalls.toDouble() / wickets else 0.0
+            boundaryPct = if (runs > 0) ((fours * 4 + sixes * 6).toDouble() / runs) * 100.0 else 0.0
+            
+            settingAvg = if (sOuts > 0) sRuns.toDouble() / sOuts else sRuns.toDouble()
+            chasingAvg = if (cOuts > 0) cRuns.toDouble() / cOuts else cRuns.toDouble()
         }
     }
 
     class H2HStats internal constructor(
-        p1shared: MutableList<PlayerMatchStatEntity>,
-        p2shared: MutableList<PlayerMatchStatEntity>
+        oppositionMatches: List<Pair<PlayerMatchStatEntity, PlayerMatchStatEntity>>,
+        matchEntities: List<MatchEntity>,
+        name1: String,
+        name2: String
     ) {
-        var sharedInns: Int
-        var r1: Int = 0
-        var bb1: Int = 0
-        var w1: Int = 0
-        var rc1: Int = 0
-        var c1: Int = 0
-        var s1: Int = 0
-        var ro1: Int = 0
-        var r2: Int = 0
-        var bb2: Int = 0
-        var w2: Int = 0
-        var rc2: Int = 0
-        var c2: Int = 0
-        var s2: Int = 0
-        var ro2: Int = 0
-        var bf1: Int = 0
-        var bf2: Int = 0
-        var sr1: Double
-        var eco1: Double
-        var avg1: Double
-        var bsr1: Double
-        var sr2: Double
-        var eco2: Double
-        var avg2: Double
-        var bsr2: Double
+        var sharedMatches: Int = oppositionMatches.size
+        var p1Wins: Int = 0
+        var p2Wins: Int = 0
+        
+        // --- MATCHUP 1: P1 Batting vs P2 Bowling ---
+        var r1v2 = 0      // P1 Runs off P2
+        var b1v2 = 0      // P1 Balls faced from P2
+        var out1by2 = 0   // P1 Dismissals by P2
+        var sr1v2 = 0.0
+        var avg1v2 = 0.0
+        var eco2v1 = 0.0  // P2 Economy against P1
+        var bsr2v1 = 0.0  // P2 Bowling SR against P1
+
+        // --- MATCHUP 2: P2 Batting vs P1 Bowling ---
+        var r2v1 = 0      // P2 Runs off P1
+        var b2v1 = 0      // P2 Balls faced from P1
+        var out2by1 = 0   // P2 Dismissals by P1
+        var sr2v1 = 0.0
+        var avg2v1 = 0.0
+        var eco1v2 = 0.0  // P1 Economy against P2
+        var bsr1v2 = 0.0  // P1 Bowling SR against P2
+        
+        var catches1of2 = 0; var ro1of2 = 0; var stumps1of2 = 0
+        var catches2of1 = 0; var ro2of1 = 0; var stumps2of1 = 0
 
         init {
-            sharedInns = p1shared.size
-            var i1_bi = 0
-            var i1_no = 0
-            var i2_bi = 0
-            var i2_no = 0
-            for (i in 0 until sharedInns) {
-                val s1obj = p1shared[i]
-                val s2obj = p2shared[i]
-                r1 += s1obj.runsScored
-                bf1 += s1obj.ballsFaced
-                if (s1obj.runsScored > 0 || s1obj.ballsFaced > 0 || s1obj.isOut) {
-                    i1_bi++
-                    if (!s1obj.isOut) i1_no++
-                }
-                bb1 += s1obj.ballsBowled
-                w1 += s1obj.wicketsTaken
-                rc1 += s1obj.runsConceded
-                c1 += s1obj.catches
-                s1 += s1obj.stumpings
-                ro1 += s1obj.runOuts
+            val n1 = name1.trim().lowercase()
+            val n2 = name2.trim().lowercase()
 
-                r2 += s2obj.runsScored
-                bf2 += s2obj.ballsFaced
-                if (s2obj.runsScored > 0 || s2obj.ballsFaced > 0 || s2obj.isOut) {
-                    i2_bi++
-                    if (!s2obj.isOut) i2_no++
+            for (pair in oppositionMatches) {
+                val s1Obj = pair.first
+                val s2Obj = pair.second
+                val me = matchEntities.find { it.id == s1Obj.matchId } ?: continue
+
+                // 1. Team Victory Count
+                val resultText = me.result?.uppercase() ?: ""
+                val t1Name = s1Obj.teamName?.uppercase() ?: ""
+                val t2Name = s2Obj.teamName?.uppercase() ?: ""
+                
+                if (t1Name.isNotEmpty() && resultText.contains("$t1Name WON")) p1Wins++
+                else if (t2Name.isNotEmpty() && resultText.contains("$t2Name WON")) p2Wins++
+
+                // 2. Ball-by-Ball Interaction Analysis
+                val allBalls = mutableListOf<Ball>()
+                me.ballsJson1?.let { allBalls.addAll(it.filterNotNull()) }
+                me.ballsJson2?.let { allBalls.addAll(it.filterNotNull()) }
+
+                for (ball in allBalls) {
+                    val bat = ball.batsmanName?.trim()?.lowercase() ?: ""
+                    val bowl = ball.bowlerName?.trim()?.lowercase() ?: ""
+                    val out = ball.outPlayerName?.trim()?.lowercase() ?: ""
+                    val fielders = ball.fielderName?.trim()?.lowercase()?.split("/")?.map { it.trim() } ?: emptyList()
+                    val info = ball.dismissalInfo?.lowercase() ?: ""
+
+                    // DUEL 1: P1 Batting vs P2 Bowling
+                    if (bat == n1 && bowl == n2) {
+                        r1v2 += ball.batRuns
+                        if (ball.type != BallType.WIDE) b1v2++
+                        if (ball.isWicket && out == n1) {
+                            if (!info.contains("run out") && !info.contains("obstructing")) out1by2++
+                        }
+                    }
+
+                    // DUEL 2: P2 Batting vs P1 Bowling
+                    if (bat == n2 && bowl == n1) {
+                        r2v1 += ball.batRuns
+                        if (ball.type != BallType.WIDE) b2v1++
+                        if (ball.isWicket && out == n2) {
+                            if (!info.contains("run out") && !info.contains("obstructing")) out2by1++
+                        }
+                    }
+
+                    // Fielding Interactions
+                    if (ball.isWicket) {
+                        // Successes for P1 against P2
+                        if (out == n2) {
+                            if (fielders.contains(n1)) {
+                                if (info.contains("catch") || info.startsWith("c ")) catches1of2++
+                                if (info.contains("run out")) ro1of2++
+                                if (info.contains("st ") || info.contains("stumped")) stumps1of2++
+                            }
+                            if (bowl == n1 && info.contains("c & b")) catches1of2++
+                        }
+                        
+                        // Successes for P2 against P1
+                        if (out == n1) {
+                            if (fielders.contains(n2)) {
+                                if (info.contains("catch") || info.startsWith("c ")) catches2of1++
+                                if (info.contains("run out")) ro2of1++
+                                if (info.contains("st ") || info.contains("stumped")) stumps2of1++
+                            }
+                            if (bowl == n2 && info.contains("c & b")) catches2of1++
+                        }
+                    }
                 }
-                bb2 += s2obj.ballsBowled
-                w2 += s2obj.wicketsTaken
-                rc2 += s2obj.runsConceded
-                c2 += s2obj.catches
-                s2 += s2obj.stumpings
-                ro2 += s2obj.runOuts
             }
-            sr1 = if (bf1 > 0) (r1.toDouble() / bf1) * 100 else 0.0
-            eco1 = if (bb1 > 0) rc1.toDouble() / bb1 * 6.0 else 0.0
-            avg1 = if (i1_bi - i1_no > 0) r1.toDouble() / (i1_bi - i1_no) else r1.toDouble()
-            bsr1 = if (w1 > 0) bb1.toDouble() / w1 else 0.0
 
-            sr2 = if (bf2 > 0) (r2.toDouble() / bf2) * 100 else 0.0
-            eco2 = if (bb2 > 0) rc2.toDouble() / bb2 * 6.0 else 0.0
-            avg2 = if (i2_bi - i2_no > 0) r2.toDouble() / (i2_bi - i2_no) else r2.toDouble()
-            bsr2 = if (w2 > 0) bb2.toDouble() / w2 else 0.0
+            // Calculate Duels Metrics
+            sr1v2 = if (b1v2 > 0) (r1v2.toDouble() / b1v2) * 100.0 else 0.0
+            avg1v2 = if (out1by2 > 0) r1v2.toDouble() / out1by2 else r1v2.toDouble()
+            eco2v1 = if (b1v2 > 0) (r1v2.toDouble() / b1v2) * 6.0 else 0.0
+            bsr2v1 = if (out1by2 > 0) b1v2.toDouble() / out1by2 else 0.0
+
+            sr2v1 = if (b2v1 > 0) (r2v1.toDouble() / b2v1) * 100.0 else 0.0
+            avg2v1 = if (out2by1 > 0) r2v1.toDouble() / out2by1 else r2v1.toDouble()
+            eco1v2 = if (b2v1 > 0) (r2v1.toDouble() / b2v1) * 6.0 else 0.0
+            bsr1v2 = if (out2by1 > 0) b2v1.toDouble() / out2by1 else 0.0
         }
     }
 }

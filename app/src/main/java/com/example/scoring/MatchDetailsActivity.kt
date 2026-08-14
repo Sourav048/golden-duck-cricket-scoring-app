@@ -83,17 +83,18 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
             runOnUiThread {
                 this.matchEntity = entity
                 this.statsEntities = stats
-                teamANames = ArrayList(entity.teamANames ?: emptyList())
-                teamBNames = ArrayList(entity.teamBNames ?: emptyList())
-                photoMap.putAll(entity.photoMap?.filterKeys { it != null }?.mapKeys { it.key!! } ?: emptyMap())
-                nameToIdMap.putAll(entity.nameToIdMap?.filterKeys { it != null }?.mapKeys { it.key!! } ?: emptyMap())
+                teamANames = ArrayList(entity.teamANames?.mapNotNull { it?.trim() } ?: emptyList())
+                teamBNames = ArrayList(entity.teamBNames?.mapNotNull { it?.trim() } ?: emptyList())
+                photoMap.putAll(entity.photoMap?.filterKeys { it != null }?.mapKeys { it.key!!.trim() } ?: emptyMap())
+                nameToIdMap.putAll(entity.nameToIdMap?.filterKeys { it != null }?.mapKeys { it.key!!.trim() } ?: emptyMap())
 
+                playerStatCache.clear()
                 for (s in stats) {
                     if (s == null) continue
                     val p = s.toPlayer()
                     // Historical view: No players are currently at the crease
                     p.entryTime = 0
-                    playerStatCache[p.name] = p
+                    p.name?.trim()?.let { playerStatCache[it] = p }
                 }
 
                 // Update header to show result instead of live scoring UI

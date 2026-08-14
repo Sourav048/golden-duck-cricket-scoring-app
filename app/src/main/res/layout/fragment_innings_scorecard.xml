@@ -20,7 +20,7 @@
 
             <TextView
                 android:id="@+id/tvInningsTeamName"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="TEAM NAME"
                 android:textColor="?attr/colorOnPrimary"
@@ -28,6 +28,10 @@
                 android:textStyle="bold"
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
+                android:layout_toStartOf="@id/tvInningsScore"
+                android:layout_marginEnd="16dp"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:textAllCaps="true" />
 
             <TextView

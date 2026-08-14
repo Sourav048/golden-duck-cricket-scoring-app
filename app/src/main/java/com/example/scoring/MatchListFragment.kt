@@ -24,6 +24,7 @@ import java.util.Locale
 class MatchListFragment : Fragment() {
     private var filterType = 0 // 0: Completed, 1: Paused, 2: Abandoned
     private var recyclerView: RecyclerView? = null
+    private var matchAdapter: MatchHistoryAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,7 +79,13 @@ class MatchListFragment : Fragment() {
                         recyclerView?.visibility = View.VISIBLE
                         val empty = v.findViewById<View>(R.id.layoutEmptyMatches)
                         empty?.visibility = if (finalMatches.isEmpty()) View.VISIBLE else View.GONE
-                        recyclerView?.adapter = MatchHistoryAdapter(finalMatches)
+                        
+                        if (matchAdapter == null) {
+                            matchAdapter = MatchHistoryAdapter(finalMatches)
+                            recyclerView?.adapter = matchAdapter
+                        } else {
+                            matchAdapter?.updateData(finalMatches)
+                        }
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
@@ -89,8 +96,15 @@ class MatchListFragment : Fragment() {
         }
     }
 
-    private inner class MatchHistoryAdapter(private val matches: MutableList<MatchEntity?>) :
+    private inner class MatchHistoryAdapter(private var matches: MutableList<MatchEntity?>) :
         RecyclerView.Adapter<MatchHistoryAdapter.Holder>() {
+        
+        fun updateData(newMatches: List<MatchEntity?>) {
+            this.matches.clear()
+            this.matches.addAll(newMatches)
+            notifyDataSetChanged()
+        }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
             return Holder(
                 LayoutInflater.from(parent.context)
@@ -104,11 +118,28 @@ class MatchListFragment : Fragment() {
             val displayDate = if (m.playedAt > 0) m.playedAt else m.firstInningsStartTime
             val sdf = SimpleDateFormat("MMM dd, yyyy - hh:mm a", Locale.getDefault())
             holder.tvDate.text = sdf.format(Date(displayDate))
-            holder.tvTeamA.text = m.teamAName
-            holder.tvTeamB.text = m.teamBName
-            holder.tvScoreA.text = "${m.firstInningsRuns}/${m.firstInningsWickets}"
-            if (m.secondInningsTeam != null) holder.tvScoreB.text = "${m.secondInningsRuns}/${m.secondInningsWickets}"
-            else holder.tvScoreB.text = "-"
+
+            // The user wants the team that batted first to always be on the left
+            val team1 = m.firstInningsTeam ?: m.teamAName
+            val team2 = m.secondInningsTeam ?: (if (team1 == m.teamAName) m.teamBName else m.teamAName)
+
+            holder.tvTeamA.text = team1
+            holder.tvTeamB.text = team2
+            
+            // Prepare score and over strings
+            val i1Legal = m.ballsJson1?.filterNotNull()?.count { it.type == BallType.NORMAL || it.type == BallType.BYE || it.type == BallType.LEG_BYE } ?: 0
+            val i1OversStr = "${i1Legal / 6}.${i1Legal % 6}"
+            val maxOvers = m.revisedOvers ?: m.totalOvers
+            
+            holder.tvScoreA.text = "${m.firstInningsRuns}/${m.firstInningsWickets}($i1OversStr/$maxOvers)"
+            
+            if (m.secondInningsTeam != null) {
+                val i2Legal = m.ballsJson2?.filterNotNull()?.count { it.type == BallType.NORMAL || it.type == BallType.BYE || it.type == BallType.LEG_BYE } ?: 0
+                val i2OversStr = "${i2Legal / 6}.${i2Legal % 6}"
+                holder.tvScoreB.text = "${m.secondInningsRuns}/${m.secondInningsWickets}($i2OversStr/$maxOvers)"
+            } else {
+                holder.tvScoreB.text = "-"
+            }
             
             val finalResult = if (!m.isFinished && !m.isAbandoned) {
                 m.result ?: "IN-PROGRESS"
@@ -175,6 +206,14 @@ class MatchListFragment : Fragment() {
             }
 
             val isCompletedTab = filterType == 0
+            if (isCompletedTab) {
+                holder.tvMatchNumber.visibility = View.VISIBLE
+                val matchNum = matches.size - position
+                holder.tvMatchNumber.text = "Match #$matchNum"
+            } else {
+                holder.tvMatchNumber.visibility = View.GONE
+            }
+
             if (isCompletedTab && m.isFinished && !m.isAbandoned && m.playerOfTheMatchName != null && m.playerOfTheMatchName != "TBD") {
                 holder.tvPOTM.text = "POTM - ${m.playerOfTheMatchName}"
                 holder.tvPOTM.visibility = View.VISIBLE
@@ -229,34 +268,35 @@ class MatchListFragment : Fragment() {
         override fun getItemCount(): Int = matches.size
 
         private fun calculateFallbackResult(m: MatchEntity): String {
+            val i1Team = m.firstInningsTeam ?: m.teamAName ?: "Team 1"
             val i1Runs = m.firstInningsRuns
             val i2Team = m.secondInningsTeam
             val i2Runs = m.secondInningsRuns
             
             if (i2Team == null) {
-                return "MATCH ABANDONED"
+                return "$i1Team scored $i1Runs/${m.firstInningsWickets}".uppercase()
             }
             
-            // Reconstruct target if possible
             val target = m.revisedTarget ?: (i1Runs + 1)
             
             return when {
                 i2Runs >= target -> {
                     val playerCnt = if (i2Team == m.teamAName) m.teamAPlayerCount else m.teamBPlayerCount
-                    val maxW = if (m.ruleEveryPlayerBats) playerCnt else playerCnt - 1
-                    val wicketsLeft = maxW - m.secondInningsWickets
+                    val maxW = if (m.ruleEveryPlayerBats) playerCnt else (playerCnt - 1).coerceAtLeast(1)
+                    val wicketsLeft = (maxW - m.secondInningsWickets).coerceAtLeast(0)
                     "$i2Team WON BY $wicketsLeft WICKETS".uppercase()
                 }
                 i2Runs == (target - 1) -> "MATCH TIED"
                 else -> {
                     val runsDiff = (target - 1) - i2Runs
-                    "${m.firstInningsTeam} WON BY $runsDiff RUNS".uppercase()
+                    "$i1Team WON BY $runsDiff RUNS".uppercase()
                 }
             }
         }
 
         inner class Holder(v: View) : RecyclerView.ViewHolder(v) {
             val tvDate: TextView = v.findViewById(R.id.tvMatchDate)
+            val tvMatchNumber: TextView = v.findViewById(R.id.tvMatchNumber)
             val layoutLive: View? = v.findViewById(R.id.layoutLiveIndicator)
             val liveDot: View? = v.findViewById(R.id.viewLiveDot)
             val tvTeamA: TextView = v.findViewById(R.id.tvTeamA)

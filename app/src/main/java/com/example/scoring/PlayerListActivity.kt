@@ -167,8 +167,12 @@ class PlayerListActivity : BaseActivity() {
         val empty = v.findViewById<View>(R.id.layoutEmptyPlayers)
         empty?.visibility = if (players.isEmpty()) View.VISIBLE else View.GONE
 
-        adapter = PlayerAdapter(players)
-        recyclerView?.adapter = adapter
+        if (adapter == null) {
+            adapter = PlayerAdapter(players)
+            recyclerView?.adapter = adapter
+        } else {
+            adapter?.updateData(players)
+        }
     }
 
     private fun showAddPlayerDialog() {
@@ -336,8 +340,15 @@ class PlayerListActivity : BaseActivity() {
         }
     }
 
-    private inner class PlayerAdapter(private val players: MutableList<PlayerEntity?>) :
+    private inner class PlayerAdapter(private var players: MutableList<PlayerEntity?>) :
         RecyclerView.Adapter<PlayerAdapter.Holder>() {
+
+        fun updateData(newPlayers: List<PlayerEntity?>) {
+            this.players.clear()
+            this.players.addAll(newPlayers)
+            notifyDataSetChanged()
+        }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
             return Holder(LayoutInflater.from(parent.context).inflate(R.layout.item_player_list, parent, false))
         }

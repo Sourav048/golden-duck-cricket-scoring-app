@@ -124,6 +124,7 @@ object BackupManager {
                     db.draftDao().deleteAllDrafts()
 
                     bundle.players?.forEach { it?.let { p ->
+                        p.name = p.name.trim()
                         if (!p.photoBase64.isNullOrEmpty()) {
                             val newPath = PhotoUtils.base64ToPath(context, p.photoBase64)
                             if (newPath != null) p.photoUri = newPath
