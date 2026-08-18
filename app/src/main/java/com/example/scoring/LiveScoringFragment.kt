@@ -499,24 +499,40 @@ class LiveScoringFragment : Fragment() {
             v.findViewById<View>(R.id.btnFinishMatch).visibility = if (isDecided) View.VISIBLE else View.GONE
         }
 
-        val btnNextInnings = v.findViewById<View>(R.id.btnNextInnings)
+        val btnNextInnings = v.findViewById<View>(R.id.btnNextInnings) as? MaterialButton
         val isInningsComplete = innings.isComplete
         val isFirstInnings = act?.match?.secondInnings == null
         val isMatchComplete = innings.isComplete && !isFirstInnings
 
-        if (isInningsComplete && isFirstInnings) {
-            btnNextInnings.visibility = View.VISIBLE
+        // Awaiting Players: 2nd innings started, but no players selected yet.
+        val isAwaitingPlayers = !isFirstInnings && innings.balls.isEmpty() && striker == null
+        // Manual Fix: 2nd innings has 0 balls, but players exist (potentially incorrect "bled" state).
+        val isManualFixPossible = !isFirstInnings && innings.balls.isEmpty() && striker != null
+
+        if ((isInningsComplete && isFirstInnings) || isAwaitingPlayers) {
+            btnNextInnings?.visibility = View.VISIBLE
+            btnNextInnings?.text = getString(R.string.btn_start_2nd_innings)
             setButtonsEnabled(false)
-            lockScoring("FIRST INNINGS COMPLETE")
-        } else {
-            btnNextInnings.visibility = View.GONE
-            if (isMatchComplete) {
-                setButtonsEnabled(false)
-                lockScoring(act.calculateMatchResult()?.uppercase())
+            if (isFirstInnings) {
+                lockScoring("FIRST INNINGS COMPLETE")
             } else {
+                lockScoring("START SECOND INNINGS")
+            }
+        } else {
+            // If we have players but 0 balls, show the button as a "Reset" option but enable scoring
+            if (isManualFixPossible) {
+                btnNextInnings?.visibility = View.VISIBLE
+                btnNextInnings?.text = "Reset 2nd Innings Players"
                 setButtonsEnabled(true)
-                if (act?.isScorer == true) {
-                    lockScoring(null)
+                if (act?.isScorer == true) lockScoring(null)
+            } else {
+                btnNextInnings?.visibility = View.GONE
+                if (isMatchComplete) {
+                    setButtonsEnabled(false)
+                    lockScoring(act?.calculateMatchResult()?.uppercase())
+                } else {
+                    setButtonsEnabled(true)
+                    if (act?.isScorer == true) lockScoring(null)
                 }
             }
         }

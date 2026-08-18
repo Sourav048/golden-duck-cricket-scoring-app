@@ -614,9 +614,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     }
                 }
 
-                if (striker == null || bowler == null) {
+                // FIX: Only auto-init if we are in 1st innings. 
+                // 2nd innings should wait for manual trigger if currentStriker is null.
+                if (striker == null && m.secondInnings == null) {
                     initPlayers()
-                } else {
+                }
+else {
                     // Update entry times to 'now' to resume the clock correctly for ACTIVE players only
                     val now = System.currentTimeMillis()
                     if (current != null && !current.isComplete) {
@@ -3431,9 +3434,30 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
     override fun startNextInnings() {
         updateNotOutMins(match?.firstInnings)
-        match?.startSecondInnings()
-        teamABatting = !teamABatting
+        
+        // --- HARD RESET ACTIVE PLAYERS ---
+        striker = null
+        nonStriker = null
+        bowler = null
+        currentBowlerInSpell = null
+        nextBatsmanIdx = 2
+        
+        overRuns = 0
+        overBowlerRuns = 0
+        overWickets = 0
+        overBallsList.clear()
+
+        // Only start if not already started (prevents target recalculation bugs)
+        if (match?.secondInnings == null) {
+            match?.startSecondInnings()
+            teamABatting = !teamABatting
+        }
+        
         isFreeHitActive = false
+        
+        // Save clean state immediately so closure during break doesn't bleed state
+        saveMatchToDatabase(isFinished = false, isAbandoned = false, isLive = true)
+        
         promptSecondInningsPlayers()
     }
 
