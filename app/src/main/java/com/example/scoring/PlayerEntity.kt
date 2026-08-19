@@ -17,6 +17,10 @@ class PlayerEntity() {
     var photoUri: String = "" // file path to saved photo, empty if none
     var createdAt: Long = System.currentTimeMillis() // System.currentTimeMillis()
 
+    var gullyId: String = "local" // Tag for multi-gully support
+    var cloudId: String? = null    // Universal ID if synced
+    var lastSyncedAt: Long = 0     // Timestamp for differential sync
+
     @Ignore
     var photoBase64: String? = null // Only used for Export/Import
 

@@ -128,6 +128,11 @@ class MatchEntity {
     @JvmField
     var isSharedOver: Boolean = false
     
+    // Gully Sync Fields
+    var gullyId: String = "local"
+    var cloudId: String? = null
+    var lastSyncedAt: Long = 0
+    
     // Squads/Mappings
     var teamANames: List<String?>? = null
     var teamBNames: List<String?>? = null

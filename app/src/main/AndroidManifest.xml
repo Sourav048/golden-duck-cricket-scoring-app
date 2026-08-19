@@ -93,6 +93,8 @@
         <!-- MATCH DETAILS — historical match view -->
         <activity android:name=".MatchDetailsActivity" android:exported="false" />
 
+        <activity android:name=".GullyManagementActivity" android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

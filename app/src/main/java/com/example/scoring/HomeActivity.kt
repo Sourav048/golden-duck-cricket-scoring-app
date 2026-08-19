@@ -70,10 +70,35 @@ class HomeActivity : BaseActivity() {
             startActivity(Intent(this, StatsActivity::class.java))
         }
 
+        findViewById<View>(R.id.cardGully).setOnClickListener {
+            startActivity(Intent(this, GullyManagementActivity::class.java))
+        }
+
         // Load rankings on startup
         refresh(this, null)
 
         handleIncomingFileIntent(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateGullyStatusUI()
+    }
+
+    private fun updateGullyStatusUI() {
+        val tvStatus = findViewById<TextView>(R.id.tvHomeGullyStatus) ?: return
+        val prefs = getSharedPreferences("gully_prefs", MODE_PRIVATE)
+        val currentGully = prefs.getString("current_gully_id", null)
+        
+        if (currentGully != null) {
+            tvStatus.text = "Connected: $currentGully"
+            tvStatus.setTextColor(ThemeManager.getSeedColor(this))
+        } else {
+            tvStatus.text = "Local Mode (Offline)"
+            val tv = TypedValue()
+            val color = if (theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurfaceVariant, tv, true)) tv.data else android.graphics.Color.GRAY
+            tvStatus.setTextColor(color)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
