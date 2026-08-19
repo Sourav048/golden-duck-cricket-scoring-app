@@ -42,15 +42,8 @@ class HomeActivity : BaseActivity() {
     private val importLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             val uri = result.data?.data ?: return@registerForActivityResult
-            BackupManager.importData(this, uri, object : BackupCallback {
-                override fun onSuccess() {
-                    Toast.makeText(this@HomeActivity, "Records Imported Successfully!", Toast.LENGTH_LONG).show()
-                    refresh(this@HomeActivity, null)
-                }
-                override fun onFailure(error: String?) {
-                    Toast.makeText(this@HomeActivity, "Import Failed: $error", Toast.LENGTH_LONG).show()
-                }
-            })
+            // PROTECTED MANUAL IMPORT: Always backup before replacing data
+            performAutoBackupAndImport(uri)
         }
     }
 
@@ -165,10 +158,85 @@ class HomeActivity : BaseActivity() {
                     }
                 }
                 Toast.makeText(this, "Records saved to Downloads/$subDir", Toast.LENGTH_LONG).show()
+                // Proceed to Instant Import Flow with Auto-Safety Net
+                showInstantImportPrompt(destUri, fileName)
             }
         } catch (e: Exception) {
             Toast.makeText(this, "Failed to auto-save records: ${e.message}", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun showInstantImportPrompt(fileUri: Uri, fileName: String) {
+        showDynamicDialog {
+            setTitle("New Records Detected")
+            setMessage("We found new cricket records in \"$fileName\". Would you like to import them into the app now?")
+            setNegativeButton("NO") { d, _ -> d.dismiss() }
+            setPositiveButton("YES, IMPORT") { _, _ -> showSafetyBackupWarning(fileUri) }
+        }
+    }
+
+    private fun showSafetyBackupWarning(fileUri: Uri) {
+        showDynamicDialog {
+            setTitle("⚠️ Security Confirmation")
+            setMessage("Replacing current match records. For your safety, a professional backup of your existing data will be automatically saved to your Downloads folder before we proceed.")
+            setNegativeButton("CANCEL", null)
+            setPositiveButton("SAFE IMPORT") { _, _ -> performAutoBackupAndImport(fileUri) }
+        }
+    }
+
+    private fun performAutoBackupAndImport(importUri: Uri) {
+        // 1. SILENT AUTO-BACKUP with readable Date/Time
+        val sdf = java.text.SimpleDateFormat("dd_MMM_yyyy_HH_mm_ss", java.util.Locale.getDefault())
+        val dateStr = sdf.format(java.util.Date())
+        val backupName = "AUTO_BACKUP_BEFORE_IMPORT_$dateStr.cricket"
+        
+        try {
+            val values = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, backupName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/Golden Duck - A Cricket Scoring App")
+                }
+            }
+
+            val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            } else {
+                val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Golden Duck - A Cricket Scoring App")
+                if (!dir.exists()) dir.mkdirs()
+                MediaStore.Files.getContentUri("external")
+            }
+
+            val backupUri = contentResolver.insert(collection, values)
+            if (backupUri != null) {
+                val os = contentResolver.openOutputStream(backupUri)
+                if (os != null) {
+                    exportData(this, os, object : BackupCallback {
+                        override fun onSuccess() {
+                            // 2. BACKUP SUCCESSFUL -> NOW DO THE ACTUAL IMPORT
+                            executeFinalImport(importUri)
+                        }
+                        override fun onFailure(e: String?) {
+                            Toast.makeText(this@HomeActivity, "Safety Backup failed. Import aborted to prevent data loss.", Toast.LENGTH_LONG).show()
+                        }
+                    })
+                }
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Auto-Backup error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun executeFinalImport(uri: Uri) {
+        BackupManager.importData(this, uri, object : BackupCallback {
+            override fun onSuccess() {
+                Toast.makeText(this@HomeActivity, "Records Imported Successfully! (Old data backed up to Downloads)", Toast.LENGTH_LONG).show()
+                refresh(this@HomeActivity, null)
+            }
+            override fun onFailure(error: String?) {
+                Toast.makeText(this@HomeActivity, "Import Failed: $error", Toast.LENGTH_LONG).show()
+            }
+        })
     }
 
     private fun showHomeMenu(v: View?) {
@@ -309,20 +377,14 @@ class HomeActivity : BaseActivity() {
     }
 
     private fun launchExport() {
-        showDynamicDialog {
-            setTitle("Export Records")
-            setMessage("Choose how you would like to handle your records:")
-            setNeutralButton("CANCEL", null)
-            setNegativeButton("SHARE") { _, _ -> performExportAndShare() }
-            setPositiveButton("EXPORT") { _, _ -> performExport() }
-        }
-    }
-
-    private fun performExport() {
-        val defaultName = "cricket_records_${System.currentTimeMillis()}"
+        val sdf = java.text.SimpleDateFormat("dd_MMM_yyyy_HH_mm_ss", java.util.Locale.getDefault())
+        val dateStr = sdf.format(java.util.Date())
+        val defaultName = "cricket_records_$dateStr"
+        
         val input = EditText(this).apply {
             setText(defaultName)
             setSelection(defaultName.length)
+            setSingleLine(true)
         }
         val container = FrameLayout(this).apply {
             val params = FrameLayout.LayoutParams(
@@ -336,18 +398,28 @@ class HomeActivity : BaseActivity() {
         }
 
         showDynamicDialog {
-            setTitle("Save Records As")
-            setMessage("Enter a name for your export file:")
+            setTitle("Set Record Name")
+            setMessage("Enter a descriptive name for this record file:")
             setView(container)
-            setPositiveButton("SAVE") { _, _ ->
+            setPositiveButton("NEXT") { _, _ ->
                 val fileName = input.text.toString().trim()
                 if (fileName.isNotEmpty()) {
-                    saveExportToMediaStore("$fileName.cricket")
+                    showExportOptions(fileName)
                 } else {
-                    Toast.makeText(this@HomeActivity, "Filename cannot be empty", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@HomeActivity, "Name cannot be empty", Toast.LENGTH_SHORT).show()
                 }
             }
             setNegativeButton("CANCEL", null)
+        }
+    }
+
+    private fun showExportOptions(fileName: String) {
+        showDynamicDialog {
+            setTitle("Handle Records")
+            setMessage("How would you like to save or send \"$fileName\"?")
+            setNeutralButton("CANCEL", null)
+            setNegativeButton("SHARE") { _, _ -> performExportAndShare(fileName) }
+            setPositiveButton("EXPORT") { _, _ -> saveExportToMediaStore("$fileName.cricket") }
         }
     }
 
@@ -396,10 +468,11 @@ class HomeActivity : BaseActivity() {
         }
     }
 
-    private fun performExportAndShare() {
+    private fun performExportAndShare(fileName: String) {
         try {
-            val tempFile = File(cacheDir, "shared_cricket_records.cricket")
-            tempFile.deleteOnExit() // Mark for cleanup
+            val safeName = fileName.replace(Regex("[^a-zA-Z0-9-_]"), "_")
+            val tempFile = File(cacheDir, "$safeName.cricket")
+            tempFile.deleteOnExit()
             val os = FileOutputStream(tempFile)
             exportData(this, os, object : BackupCallback {
                 override fun onSuccess() {
@@ -410,11 +483,11 @@ class HomeActivity : BaseActivity() {
                     )
 
                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "application/x-cricket"
+                        type = "application/octet-stream" // Standard binary type
                         putExtra(Intent.EXTRA_STREAM, uri)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
-                    startActivity(Intent.createChooser(shareIntent, "Share Records Via"))
+                    startActivity(Intent.createChooser(shareIntent, "Share \"$fileName\" Via"))
                 }
 
                 override fun onFailure(e: String?) {
@@ -437,11 +510,10 @@ class HomeActivity : BaseActivity() {
 
     private fun showImportWarning() {
         showDynamicDialog {
-            setTitle("⚠️ CRITICAL WARNING")
-            setMessage("Importing records will PERMANENTLY DELETE all matches, players, and stats currently on this device.\n\nPlease export your current data first if you wish to keep it.\n\nProceed with Import?")
-            setPositiveButton("YES, REPLACE ALL") { d, w -> launchImport() }
+            setTitle("⚠️ Import Records")
+            setMessage("Importing records will replace all match history on this device. For your safety, a professional backup of your current records will be automatically created in your Downloads folder before we proceed.\n\nContinue to select file?")
+            setPositiveButton("SELECT FILE") { d, w -> launchImport() }
             setNegativeButton("CANCEL", null)
-            setIcon(android.R.drawable.ic_dialog_alert)
         }
     }
 

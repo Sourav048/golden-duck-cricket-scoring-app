@@ -1,43 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
     android:paddingHorizontal="16dp"
     android:paddingVertical="12dp"
-    android:gravity="center_vertical"
     android:background="?attr/colorSurface">
 
-    <!-- Batter 1 Stats (Left) -->
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="horizontal"
-        android:gravity="start|center_vertical">
-
-        <TextView
-            android:id="@+id/tvPshipBatter1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Batter 1"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
-            android:maxLines="1"
-            android:ellipsize="end" />
-
-        <TextView
-            android:id="@+id/tvPshipB1Stats"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=" 5(6)"
-            android:textSize="13sp"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:alpha="0.8" />
-    </LinearLayout>
-
-    <!-- Partnership Total (Center) -->
+    <!-- Partnership Total (Fixed Center) -->
     <TextView
         android:id="@+id/tvPshipTotal"
         android:layout_width="wrap_content"
@@ -47,35 +17,75 @@
         android:textStyle="bold"
         android:textColor="?attr/colorOnSurface"
         android:gravity="center"
-        android:layout_marginHorizontal="8dp" />
+        android:minWidth="70dp"
+        android:layout_marginHorizontal="12dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Batter 2 Stats (Right) -->
-    <LinearLayout
+    <!-- Batter 1 Stats (Left) -->
+    <TextView
+        android:id="@+id/tvPshipB1Stats"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=" 5(6)"
+        android:textSize="13sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:alpha="0.8"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tvPshipTotal"
+        android:layout_marginEnd="4dp" />
+
+    <TextView
+        android:id="@+id/tvPshipBatter1"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="horizontal"
-        android:gravity="end|center_vertical">
+        android:text="Batter 1"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorPrimary"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:gravity="start"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tvPshipB1Stats"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constrainedWidth="true" />
 
-        <TextView
-            android:id="@+id/tvPshipBatter2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Batter 2"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
-            android:maxLines="1"
-            android:ellipsize="end" />
+    <!-- Batter 2 Stats (Right) -->
+    <TextView
+        android:id="@+id/tvPshipBatter2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Batter 2"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorPrimary"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:gravity="start"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/tvPshipTotal"
+        app:layout_constraintEnd_toStartOf="@id/tvPshipB2Stats"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constrainedWidth="true"
+        android:layout_marginStart="4dp" />
 
-        <TextView
-            android:id="@+id/tvPshipB2Stats"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=" 12(5)"
-            android:textSize="13sp"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:alpha="0.8" />
-    </LinearLayout>
+    <TextView
+        android:id="@+id/tvPshipB2Stats"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=" 12(5)"
+        android:textSize="13sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:alpha="0.8"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -618,8 +618,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 // 2nd innings should wait for manual trigger if currentStriker is null.
                 if (striker == null && m.secondInnings == null) {
                     initPlayers()
-                }
-else {
+                } else {
                     // Update entry times to 'now' to resume the clock correctly for ACTIVE players only
                     val now = System.currentTimeMillis()
                     if (current != null && !current.isComplete) {
@@ -1158,8 +1157,13 @@ else {
         // Helper to update a single player
         fun updatePlayerTime(p: Player?) {
             if (p == null || p.entryTime == 0L) return
-            p.minutesPlayed += ((now - p.entryTime) / 1000).toInt()
-            p.entryTime = if (keepActive) now else 0L
+            val elapsedMs = now - p.entryTime
+            val secsToAdd = (elapsedMs / 1000).toInt()
+            if (secsToAdd > 0) {
+                p.minutesPlayed += secsToAdd
+                p.entryTime += secsToAdd * 1000L
+            }
+            if (!keepActive) p.entryTime = 0L
         }
 
         updatePlayerTime(striker)
@@ -3321,9 +3325,11 @@ else {
     ) {
         val m = match ?: return
         
+        // Update not-out minutes before saving to ensure latest data is captured
+        updateNotOutMins(m.currentInnings, keepActive = isLive && !isFinished)
+
         if (isFinished) {
             this.isFinished = true
-            updateNotOutMins(m.currentInnings)
         }
         if (isAbandoned) {
             if (!this.isAbandoned) {
@@ -3375,17 +3381,11 @@ else {
             this.strikerEntryTime = striker?.entryTime ?: 0
             this.nonStrikerEntryTime = nonStriker?.entryTime ?: 0
         }
-        val now = System.currentTimeMillis()
         val finalStatsList = mutableListOf<Player>()
         
-        // 1. Start with the players in our cache (those who batted/bowled)
+        // 1. Prepare final stats list for DB save
         playerStatCache.values.forEach { p ->
-            val pCopy = p.copy()
-            if (!pCopy.isOut && (pCopy.entryTime > 0)) {
-                pCopy.minutesPlayed += ((now - pCopy.entryTime) / 1000).toInt()
-                pCopy.entryTime = 0 
-            }
-            finalStatsList.add(pCopy)
+            finalStatsList.add(p.copy())
         }
 
         // 2. Add any squad members who aren't in the cache yet (bench players/abandoned matches)

@@ -12,6 +12,10 @@ object StatsRecalculator {
                 val entity = db.matchDao().getMatchById(matchId) ?: return@execute
                 val m = entity.toMatch()
                 
+                // 1. Fetch existing stats to preserve non-derivable data (like minutesPlayed)
+                val existingStats = db.statsDao().getStatsByMatch(matchId) ?: emptyList()
+                val existingStatsMap = existingStats.filterNotNull().associateBy { it.playerName }
+
                 val playerMap = mutableMapOf<String, Player>()
                 val nameToId = entity.nameToIdMap ?: emptyMap<String, String>()
 
@@ -19,7 +23,13 @@ object StatsRecalculator {
                     val n = name ?: "Unknown"
                     return playerMap.getOrPut(n) { 
                         Player(n).apply { 
-                            this.id = nameToId[n] 
+                            this.id = nameToId[n]
+                            // Restore time data from existing record if available
+                            existingStatsMap[n]?.let { old ->
+                                this.minutesPlayed = old.minutesPlayed
+                                this.entryTime = old.entryTime
+                                this.exitTime = old.exitTime
+                            }
                         } 
                     }
                 }
