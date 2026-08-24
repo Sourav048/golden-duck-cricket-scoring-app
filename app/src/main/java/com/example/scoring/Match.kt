@@ -6,6 +6,8 @@ class Match {
     @JvmField
     var teamB: String? = null
     @JvmField
+    var venue: String? = null
+    @JvmField
     var totalOvers: Int = 0
     @JvmField
     var teamAPlayerCount: Int = 0
@@ -34,6 +36,7 @@ class Match {
     var revisedTarget: Int? = null
     var resourcesLostTeam1: Double = 0.0
     var isSharedOver: Boolean = false
+    var isStartNotificationSent: Boolean = false
 
     constructor()
 

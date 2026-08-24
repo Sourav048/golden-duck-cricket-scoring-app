@@ -41,32 +41,33 @@ class LeaderboardActivity : BaseActivity() {
     }
 
     private fun loadData() {
+        val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
         AppDatabase.ioExecutor.execute {
             val stats: List<PlayerTotalStat?>? = when (type) {
-                "Most Runs" -> db?.statsDao()?.getMostRuns()
-                "Best Strike Rate" -> db?.statsDao()?.getBestStrikeRate()
-                "Most Sixes" -> db?.statsDao()?.getMostSixes()
-                "Most Fours" -> db?.statsDao()?.getMostFours()
-                "Most 80s" -> db?.statsDao()?.getMostEighties()
-                "Highest Score" -> db?.statsDao()?.getHighestScores()
-                "Most 50s" -> db?.statsDao()?.getMostFifties()
-                "Most 30s" -> db?.statsDao()?.getMostThirties()
-                "Most Ducks" -> db?.statsDao()?.getMostDucks()
-                "Most Wickets" -> db?.statsDao()?.getMostWickets()
-                "Best Bowling Figure" -> db?.statsDao()?.getBestBowlingInnings()
-                "Best Bowling Average" -> db?.statsDao()?.getBestBowlingAverage()
-                "Best Economy" -> db?.statsDao()?.getBestEconomy()
-                "Most Hattricks" -> db?.statsDao()?.getMostHattricks()
-                "Most 5 Wicket Hauls" -> db?.statsDao()?.getMostFiveWicketHauls()
-                "Most 3 Wicket Hauls" -> db?.statsDao()?.getMostThreeWicketHauls()
-                "Most 2 Wicket Hauls" -> db?.statsDao()?.getMostTwoWicketHauls()
-                "Most 6s Conceded" -> db?.statsDao()?.getMostSixesConceded()
-                "Most Catches" -> db?.statsDao()?.getMostCatches()
-                "Most Stumpings" -> db?.statsDao()?.getMostStumpings()
-                "Most Run Outs" -> db?.statsDao()?.getMostRunOuts()
-                "Overall Rankings" -> db?.statsDao()?.getOverallRankings()
-                "Batting Rankings" -> db?.statsDao()?.getBattingRankings()
-                "Bowling Rankings" -> db?.statsDao()?.getBowlingRankings()
+                "Most Runs" -> db?.statsDao()?.getMostRuns(gId)
+                "Best Strike Rate" -> db?.statsDao()?.getBestStrikeRate(gId)
+                "Most Sixes" -> db?.statsDao()?.getMostSixes(gId)
+                "Most Fours" -> db?.statsDao()?.getMostFours(gId)
+                "Most 80s" -> db?.statsDao()?.getMostEighties(gId)
+                "Highest Score" -> db?.statsDao()?.getHighestScores(gId)
+                "Most 50s" -> db?.statsDao()?.getMostFifties(gId)
+                "Most 30s" -> db?.statsDao()?.getMostThirties(gId)
+                "Most Ducks" -> db?.statsDao()?.getMostDucks(gId)
+                "Most Wickets" -> db?.statsDao()?.getMostWickets(gId)
+                "Best Bowling Figure" -> db?.statsDao()?.getBestBowlingInnings(gId)
+                "Best Bowling Average" -> db?.statsDao()?.getBestBowlingAverage(gId)
+                "Best Economy" -> db?.statsDao()?.getBestEconomy(gId)
+                "Most Hattricks" -> db?.statsDao()?.getMostHattricks(gId)
+                "Most 5 Wicket Hauls" -> db?.statsDao()?.getMostFiveWicketHauls(gId)
+                "Most 3 Wicket Hauls" -> db?.statsDao()?.getMostThreeWicketHauls(gId)
+                "Most 2 Wicket Hauls" -> db?.statsDao()?.getMostTwoWicketHauls(gId)
+                "Most 6s Conceded" -> db?.statsDao()?.getMostSixesConceded(gId)
+                "Most Catches" -> db?.statsDao()?.getMostCatches(gId)
+                "Most Stumpings" -> db?.statsDao()?.getMostStumpings(gId)
+                "Most Run Outs" -> db?.statsDao()?.getMostRunOuts(gId)
+                "Overall Rankings" -> db?.statsDao()?.getOverallRankings(gId)
+                "Batting Rankings" -> db?.statsDao()?.getBattingRankings(gId)
+                "Bowling Rankings" -> db?.statsDao()?.getBowlingRankings(gId)
                 else -> ArrayList()
             }
 
@@ -90,9 +91,9 @@ class LeaderboardActivity : BaseActivity() {
         }
 
         override fun onBindViewHolder(holder: Holder, position: Int) {
-            val s = stats[position]
+            val s = stats.getOrNull(position) ?: return
             holder.rank.text = (position + 1).toString()
-            holder.name.text = s.playerName
+            holder.name.text = s.playerName ?: "Unknown"
 
             applyPrestige(s.playerId, holder.name, holder.photo)
 
@@ -110,6 +111,9 @@ class LeaderboardActivity : BaseActivity() {
                 type == "Best Economy" || type == "Best Bowling Average" || type == "Best Strike Rate" -> {
                     val value = s.total / 100.0
                     holder.value.text = String.format(Locale.US, "%.2f", value)
+                }
+                type == null -> {
+                    holder.value.text = s.total.toString()
                 }
                 type == "Best Bowling Figure" -> {
                     var w = s.total / 1000

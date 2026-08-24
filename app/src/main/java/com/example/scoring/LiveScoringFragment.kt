@@ -48,6 +48,9 @@ class LiveScoringFragment : Fragment() {
     private var lottieCelebration: LottieAnimationView? = null
     private var lastProbA = -1
 
+    private var rvCommentary: androidx.recyclerview.widget.RecyclerView? = null
+    private var commentaryAdapter: MainActivity.CommentaryAdapter? = null
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -74,6 +77,9 @@ class LiveScoringFragment : Fragment() {
         recentBallsLayout = v.findViewById(R.id.recentBallsContainer)
         lottieCelebration = v.findViewById(R.id.lottieCelebration)
 
+        rvCommentary = v.findViewById(R.id.rvCommentary)
+        rvCommentary?.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context)
+
         setupButtons(v)
 
         return v
@@ -95,6 +101,13 @@ class LiveScoringFragment : Fragment() {
                 innings.currentPshipBalls
             )
         })
+
+        val act = activity as? ScoringProvider
+        if (act?.isScorer == false) {
+            viewModel.commentary.observe(viewLifecycleOwner, Observer {
+                updateCommentaryUI()
+            })
+        }
 
         viewModel.striker.observe(viewLifecycleOwner, Observer { s: Player? ->
             val innings = viewModel.match.value?.currentInnings
@@ -142,7 +155,9 @@ class LiveScoringFragment : Fragment() {
             }
         })
 
-        val act = activity as? ScoringProvider
+        if (act?.isScorer == false) {
+            updateCommentaryUI()
+        }
         act?.updateUI()
     }
 
@@ -274,23 +289,27 @@ class LiveScoringFragment : Fragment() {
             if (provider != null) {
                 val result = provider.calculateMatchResult()
                 // If a winner is declared, or it's a tie, the match is over -> LOCK GUARD
-                if (result != null && result != "IN-PROGRESS") {
+                if (result != null && result != "IN-PROGRESS" && result != "LIVE" && !result.contains("FIRST INNINGS OVER")) {
                     return@setOnClickListener
                 }
             }
             btnScoreGuard.visibility = View.GONE
         }
 
-        // VIEWER MODE: Hide all scoring controls if this is not the scorer
+        // VIEWER MODE: Hide the entire scoring controls block in one shot
         if (!act.isScorer) {
-            v.findViewById<View>(R.id.gridScoring).visibility = View.GONE
-            v.findViewById<View>(R.id.btnUndo).visibility = View.GONE
-            v.findViewById<View>(R.id.btnMatchMore).visibility = View.GONE
-            v.findViewById<View>(R.id.btnFinishMatch).visibility = View.GONE
-            v.findViewById<View>(R.id.btnNextInnings).visibility = View.GONE
-            btnScoreGuard.visibility = View.GONE
-
-            v.findViewById<View>(R.id.cardExtrasPship).setPadding(0, 0, 0, 40)
+            v.findViewById<View>(R.id.layoutScoringControls)?.visibility = View.GONE
+            v.findViewById<View>(R.id.rvCommentary)?.visibility = View.VISIBLE
+            
+            // Adjust ScrollView to WRAP_CONTENT so it takes only as much space as needed (Cards + Footer)
+            // This leaves the remaining space (weight 1) to the RecyclerView
+            val mainScroll = v.findViewById<View>(R.id.mainScrollView)
+            val lp = mainScroll.layoutParams as? LinearLayout.LayoutParams
+            if (lp != null) {
+                lp.height = LinearLayout.LayoutParams.WRAP_CONTENT
+                lp.weight = 0f
+                mainScroll.layoutParams = lp
+            }
         }
 
         // Initialize label dynamically during setup if data is already available
@@ -492,7 +511,7 @@ class LiveScoringFragment : Fragment() {
 
         if (act != null) {
             val res = act.calculateMatchResult()?.uppercase()
-            val isDecided = res != null && res != "IN-PROGRESS" && !res.contains("FIRST INNINGS OVER")
+            val isDecided = res != null && res != "IN-PROGRESS" && res != "LIVE" && !res.contains("FIRST INNINGS OVER")
             v.findViewById<View>(R.id.btnMatchMore)?.isEnabled = !isDecided
             
             // "Finish Match" only appears AFTER a result is declared
@@ -678,5 +697,20 @@ class LiveScoringFragment : Fragment() {
             v.findViewById<View>(id)?.isEnabled = enabled
         }
         v.findViewById<View>(R.id.btnUndo)?.isEnabled = true
+    }
+
+    private fun updateCommentaryUI() {
+        if (!isAdded || rvCommentary == null || activity == null) return
+        val act = activity as? ScoringProvider
+        if (act == null || act.isScorer) return
+
+        if (act.commentary != null) {
+            if (commentaryAdapter == null) {
+                commentaryAdapter = MainActivity.CommentaryAdapter(act.commentary!!, act)
+                rvCommentary?.adapter = commentaryAdapter
+            } else {
+                commentaryAdapter?.notifyDataSetChanged()
+            }
+        }
     }
 }

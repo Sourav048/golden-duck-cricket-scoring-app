@@ -37,8 +37,21 @@ object RankingRegistry {
     private var cachedDefaultText: Int = 0
     private var lastThemeConfig: Int = -1
 
+    private var lastRefreshTime: Long = 0
+    private val REFRESH_COOLDOWN = 5_000L // 5 seconds
+
     @JvmStatic
-    fun refresh(context: Context, callback: OnRankingsLoaded?) {
+    fun refresh(context: Context?, callback: OnRankingsLoaded?) {
+        if (context == null) return
+        
+        val now = System.currentTimeMillis()
+        if (now - lastRefreshTime < REFRESH_COOLDOWN) {
+            callback?.onLoaded()
+            return
+        }
+        lastRefreshTime = now
+        
+        val appContext = context.applicationContext
         AppDatabase.ioExecutor.execute {
             try {
                 // Clear current rankings first
@@ -56,29 +69,36 @@ object RankingRegistry {
                 cachedGold = 0
                 lastThemeConfig = -1
 
-                val db = AppDatabase.getInstance(context)
-                val overall = db.statsDao().getOverallRankings()
-                val batting = db.statsDao().getBattingRankings()
-                val bowling = db.statsDao().getBowlingRankings()
-
-                overall?.firstOrNull()?.let {
-                    topOverallId = it.playerId
-                    topOverallName = it.playerName
-                }
+                val db = AppDatabase.getInstance(appContext)
+                val gId = GullySyncManager.getCurrentGullyId(appContext) ?: "local"
                 
-                batting?.firstOrNull()?.let {
-                    topBattingId = it.playerId
-                    topBattingName = it.playerName
-                }
-                
-                bowling?.firstOrNull()?.let {
-                    topBowlingId = it.playerId
-                    topBowlingName = it.playerName
-                }
+                // CRITICAL SAFETY: Wrap stats fetching in try-catch
+                try {
+                    val overall = db.statsDao().getOverallRankings(gId) ?: emptyList()
+                    val batting = db.statsDao().getBattingRankings(gId) ?: emptyList()
+                    val bowling = db.statsDao().getBowlingRankings(gId) ?: emptyList()
 
-                overall?.take(3)?.forEach { it?.playerId?.let { id -> top3OverallIds.add(id) } }
-                batting?.take(3)?.forEach { it?.playerId?.let { id -> top3BattingIds.add(id) } }
-                bowling?.take(3)?.forEach { it?.playerId?.let { id -> top3BowlingIds.add(id) } }
+                    overall.firstOrNull()?.let {
+                        topOverallId = it.playerId
+                        topOverallName = it.playerName
+                    }
+                    
+                    batting.firstOrNull()?.let {
+                        topBattingId = it.playerId
+                        topBattingName = it.playerName
+                    }
+                    
+                    bowling.firstOrNull()?.let {
+                        topBowlingId = it.playerId
+                        topBowlingName = it.playerName
+                    }
+
+                    overall.take(3).forEach { it?.playerId?.let { id -> top3OverallIds.add(id) } }
+                    batting.take(3).forEach { it?.playerId?.let { id -> top3BattingIds.add(id) } }
+                    bowling.take(3).forEach { it?.playerId?.let { id -> top3BowlingIds.add(id) } }
+                } catch (e: Exception) {
+                    Log.e("RANKING", "Stats DAO fetch failed: ${e.message}")
+                }
 
             } catch (e: Exception) {
                 Log.e("RANKING", "Refresh failed: ${e.message}")

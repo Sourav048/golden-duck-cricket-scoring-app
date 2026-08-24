@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.scoring"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "2.1"
+        versionCode = 4
+        versionName = "4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -84,8 +84,11 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.firebase.crashlytics)
 
+    // OneSignal
+    implementation(libs.onesignal)
+
     // Room Database
-    val roomVersion = "2.8.4"
+    val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")

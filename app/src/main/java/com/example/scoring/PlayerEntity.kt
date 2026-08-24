@@ -8,7 +8,7 @@ import java.util.UUID
 
 @Keep
 @Entity(tableName = "players")
-class PlayerEntity() {
+class PlayerEntity() : java.io.Serializable {
     @PrimaryKey
     var id: String = UUID.randomUUID().toString()
     var name: String = ""
@@ -18,11 +18,20 @@ class PlayerEntity() {
     var createdAt: Long = System.currentTimeMillis() // System.currentTimeMillis()
 
     var gullyId: String = "local" // Tag for multi-gully support
-    var cloudId: String? = null    // Universal ID if synced
+    var cloudId: String? = null    // Gully-specific ID
+    var globalId: String? = null   // UNIVERSAL ID (Across all gullies)
     var lastSyncedAt: Long = 0     // Timestamp for differential sync
 
-    @Ignore
-    var photoBase64: String? = null // Only used for Export/Import
+    @androidx.room.Ignore
+    var photoBase64: String? = null // Synced for cross-device photo support (Ignored by Room)
+
+    var originGully: String? = null // PERSISTENT: Tracks where the player first played
+    @androidx.room.Ignore
+    var totalRuns: Long = 0
+    @androidx.room.Ignore
+    var totalWickets: Long = 0
+    @androidx.room.Ignore
+    var totalMatches: Long = 0
 
     init {} // REQUIRED FOR FIREBASE
 

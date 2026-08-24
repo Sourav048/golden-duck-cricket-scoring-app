@@ -91,8 +91,9 @@ class PlayerCompareActivity : BaseActivity() {
     }
 
     private fun loadAllPlayers() {
+        val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
         AppDatabase.ioExecutor.execute {
-            allPlayers = db?.playerDao()?.getAllPlayers()?.toMutableList()
+            allPlayers = db?.playerDao()?.getAllPlayersByGully(gId)?.toMutableList()
         }
     }
 

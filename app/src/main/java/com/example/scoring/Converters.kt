@@ -1,5 +1,6 @@
 package com.example.scoring
 
+import android.util.Log
 import androidx.room.TypeConverter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -11,8 +12,13 @@ object Converters {
     @JvmStatic
     fun fromBallJson(value: String?): List<Ball?>? {
         if (value == null) return null
-        val listType = object : TypeToken<List<Ball?>?>() {}.type
-        return gson.fromJson(value, listType)
+        return try {
+            val listType = object : TypeToken<List<Ball?>?>() {}.type
+            gson.fromJson(value, listType)
+        } catch (e: Exception) {
+            Log.e("CONVERTER", "Ball JSON error: ${e.message}")
+            emptyList()
+        }
     }
 
     @TypeConverter
@@ -25,8 +31,13 @@ object Converters {
     @JvmStatic
     fun fromFowJson(value: String?): List<FowEvent?>? {
         if (value == null) return null
-        val listType = object : TypeToken<List<FowEvent?>?>() {}.type
-        return gson.fromJson(value, listType)
+        return try {
+            val listType = object : TypeToken<List<FowEvent?>?>() {}.type
+            gson.fromJson(value, listType)
+        } catch (e: Exception) {
+            Log.e("CONVERTER", "FOW JSON error: ${e.message}")
+            emptyList()
+        }
     }
 
     @TypeConverter
@@ -39,8 +50,13 @@ object Converters {
     @JvmStatic
     fun fromPshipJson(value: String?): List<PartnershipEvent?>? {
         if (value == null) return null
-        val listType = object : TypeToken<List<PartnershipEvent?>?>() {}.type
-        return gson.fromJson(value, listType)
+        return try {
+            val listType = object : TypeToken<List<PartnershipEvent?>?>() {}.type
+            gson.fromJson(value, listType)
+        } catch (e: Exception) {
+            Log.e("CONVERTER", "Pship JSON error: ${e.message}")
+            emptyList()
+        }
     }
 
     @TypeConverter
@@ -53,8 +69,13 @@ object Converters {
     @JvmStatic
     fun fromCommJson(value: String?): List<CommentaryEntry?>? {
         if (value == null) return null
-        val listType = object : TypeToken<List<CommentaryEntry?>?>() {}.type
-        return gson.fromJson(value, listType)
+        return try {
+            val listType = object : TypeToken<List<CommentaryEntry?>?>() {}.type
+            gson.fromJson(value, listType)
+        } catch (e: Exception) {
+            Log.e("CONVERTER", "Comm JSON error: ${e.message}")
+            emptyList()
+        }
     }
 
     @TypeConverter
@@ -67,8 +88,13 @@ object Converters {
     @JvmStatic
     fun fromStringList(value: String?): List<String?>? {
         if (value == null) return null
-        val listType = object : TypeToken<List<String?>?>() {}.type
-        return gson.fromJson(value, listType)
+        return try {
+            val listType = object : TypeToken<List<String?>?>() {}.type
+            gson.fromJson(value, listType)
+        } catch (e: Exception) {
+            Log.e("CONVERTER", "StringList error: ${e.message}")
+            emptyList()
+        }
     }
 
     @TypeConverter
@@ -81,8 +107,13 @@ object Converters {
     @JvmStatic
     fun fromStringMap(value: String?): Map<String?, String?>? {
         if (value == null) return null
-        val mapType = object : TypeToken<Map<String?, String?>?>() {}.type
-        return gson.fromJson(value, mapType)
+        return try {
+            val mapType = object : TypeToken<Map<String?, String?>?>() {}.type
+            gson.fromJson(value, mapType)
+        } catch (e: Exception) {
+            Log.e("CONVERTER", "StringMap error: ${e.message}")
+            emptyMap()
+        }
     }
 
     @TypeConverter

@@ -1,20 +1,23 @@
 # Golden Duck - A Cricket Scoring App
 
-Golden Duck is a professional-grade cricket scoring application for Android, designed to provide a seamless and detailed scoring experience for local matches, tournaments, and recreational play.
+Golden Duck is a professional-grade cricket scoring application for Android, designed to provide a seamless and detailed scoring experience for local matches, professional leagues, and recreational play.
 
 ## 🚀 Key Features
+- **League Match Notifications**: Real-time alerts for match starts, score updates, and player milestones across your joined leagues (Powered by OneSignal).
 - **Live Scoring**: Real-time ball-by-ball scoring with support for Wides, No-Balls, Byes, and Leg-Byes.
 - **Advanced Player Comparison**: Visual **Radar Charts (Spider Maps)** that compare player archetypes across Strike Rate, Average, Bowling Lethality, Economy, and Fielding.
 - **Intelligent H2H Duels**: Deep ball-by-ball analysis to track direct interactions (e.g., exactly how many runs Batter A hit off Bowler B).
 - **Rivalry Badges**: Automated "Bunny", "Owner", or "Fierce Rivalry" badges based on historical head-to-head performance.
 - **Comprehensive Scorecards**: Full batting and bowling statistics, including strike rates, boundary percentages, and setting/chasing averages.
 - **Overs Summary**: Visual representation of every over with distinct markers for boundaries, wickets (W), and retirements.
-- **Player Rankings**: Integrated ranking system with "Prestige" color coding (Gold, Orange, Purple) for top performers.
+- **Player Rankings**: Integrated ranking system with "Prestige" color coding (Gold, Orange, Purple) for top performers in your League.
+- **Cloud Sync**: Seamless real-time syncing of matches and players across devices via Firebase.
 - **Match Persistence**: Automatic saving and resumption—never lose match data even if the device restarts.
 
 ## 🛠 Tech Stack
 - **Language**: 100% Kotlin
-- **Database**: Room Persistence Library (SQLite) for robust local data storage.
+- **Database**: Room Persistence Library (SQLite) & Google Firebase (Firestore).
+- **Notifications**: OneSignal SDK for high-priority push delivery.
 - **UI Architecture**: ViewPager2, Fragment-based navigation, and Material Design 3.
 - **Charts**: **MPAndroidChart** for professional data visualization.
 - **Image Loading**: Glide for smooth player photo rendering.

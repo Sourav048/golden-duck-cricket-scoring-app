@@ -16,6 +16,7 @@
 
     <!-- Camera permission for taking a player photo in-app -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".ScoringApp"
@@ -69,6 +70,7 @@
 
         <!-- PLAYER LIST — view and manage player roster -->
         <activity android:name=".PlayerListActivity" android:exported="false" />
+        <activity android:name=".GlobalSearchActivity" android:exported="false" />
 
         <!-- TOSS — handle match toss and decision -->
         <activity android:name=".TossActivity" android:exported="false" />

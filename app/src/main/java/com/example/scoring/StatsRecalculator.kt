@@ -14,16 +14,18 @@ object StatsRecalculator {
                 
                 // 1. Fetch existing stats to preserve non-derivable data (like minutesPlayed)
                 val existingStats = db.statsDao().getStatsByMatch(matchId) ?: emptyList()
-                val existingStatsMap = existingStats.filterNotNull().associateBy { it.playerName }
+                val existingStatsMap = existingStats.filterNotNull().associateBy { it.playerName?.trim() }
 
                 val playerMap = mutableMapOf<String, Player>()
                 val nameToId = entity.nameToIdMap ?: emptyMap<String, String>()
+                val gId = entity.gullyId // Preserve gully isolation during recalculation
 
                 fun getP(name: String?): Player {
-                    val n = name ?: "Unknown"
+                    val n = name?.trim() ?: "Unknown"
                     return playerMap.getOrPut(n) { 
                         Player(n).apply { 
                             this.id = nameToId[n]
+                            this.gullyId = gId
                             // Restore time data from existing record if available
                             existingStatsMap[n]?.let { old ->
                                 this.minutesPlayed = old.minutesPlayed

@@ -12,9 +12,16 @@
         app:lottie_autoPlay="false"
         app:lottie_loop="false" />
 
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:orientation="vertical">
+
+    <ScrollView
+        android:id="@+id/mainScrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:padding="12dp"
         android:clipToPadding="false">
 
@@ -22,6 +29,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/layoutHeaderSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <!-- Striker Card -->
         <com.google.android.material.card.MaterialCardView
@@ -241,6 +254,14 @@
                     android:gravity="center_vertical" />
             </HorizontalScrollView>
         </LinearLayout>
+        </LinearLayout> <!-- end layoutHeaderSection -->
+
+        <!-- Scoring Controls: grid + undo/more + finish + next innings (hidden entirely for viewers) -->
+        <LinearLayout
+            android:id="@+id/layoutScoringControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <!-- Scoring Grid with Protector Overlay -->
         <FrameLayout
@@ -347,6 +368,19 @@
             android:textColor="?attr/colorOnPrimary"
             android:layout_marginBottom="8dp"/>
 
+        </LinearLayout> <!-- end layoutScoringControls -->
+
     </LinearLayout>
     </ScrollView>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvCommentary"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone"
+        android:paddingHorizontal="12dp"
+        android:clipToPadding="false"/>
+
+    </LinearLayout>
 </FrameLayout>

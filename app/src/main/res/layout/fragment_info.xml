@@ -39,6 +39,14 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
+                <TextView android:id="@+id/tvInfoVenue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Venue: -"
+                    android:textSize="14sp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginBottom="8dp"/>
+
                 <TextView android:id="@+id/tvInfoBallType"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

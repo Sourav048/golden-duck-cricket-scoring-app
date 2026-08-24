@@ -1,5 +1,6 @@
 package com.example.scoring
 
+import androidx.annotation.Keep
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.UUID
@@ -7,6 +8,7 @@ import java.util.UUID
 /**
  * Stores one player's stats for one match.
  */
+@Keep
 @Entity(tableName = "player_match_stats")
 class PlayerMatchStatEntity {
     @PrimaryKey
@@ -49,6 +51,9 @@ class PlayerMatchStatEntity {
     var catches: Int = 0
     var stumpings: Int = 0
     var runOuts: Int = 0
+    
+    // Gully Sync Field
+    var gullyId: String = "local"
 
     init {
         this.id = UUID.randomUUID().toString()
@@ -57,6 +62,7 @@ class PlayerMatchStatEntity {
     fun toPlayer(): Player {
         val p = Player(playerName)
         p.id = playerId
+        p.gullyId = gullyId
         p.runsScored = runsScored
         p.ballsFaced = ballsFaced
         p.fours = fours
@@ -84,7 +90,8 @@ class PlayerMatchStatEntity {
     companion object {
         fun fromPlayer(p: Player, matchId: String, teamName: String?): PlayerMatchStatEntity {
             val s = PlayerMatchStatEntity()
-            s.id = "${matchId}_${p.name}" // Stable Primary Key to prevent duplicates and lag
+            s.id = "${matchId}_${p.name}" 
+            s.gullyId = p.gullyId
             s.playerId = p.id
             s.matchId = matchId
             s.playerName = p.name

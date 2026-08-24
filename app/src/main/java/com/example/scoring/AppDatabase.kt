@@ -10,7 +10,7 @@ import java.util.concurrent.Executors
 
 @Database(
     entities = [PlayerEntity::class, MatchEntity::class, PlayerMatchStatEntity::class, DraftMatchEntity::class],
-    version = 5,
+    version = 11,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -24,7 +24,7 @@ abstract class AppDatabase : RoomDatabase() {
         private var instance: AppDatabase? = null
         
         @JvmField
-        val ioExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+        val ioExecutor: ExecutorService = Executors.newFixedThreadPool(4)
 
         @JvmStatic
         @Synchronized
@@ -35,7 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "cricket_db"
                 )
-                    .fallbackToDestructiveMigration(true)
+                    .fallbackToDestructiveMigration()
                     .build()
             }
             return instance ?: throw IllegalStateException("Database not initialized")

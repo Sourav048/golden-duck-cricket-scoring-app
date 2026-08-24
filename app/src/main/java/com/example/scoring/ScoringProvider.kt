@@ -65,7 +65,8 @@ interface ScoringProvider {
         teamName: String?,
         playerName: String?,
         playerId: String?,
-        photoUri: String?
+        photoUri: String?,
+        jerseyNumber: String? = "0"
     )
     fun showEditCommentaryDialog(context: Context, entry: CommentaryEntry, pos: Int)
 }

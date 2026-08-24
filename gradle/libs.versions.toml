@@ -57,6 +57,7 @@ firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version.ref = "firebaseCrashlytics" }
+onesignal = { group = "com.onesignal", name = "OneSignal", version = "5.1.13" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

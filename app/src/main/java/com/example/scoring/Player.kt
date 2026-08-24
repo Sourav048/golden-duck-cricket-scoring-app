@@ -26,6 +26,7 @@ class Player {
     var catches: Int = 0
     var stumpings: Int = 0
     var runOuts: Int = 0
+    var gullyId: String = "local"
 
     constructor()
 
@@ -60,6 +61,7 @@ class Player {
         p.catches = catches
         p.stumpings = stumpings
         p.runOuts = runOuts
+        p.gullyId = gullyId
         return p
     }
 }

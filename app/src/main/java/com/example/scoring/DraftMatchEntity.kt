@@ -8,9 +8,13 @@ import java.util.UUID
 class DraftMatchEntity {
     @PrimaryKey
     var id: String
+    
+    var gullyId: String = "local"
+    var lastSyncedAt: Long = 0
 
     var teamAName: String? = null
     var teamBName: String? = null
+    var venue: String? = null
     var overs: Int = 0
     var ballType: String? = null
     var ruleRunsOnWide: Boolean = false

@@ -232,7 +232,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="My Gully"
+                    android:text="My Cricket"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="?attr/colorOnSurface" />
@@ -249,8 +249,9 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@android:drawable/ic_menu_forward"
-                app:tint="?attr/colorPrimary" />
+                android:src="@android:drawable/ic_media_play"
+                app:tint="?attr/colorPrimary"
+                android:contentDescription="Go to League Management" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 

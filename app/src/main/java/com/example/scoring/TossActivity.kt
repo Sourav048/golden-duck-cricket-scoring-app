@@ -18,6 +18,7 @@ class TossActivity : BaseActivity() {
     private var tvCoinResult: TextView? = null
     private var teamAName: String? = null
     private var teamBName: String? = null
+    private var venue: String? = null
     private var teamANames: ArrayList<String?>? = null
     private var teamBNames: ArrayList<String?>? = null
     private var teamAPhotos: ArrayList<String?>? = null
@@ -43,6 +44,7 @@ class TossActivity : BaseActivity() {
                 if (draft != null) {
                     teamAName = draft.teamAName
                     teamBName = draft.teamBName
+                    venue = draft.venue
                     overs = draft.overs
                     ballType = draft.ballType
                     ruleRunsOnWide = draft.ruleRunsOnWide

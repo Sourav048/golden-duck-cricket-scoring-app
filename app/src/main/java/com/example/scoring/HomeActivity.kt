@@ -4,10 +4,10 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.text.method.LinkMovementMethod
@@ -76,6 +76,16 @@ class HomeActivity : BaseActivity() {
 
         // Load rankings on startup
         refresh(this, null)
+
+        // START GULLY SYNC ENGINE
+        try {
+            val currentGully = getSharedPreferences("gully_prefs", MODE_PRIVATE).getString("current_gully_id", null)
+            if (currentGully != null) {
+                GullySyncManager.startSync(this, currentGully)
+            }
+        } catch (e: Exception) {
+            Log.e("GULLY_SYNC", "Failed to start sync: ${e.message}")
+        }
 
         handleIncomingFileIntent(intent)
     }
@@ -288,6 +298,15 @@ class HomeActivity : BaseActivity() {
     private fun showReadMeDialog() {
         val manualText = """
             <h3><b>🏆 Top Features</b></h3>
+            <p><b>League Notifications:</b> Stay updated with real-time push alerts for:
+            <ul>
+                <li>Match Starts & Venue details</li>
+                <li>Live Score updates (every 3 balls)</li>
+                <li>Milestones (40/70 Runs, 2/4 Wicket Hauls)</li>
+                <li>Final Match Results</li>
+            </ul>
+            </p>
+
             <p><b>Prestige Colors:</b> The top-ranked players in your league are honored with special colors and photo borders:
             <ul>
                 <li><font color='#FFD700'><b>Gold:</b></font> Overall #1 Player</li>
@@ -302,40 +321,11 @@ class HomeActivity : BaseActivity() {
 
             <p><b>Player Comparison:</b> Go to any player profile and tap <b>"Compare Players"</b> to see head-to-head stats with smart winner highlighting.</p>
             
-            <p><b>Detailed Insights:</b>
-            <ul>
-                <li><b>Crease Time:</b> Track exactly how many <b>minutes</b> every batsman spends at the crease.</li>
-                <li><b>POTM & Highlights:</b> Finished matches feature a <b>Player of the Match</b> and key summary highlights.</li>
-                <li><b>Role Stats:</b> Separate leaderboards for <b>Batting</b>, <b>Bowling</b>, and <b>Fielding</b> roles.</li>
-            </ul>
-            </p>
-
-            <p><b>Advanced Scoring:</b> Mid-over bowler changes, rain-affected <b>DLS</b> target calculations, and support for 7+ ball types (Stumper, Leather, etc.).</p>
-
             <hr>
-            <h3><b>📁 Sharing &amp; Importing Records</b></h3>
-            <p><b>How to get records from a friend:</b></p>
-            <ol>
-                <li><b>Find the file:</b> Whereever you see a <b>.cricket</b> file (in WhatsApp or Email), just <b>tap it once</b>.</li>
-                <li><b>Auto-Save:</b> The app will automatically save that file into your phone's <b>Downloads</b> folder inside: <i>"Golden Duck - A Cricket Scoring App"</i>.</li>
-                <li><b>Import:</b> Open the app, tap the <b>Menu</b> (top right), and select <b>Import Records</b>.</li>
-                <li><b>Pick File:</b> Choose the file from that folder, and all matches/players will appear in your app!</li>
-            </ol>
+            <h3><b>📁 League System</b></h3>
+            <p><b>Join or Create:</b> Go to "My Cricket" to join an existing league or start your own. Once joined, you will automatically receive alerts for every match played in that league.</p>
             
-            <p><b>How to share your own records:</b></p>
-            <ul>
-                <li>Go to the <b>Menu</b> -> <b>Export Records</b> -> <b>SHARE</b> to send your entire match history to a friend via WhatsApp.</li>
-            </ul>
-
-            <hr>
-            <h3><b>🏏 How to Score</b></h3>
-            <ol>
-                <li><b>Setup:</b> Start a 'New Match' and enter team names, overs, and players.</li>
-                <li><b>Toss:</b> Record the toss result and decision.</li>
-                <li><b>Scoring:</b> Tap runs (0, 1, 2, 3, 4, 6) or extras (WD, NB, B, LB) for each ball.</li>
-                <li><b>Wickets:</b> Use the 'WICKET' button to record various dismissal types.</li>
-                <li><b>Match Flow:</b> The app handles over completions, innings breaks, and results automatically.</li>
-            </ol>
+            <p><b>Deep Linking:</b> Tap on any notification to jump directly into the live scorecard or finished match summary.</p>
         """.trimIndent()
 
         val tv = TextView(this).apply {
@@ -575,7 +565,9 @@ class HomeActivity : BaseActivity() {
                 db.playerDao().deleteAllPlayers()
                 db.matchDao().deleteAllMatches()
                 db.statsDao().deleteAllStats()
-                db.draftDao().deleteAllDrafts()
+                // Use a default gullyId or logic to clear current active gully's drafts
+                val currentGId = GullySyncManager.getCurrentGullyId(this) ?: "local"
+                db.draftDao().deleteAllDraftsByGully(currentGId)
             }
             runOnUiThread {
                 Toast.makeText(this, "All records deleted successfully", Toast.LENGTH_LONG).show()

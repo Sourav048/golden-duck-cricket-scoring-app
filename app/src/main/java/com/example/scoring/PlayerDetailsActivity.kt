@@ -90,13 +90,30 @@ class PlayerDetailsActivity : BaseActivity() {
 
     private fun loadPlayerData() {
         AppDatabase.ioExecutor.execute {
-            currentPlayer = db?.playerDao()?.getPlayerById(playerId)
-            val stats = db?.statsDao()?.getStatsByPlayer(playerId)?.filterNotNull()
+            val player = db?.playerDao()?.getPlayerById(playerId)
+            currentPlayer = player
+            
+            val stats = if (player?.globalId != null) {
+                db?.statsDao()?.getStatsByGlobalId(player.globalId!!)?.filterNotNull()
+            } else {
+                db?.statsDao()?.getStatsByPlayer(playerId)?.filterNotNull()
+            }
+            
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
-                val player = currentPlayer ?: run {
+                if (player == null) {
                     finish()
                     return@runOnUiThread
+                }
+
+                // Show "GLOBAL PROFILE" badge if linked
+                findViewById<TextView>(R.id.tvDetailSubTitle)?.apply {
+                    if (player.globalId != null) {
+                        text = "GLOBAL CAREER PROFILE"
+                        visibility = View.VISIBLE
+                    } else {
+                        visibility = View.GONE
+                    }
                 }
 
                 val iv = findViewById<ShapeableImageView>(R.id.ivDetailPhoto)
@@ -274,17 +291,48 @@ class PlayerDetailsActivity : BaseActivity() {
             val n = nameIn.text.toString().trim()
             val j = jerseyIn.text.toString().trim()
             if (n.isNotEmpty() && j.isNotEmpty()) {
+                val oldName = player.name // CAPTURE THE TRUTH HERE
+                val nameChanged = (n != oldName)
+                
                 player.name = n
                 player.jerseyNumber = j
-                pendingPhotoUri?.let { player.photoUri = it }
-                AppDatabase.ioExecutor.execute {
-                    db?.playerDao()?.updatePlayer(player)
-                    runOnUiThread {
-                        if (isFinishing || isDestroyed) return@runOnUiThread
-                        pendingName = ""
-                        pendingJersey = ""
-                        pendingPhotoUri = null
-                        loadPlayerData()
+                
+                // FIX: Ensure photo is saved to internal storage if it's a new URI
+                pendingPhotoUri?.let { uriStr ->
+                    if (uriStr.startsWith("content://") || uriStr.startsWith("file://")) {
+                        try {
+                            val savedPath = PhotoUtils.savePhoto(this, Uri.parse(uriStr))
+                            if (savedPath != null) player.photoUri = savedPath
+                        } catch (e: Exception) {
+                            Log.e("PlayerDetails", "Photo save failed: ${e.message}")
+                            player.photoUri = uriStr
+                        }
+                    } else {
+                        player.photoUri = uriStr
+                    }
+                }
+
+                if (nameChanged) {
+                    Toast.makeText(this, "Renaming player in all matches...", Toast.LENGTH_LONG).show()
+                    PlayerRenameManager.renamePlayer(this, player, oldName, n) {
+                        runOnUiThread {
+                            if (!isFinishing && !isDestroyed) {
+                                resetEditState()
+                                loadPlayerData()
+                                Toast.makeText(this@PlayerDetailsActivity, "Universal Rename Complete!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                } else {
+                    AppDatabase.ioExecutor.execute {
+                        db?.playerDao()?.updatePlayer(player)
+                        GullySyncManager.syncPlayerToCloud(player.gullyId, player)
+                        runOnUiThread {
+                            if (!isFinishing && !isDestroyed) {
+                                resetEditState()
+                                loadPlayerData()
+                            }
+                        }
                     }
                 }
                 dialog.dismiss()
@@ -292,6 +340,12 @@ class PlayerDetailsActivity : BaseActivity() {
                 Toast.makeText(this, "Name and Jersey required", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun resetEditState() {
+        pendingName = ""
+        pendingJersey = ""
+        pendingPhotoUri = null
     }
 
     private fun launchCamera() {
@@ -323,18 +377,19 @@ class PlayerDetailsActivity : BaseActivity() {
 
     private fun calculateAndDisplayRankings() {
         AppDatabase.ioExecutor.execute {
-            val overall = db?.statsDao()?.getOverallRankings()
-            val batting = db?.statsDao()?.getBattingRankings()
-            val bowling = db?.statsDao()?.getBowlingRankings()
+            val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
+            val overall = db?.statsDao()?.getOverallRankings(gId)
+            val batting = db?.statsDao()?.getBattingRankings(gId)
+            val bowling = db?.statsDao()?.getBowlingRankings(gId)
 
             var rO = "Overall Ranking:- #-"
             var rBat = "Batting Ranking:- #-"
             var rBowl = "Bowling Ranking:- #-"
 
             playerId?.let { id ->
-                overall?.indexOfFirst { it?.playerId == id }?.let { idx -> if (idx != -1) rO = "Overall Ranking:- #${idx + 1}" }
-                batting?.indexOfFirst { it?.playerId == id }?.let { idx -> if (idx != -1) rBat = "Batting Ranking:- #${idx + 1}" }
-                bowling?.indexOfFirst { it?.playerId == id }?.let { idx -> if (idx != -1) rBowl = "Bowling Ranking:- #${idx + 1}" }
+                overall?.indexOfFirst { it?.playerId == id }?.let { idx -> if (idx >= 0) rO = "Overall Ranking:- #${idx + 1}" }
+                batting?.indexOfFirst { it?.playerId == id }?.let { idx -> if (idx >= 0) rBat = "Batting Ranking:- #${idx + 1}" }
+                bowling?.indexOfFirst { it?.playerId == id }?.let { idx -> if (idx >= 0) rBowl = "Bowling Ranking:- #${idx + 1}" }
             }
 
             runOnUiThread {

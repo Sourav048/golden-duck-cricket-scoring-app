@@ -24,7 +24,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="My Gully"
+            android:text="My Cricket"
             android:textSize="24sp"
             android:textStyle="bold"
             android:textColor="?attr/colorPrimary" />
@@ -48,7 +48,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Connected Gully"
+                android:text="Connected league"
                 android:textSize="12sp"
                 android:textStyle="bold"
                 android:textColor="?attr/colorPrimary" />
@@ -63,7 +63,7 @@
                 android:textColor="?attr/colorOnSurface"
                 android:layout_marginTop="4dp" />
 
-            <com.google.android.material.button.MaterialButton
+                <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLeaveGully"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
@@ -71,6 +71,16 @@
                 android:text="Switch to Local Mode"
                 android:textColor="?attr/colorError"
                 android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMigrateLocal"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sync Local History to Cloud"
+                android:layout_marginTop="8dp"
+                android:visibility="gone"
+                app:icon="@android:drawable/stat_sys_upload" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -94,91 +104,28 @@
             android:text="Create" />
     </com.google.android.material.tabs.TabLayout>
 
-    <LinearLayout
-        android:id="@+id/layoutJoin"
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPagerGully"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginTop="24dp">
+        android:layout_marginTop="12dp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Gully ID"
-            android:layout_marginBottom="16dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etJoinId"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textCapCharacters" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Passcode"
-            app:passwordToggleEnabled="true"
-            android:layout_marginBottom="24dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etJoinPass"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPassword" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnJoin"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="JOIN GULLY"
-            app:cornerRadius="12dp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/layoutCreate"
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/tvRecentTitle"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginTop="24dp"
-        android:visibility="gone">
+        android:text="Switch League"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorPrimary"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="12dp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Gully Name (ID)"
-            android:layout_marginBottom="16dp"
-            app:helperText="Unique name for your league">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etCreateId"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textCapCharacters" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Set Passcode"
-            app:passwordToggleEnabled="true"
-            android:layout_marginBottom="24dp"
-            app:helperText="Give this to your friends to join">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etCreatePass"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPassword" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCreate"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="CREATE GULLY"
-            app:cornerRadius="12dp" />
-    </LinearLayout>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvRecentGullies"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:overScrollMode="never" />
 
 </LinearLayout>

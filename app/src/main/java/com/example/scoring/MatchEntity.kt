@@ -1,9 +1,11 @@
 package com.example.scoring
 
+import androidx.annotation.Keep
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.UUID
 
+@Keep
 @Entity(tableName = "matches")
 class MatchEntity {
     @PrimaryKey
@@ -13,6 +15,8 @@ class MatchEntity {
     var teamAName: String? = null
     @JvmField
     var teamBName: String? = null
+    @JvmField
+    var venue: String? = null
     @JvmField
     var totalOvers: Int = 0
     @JvmField
@@ -125,13 +129,21 @@ class MatchEntity {
     var revisedOvers: Int? = null
 
     var isLive: Boolean = false
+    var startNotificationSent: Boolean = false
     @JvmField
     var isSharedOver: Boolean = false
+    
+    // Heartbeat for Live Status (ensures match goes to "In-Progress" if scorer leaves abruptly)
+    var lastScorerPulse: Long = 0
     
     // Gully Sync Fields
     var gullyId: String = "local"
     var cloudId: String? = null
     var lastSyncedAt: Long = 0
+    
+    // Phase 5: Compressed Cloud Payload
+    // This stores all heavy lists (Balls, Comm, Pship, Fow) in one tiny string for Firestore
+    var compressedPayload: String? = null
     
     // Squads/Mappings
     var teamANames: List<String?>? = null
@@ -143,6 +155,7 @@ class MatchEntity {
 
     fun toMatch(): Match {
         val m = Match(teamAName, teamBName, totalOvers, teamAPlayerCount, teamBPlayerCount)
+        m.venue = venue
         m.ballType = ballType
         m.tossWinner = tossWinner
         m.tossDecision = tossDecision
@@ -156,6 +169,7 @@ class MatchEntity {
         m.firstInningsEndTime = firstInningsEndTime
         m.secondInningsStartTime = secondInningsStartTime
         m.secondInningsEndTime = secondInningsEndTime
+        m.isStartNotificationSent = startNotificationSent
 
         // Restore additional resumption state
         // NOTE: Striker/Non-Striker/Bowler names are handled in MainActivity.resumeMatch 
@@ -218,6 +232,7 @@ class MatchEntity {
             val entity = MatchEntity()
             entity.teamAName = m.teamA
             entity.teamBName = m.teamB
+            entity.venue = m.venue
             entity.totalOvers = m.totalOvers
             entity.teamAPlayerCount = m.teamAPlayerCount
             entity.teamBPlayerCount = m.teamBPlayerCount
@@ -234,6 +249,7 @@ class MatchEntity {
             entity.firstInningsEndTime = m.firstInningsEndTime
             entity.secondInningsStartTime = m.secondInningsStartTime
             entity.secondInningsEndTime = m.secondInningsEndTime
+            entity.startNotificationSent = m.isStartNotificationSent
             
             m.firstInnings?.let { i ->
                 entity.firstInningsTeam = i.battingTeam

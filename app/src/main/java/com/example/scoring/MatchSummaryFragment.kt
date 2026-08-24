@@ -2,6 +2,7 @@ package com.example.scoring
 
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.util.Log
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
@@ -117,21 +118,28 @@ class MatchSummaryFragment : Fragment() {
                 }
 
                 AppDatabase.ioExecutor.execute {
-                    val db = getInstance(v.context)
-                    val pe = potmStat.playerId?.let { db.playerDao().getPlayerById(it) }
-                             ?: potmStat.playerName?.let { db.playerDao().getPlayerByName(it.trim()) }
+                    try {
+                        val db = getInstance(v.context.applicationContext)
+                        val gId = GullySyncManager.getCurrentGullyId(v.context.applicationContext) ?: "local"
+                        val pe = potmStat.playerId?.let { db.playerDao().getPlayerById(it) }
+                                 ?: potmStat.playerName?.let { db.playerDao().getPlayerByNameByGully(it.trim(), gId) }
 
-                    val photoUri = pe?.photoUri
-                    v.post {
-                        if (view == null) return@post
-                        if (!photoUri.isNullOrEmpty()) {
-                            Glide.with(this).load(photoUri)
-                                .placeholder(android.R.drawable.ic_menu_gallery)
-                                .error(android.R.drawable.ic_menu_gallery)
-                                .into(ivPhoto)
-                        } else {
-                            ivPhoto.setImageResource(android.R.drawable.ic_menu_gallery)
+                        val photoUri = pe?.photoUri
+                        v.post {
+                            if (!isAdded || view == null || activity == null) return@post
+                            try {
+                                if (!photoUri.isNullOrEmpty()) {
+                                    Glide.with(requireContext()).load(photoUri)
+                                        .placeholder(android.R.drawable.ic_menu_gallery)
+                                        .error(android.R.drawable.ic_menu_gallery)
+                                        .into(ivPhoto)
+                                } else {
+                                    ivPhoto.setImageResource(android.R.drawable.ic_menu_gallery)
+                                }
+                            } catch (e: Exception) { Log.e("SUMMARY", "Glide error: ${e.message}") }
                         }
+                    } catch (e: Exception) {
+                        Log.e("SUMMARY", "Photo load failed: ${e.message}")
                     }
                 }
             }

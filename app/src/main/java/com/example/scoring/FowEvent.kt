@@ -1,5 +1,8 @@
 package com.example.scoring
 
+import androidx.annotation.Keep
+
+@Keep
 class FowEvent {
     @JvmField
     var playerName: String? = null

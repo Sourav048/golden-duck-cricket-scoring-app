@@ -5,6 +5,7 @@ import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -49,7 +50,11 @@ object ThemeManager {
             // Fix for some devices where background doesn't respect theme
             val bg = getThemeColor(dialog.context, com.google.android.material.R.attr.colorSurface)
             window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            window.decorView.findViewById<View>(android.R.id.content)?.setBackgroundColor(bg)
+            val shape = GradientDrawable().apply {
+                setColor(bg)
+                cornerRadius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 28f, dialog.context.resources.displayMetrics)
+            }
+            window.decorView.findViewById<View>(android.R.id.content)?.background = shape
         }
 
         // Specifically handle Material Buttons in Dialogs
@@ -86,6 +91,8 @@ object ThemeManager {
 
     private fun applyToViewRecursive(view: View?, seed: Int, forceContrast: Boolean = false) {
         val v = view ?: return
+        if (v.tag == "custom_color") return
+        
         val contrast = getContrastColor(seed)
         val ctx = v.context
         var nextForceContrast = forceContrast

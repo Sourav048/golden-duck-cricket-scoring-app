@@ -1,5 +1,8 @@
 package com.example.scoring
 
+import androidx.annotation.Keep
+
+@Keep
 class PartnershipEvent {
     var batter1: String? = null
     var batter2: String? = null

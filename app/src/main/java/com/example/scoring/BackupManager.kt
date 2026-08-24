@@ -32,13 +32,14 @@ object BackupManager {
             outputStream.use { os ->
                 try {
                     val db = AppDatabase.getInstance(context)
+                    val gId = GullySyncManager.getCurrentGullyId(context) ?: "local"
                     val bundle = BackupBundle().apply {
-                        players = db.playerDao().getAllPlayers()?.map { p ->
-                            p?.apply { photoBase64 = PhotoUtils.pathToBase64(photoUri) }
+                        players = db.playerDao().getAllPlayersByGully(gId)?.map { p ->
+                            p?.apply { photoBase64 = PhotoUtils.pathToBase64(context, photoUri) }
                         }?.toMutableList()
-                        matches = db.matchDao().getAllMatches()?.toMutableList()
-                        stats = db.statsDao().getAllStats()?.toMutableList()
-                        drafts = db.draftDao().getAllDrafts()?.toMutableList()
+                        matches = db.matchDao().getAllMatchesByGully(gId)?.toMutableList()
+                        stats = db.statsDao().getAllStats()?.filter { it?.gullyId == gId }?.toMutableList()
+                        drafts = db.draftDao().getAllDrafts(gId)?.toMutableList()
                     }
 
                     val gson = Gson()
@@ -117,16 +118,17 @@ object BackupManager {
                 bundle.iv = bundleIv
 
                 val db = AppDatabase.getInstance(context)
+                val currentGId = GullySyncManager.getCurrentGullyId(context) ?: "local"
                 db.runInTransaction {
                     db.playerDao().deleteAllPlayers()
                     db.matchDao().deleteAllMatches()
                     db.statsDao().deleteAllStats()
-                    db.draftDao().deleteAllDrafts()
+                    db.draftDao().deleteAllDraftsByGully(currentGId)
 
                     bundle.players?.forEach { it?.let { p ->
                         p.name = p.name.trim()
                         if (!p.photoBase64.isNullOrEmpty()) {
-                            val newPath = PhotoUtils.base64ToPath(context, p.photoBase64)
+                            val newPath = PhotoUtils.base64ToPath(context, p.photoBase64, p.id)
                             if (newPath != null) p.photoUri = newPath
                         }
                         db.playerDao().insertPlayer(p) 

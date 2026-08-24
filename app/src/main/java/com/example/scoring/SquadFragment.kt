@@ -250,6 +250,7 @@ class SquadFragment : Fragment() {
             AppDatabase.ioExecutor.execute {
                 val context = holder.itemView.context
                 val db = AppDatabase.getInstance(context)
+                val gId = GullySyncManager.getCurrentGullyId(context) ?: "local"
                 var actualPhotoUri: String? = null
 
                 if (finalId != null) {
@@ -258,24 +259,25 @@ class SquadFragment : Fragment() {
                 }
 
                 if (actualPhotoUri == null) {
-                    val pe = db.playerDao().getPlayerByName(finalName.trim())
+                    val pe = db.playerDao().getPlayerByNameByGully(finalName.trim(), gId)
                     if (pe != null) actualPhotoUri = pe.photoUri
                 }
 
                 val uriToLoad = actualPhotoUri
                 holder.itemView.post {
-                    if (!uriToLoad.isNullOrEmpty()) {
+                    val photoView = holder.photo
+                    if (!uriToLoad.isNullOrEmpty() && photoView != null) {
                         try {
                             Glide.with(context)
                                 .load(uriToLoad)
                                 .placeholder(android.R.drawable.ic_menu_gallery)
                                 .error(android.R.drawable.ic_menu_gallery)
-                                .into(holder.photo!!)
+                                .into(photoView)
                         } catch (e: Exception) {
-                            holder.photo?.setImageResource(android.R.drawable.ic_menu_gallery)
+                            photoView.setImageResource(android.R.drawable.ic_menu_gallery)
                         }
                     } else {
-                        holder.photo?.setImageResource(android.R.drawable.ic_menu_gallery)
+                        photoView?.setImageResource(android.R.drawable.ic_menu_gallery)
                     }
                 }
             }
@@ -309,7 +311,8 @@ class SquadFragment : Fragment() {
 
             AppDatabase.ioExecutor.execute {
                 val db = AppDatabase.getInstance(context)
-                val allExisting = db.playerDao().getAllPlayers()?.filterNotNull() ?: emptyList()
+                val gId = GullySyncManager.getCurrentGullyId(context) ?: "local"
+                val allExisting = db.playerDao().getAllPlayersByGully(gId)?.filterNotNull() ?: emptyList()
 
                 fragment.activity?.runOnUiThread {
                     if (!fragment.isAdded || fragment.isDetached) return@runOnUiThread
@@ -382,23 +385,51 @@ class SquadFragment : Fragment() {
             val dialog = ThemeManager.createDynamicBuilder(context)
                 .setTitle("Add Player to $teamName")
                 .setView(view)
-                .setPositiveButton("Add") { d, w ->
-                        val name = nameInput.text.toString().trim()
-                        if (name.isNotEmpty()) {
-                            provider.addPlayerToTeam(
-                                teamName,
-                                name,
-                                fragment.selectedPlayerInfo[0],
-                                fragment.selectedPlayerInfo[1]
-                            )
-                            notifyItemInserted(names.size - 1)
-                        }
-                }
+                .setPositiveButton("Add", null)
                 .setNegativeButton("Cancel", null)
                 .create()
             
             dialog.show()
             ThemeManager.colorizeDialog(dialog)
+
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val name = nameInput.text.toString().trim()
+                val jersey = jerseyInput.text.toString().trim()
+
+                if (name.isEmpty() || jersey.isEmpty()) {
+                    if (name.isEmpty()) nameInput.error = "Name required"
+                    if (jersey.isEmpty()) jerseyInput.error = "Jersey required"
+                    return@setOnClickListener
+                }
+
+                // CHECK FOR DUPLICATE IN GULLY
+                AppDatabase.ioExecutor.execute {
+                    val db = AppDatabase.getInstance(context)
+                    val gId = GullySyncManager.getCurrentGullyId(context) ?: "local"
+                    val existing = db.playerDao().getPlayerByNameByGully(name, gId)
+
+                    fragment.activity?.runOnUiThread {
+                        if (existing != null && existing.jerseyNumber != jersey) {
+                            // WARN USER
+                            ThemeManager.createDynamicBuilder(context)
+                                .setTitle("Duplicate Name Found")
+                                .setMessage("${existing.name} - ${existing.jerseyNumber} already exists in this Gully. Still want to add as a new player?")
+                                .setPositiveButton("ADD ANYWAY") { _, _ ->
+                                    provider.addPlayerToTeam(teamName, name, fragment.selectedPlayerInfo[0], fragment.selectedPlayerInfo[1], jersey)
+                                    notifyItemInserted(names.size - 1)
+                                    dialog.dismiss()
+                                }
+                                .setNegativeButton("CANCEL", null)
+                                .show()
+                        } else {
+                            // Proceed normally
+                            provider.addPlayerToTeam(teamName, name, fragment.selectedPlayerInfo[0], fragment.selectedPlayerInfo[1], jersey)
+                            notifyItemInserted(names.size - 1)
+                            dialog.dismiss()
+                        }
+                    }
+                }
+            }
         }
 
         override fun getItemCount(): Int {

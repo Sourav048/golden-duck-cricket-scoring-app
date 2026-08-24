@@ -12,6 +12,7 @@ import java.util.Date
 import java.util.Locale
 
 class MatchInfoFragment : Fragment() {
+    private var tvVenue: TextView? = null
     private var tvBall: TextView? = null
     private var tvToss: TextView? = null
     private var tvRules: TextView? = null
@@ -26,6 +27,7 @@ class MatchInfoFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val v = inflater.inflate(R.layout.fragment_info, container, false)
+        tvVenue = v.findViewById(R.id.tvInfoVenue)
         tvBall = v.findViewById(R.id.tvInfoBallType)
         tvToss = v.findViewById(R.id.tvInfoToss)
         tvRules = v.findViewById(R.id.tvInfoRules)
@@ -50,6 +52,7 @@ class MatchInfoFragment : Fragment() {
     fun updateUI(match: Match?) {
         if (view == null || activity == null || match == null) return
 
+        tvVenue?.text = "Match Venue: ${match.venue ?: "Not Specified"}"
         tvBall?.text = "Ball Type: ${match.ballType ?: "Stumper"}"
 
         val tossW = match.tossWinner ?: "Unknown"

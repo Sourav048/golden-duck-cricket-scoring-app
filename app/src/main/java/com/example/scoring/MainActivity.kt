@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
@@ -72,6 +74,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
     private var teamAName: String? = null
     private var teamBName: String? = null
+    private var venue: String? = null
     private var ballType: String? = null
     private var overs = 0
     override var isRuleRunsOnWide: Boolean = false
@@ -124,6 +127,46 @@ class MainActivity : BaseActivity(), ScoringProvider {
     override var isAbandoned: Boolean = false
         private set
 
+    private var lastLocalPulseSent: Long = System.currentTimeMillis()
+    private val heartbeatHandler = Handler(Looper.getMainLooper())
+    private val heartbeatRunnable = object : Runnable {
+        override fun run() {
+            try {
+                if (isScorer && !isFinished && !isAbandoned && !isFinishing && !isDestroyed) {
+                    updatePulse()
+                    heartbeatHandler.postDelayed(this, 20000) // Pulse every 20s for better reliability
+                }
+            } catch (e: Exception) {
+                Log.e("HEARTBEAT", "Error in heartbeat: ${e.message}")
+            }
+        }
+    }
+
+    private fun updatePulse() {
+        val mId = currentMatchId ?: return
+        val appContext = applicationContext
+        AppDatabase.ioExecutor.execute {
+            try {
+                val db = AppDatabase.getInstance(appContext)
+                val entity = db.matchDao().getMatchById(mId)
+                if (entity != null && !entity.isFinished && !entity.isAbandoned) {
+                    val now = System.currentTimeMillis()
+                    entity.lastScorerPulse = now
+                    lastLocalPulseSent = now
+                    entity.isLive = true
+                    db.matchDao().insertMatch(entity)
+                    val gId = GullySyncManager.getCurrentGullyId(appContext)
+                    if (gId != null) {
+                        // Optimized: Only sync the pulse (heartbeat) to save data/CPU
+                        GullySyncManager.syncMatchPulseToCloud(gId, mId, now)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("HEARTBEAT", "Error updating pulse: ${e.message}")
+            }
+        }
+    }
+
     override val pshipRuns: Int
         get() = match?.currentInnings?.currentPshipRuns ?: 0
 
@@ -145,6 +188,22 @@ class MainActivity : BaseActivity(), ScoringProvider {
             // Resume the batting clock for active players
             striker?.let { if (it.entryTime == 0L && !it.isOut) it.entryTime = now }
             nonStriker?.let { if (it.entryTime == 0L && !it.isOut) it.entryTime = now }
+
+            // PULSE EXPIRY CHECK (Bulletproof Scorer Lock)
+            if (isScorer) {
+                val diffSinceLastLocalPulse = System.currentTimeMillis() - lastLocalPulseSent
+                // If this specific device has been inactive for > 2 mins, the session is dead.
+                // This prevents "stealing" the match if another device resumed it.
+                if (diffSinceLastLocalPulse > 120000) {
+                    Toast.makeText(applicationContext, "Session expired. Please resume from the match list.", Toast.LENGTH_LONG).show()
+                    finish()
+                    return
+                } else {
+                    // Lock is still valid, restart heartbeat
+                    heartbeatHandler.removeCallbacks(heartbeatRunnable)
+                    heartbeatHandler.postDelayed(heartbeatRunnable, 1000)
+                }
+            }
 
             val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
             val sdfDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
@@ -173,8 +232,20 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 match?.currentInnings?.commentary?.get(0)?.let { commentary.add(0, it) }
             }
             
-            saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
+            // NOTE: We no longer set isLive = false here. 
+            // The heartbeat pulse will continue to run in the background while minimized 
+            // to keep the match in the "Live" tab for others.
         }
+    }
+
+    override fun onDestroy() {
+        if (isScorer) {
+            heartbeatHandler.removeCallbacks(heartbeatRunnable)
+            if (!isFinished && !isAbandoned) {
+                saveMatchToDatabase(isFinished = false, isAbandoned = false, isLive = false)
+            }
+        }
+        super.onDestroy()
     }
 
     private fun showExitConfirmationDialog() {
@@ -183,7 +254,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             setMessage(getString(R.string.exit_match_msg))
             setPositiveButton("Exit") { _, _ ->
                 updateNotOutMins(match?.currentInnings, keepActive = false)
-                saveMatchToDatabase(isFinished = false, isAbandoned = false, isLive = true)
+                saveMatchToDatabase(isFinished = false, isAbandoned = false, isLive = false)
                 finish()
             }
             setNegativeButton("Cancel", null)
@@ -335,6 +406,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
         // 2. Try restoring from saved state (handles theme/rotation if VM was cleared)
         val intent = intent ?: return
+        isScorer = !intent.getBooleanExtra("isViewOnly", false)
         currentMatchId = intent.getStringExtra("matchId")
         if (currentMatchId != null) {
             resumeMatch(currentMatchId)
@@ -348,6 +420,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
         }
 
         // Direct intent handling (fallback)
+        venue = intent.getStringExtra("venue")
         teamAName = intent.getStringExtra("teamA") ?: "Team A"
         teamBName = intent.getStringExtra("teamB") ?: "Team B"
         ballType = intent.getStringExtra("ballType")
@@ -378,6 +451,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 }
                 teamAName = draft.teamAName
                 teamBName = draft.teamBName
+                venue = draft.venue
                 overs = draft.overs
                 ballType = draft.ballType
                 isRuleRunsOnWide = draft.ruleRunsOnWide
@@ -392,6 +466,15 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 teamBPhotos = draft.teamBPhotos?.let { ArrayList(it) }
                 teamAIds = draft.teamAIds?.let { ArrayList(it) }
                 teamBIds = draft.teamBIds?.let { ArrayList(it) }
+
+                // Delete draft after successfully loading - convert to active match
+                AppDatabase.ioExecutor.execute {
+                    val gId = GullySyncManager.getCurrentGullyId(applicationContext)
+                    if (gId != null && gId != "local") {
+                        GullySyncManager.deleteDraftFromCloud(gId, draftId)
+                    }
+                    db?.draftDao()?.deleteDraft(draft)
+                }
 
                 completeInitialization(intent)
             }
@@ -435,6 +518,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val bSize = currentB.size.coerceAtLeast(1)
 
         match = Match(teamAName, teamBName, overs, aSize, bSize).apply {
+            this.venue = this@MainActivity.venue
             this.ballType = this@MainActivity.ballType
             ruleRunsOnWide = isRuleRunsOnWide
             ruleFreeHit = isRuleFreeHit
@@ -461,6 +545,10 @@ class MainActivity : BaseActivity(), ScoringProvider {
         } else {
             match?.startFirstInnings(teamBName ?: "Blue Team", teamAName)
         }
+        
+        // Ensure timings are captured immediately
+        val startTime = System.currentTimeMillis()
+        match?.firstInningsStartTime = startTime
 
         val strikerName = intent.getStringExtra("strikerName")
         val nonStrikerName = intent.getStringExtra("nonStrikerName")
@@ -488,6 +576,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val startMsg = "Match Started at $timeStr on $dateStr"
         match?.currentInnings?.addCommentary("0.0", startMsg, null, "FACT")
         
+        val venueDisplay = if (venue.isNullOrEmpty()) "Not Specified" else venue
+        match?.currentInnings?.addCommentary("0.0", "Match Venue: $venueDisplay", null, "FACT")
+        
         match?.currentInnings?.addCommentary("0.0", "Here is the squad:", null, "FACT")
         val teamAStr = "${match?.teamA}: ${currentA.asSequence().filterNotNull().joinToString(", ")}"
         val teamBStr = "${match?.teamB}: ${currentB.asSequence().filterNotNull().joinToString(", ")}"
@@ -512,7 +603,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
             commentary.clear()
             commentary.addAll(it) 
         }
-
+        if (isScorer) {
+            saveMatchToDatabase(isFinished = false, isAbandoned = false, isLive = true)
+        }
         updateUI()
     }
 
@@ -531,7 +624,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
     private fun resumeMatch(matchId: String?) {
         AppDatabase.ioExecutor.execute {
-            val me = db!!.matchDao().getMatchById(matchId)
+            val dbInstance = db ?: getInstance(this@MainActivity)
+            val me = dbInstance.matchDao().getMatchById(matchId)
             if (me == null) {
                 runOnUiThread {
                     Toast.makeText(this, "Match not found", Toast.LENGTH_SHORT).show()
@@ -541,7 +635,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             }
 
             val m = me.toMatch()
-            val stats = db!!.statsDao().getStatsByMatch(matchId) ?: emptyList()
+            val stats = dbInstance.statsDao().getStatsByMatch(matchId) ?: emptyList()
 
             runOnUiThread {
                 this.match = m
@@ -559,8 +653,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
                 teamANames = ArrayList(me.teamANames?.mapNotNull { it?.trim() } ?: emptyList())
                 teamBNames = ArrayList(me.teamBNames?.mapNotNull { it?.trim() } ?: emptyList())
-                photoMap.putAll(me.photoMap?.filterKeys { it != null }?.map { it.key!!.trim() to it.value }?.toMap() ?: emptyMap())
-                nameToIdMap.putAll(me.nameToIdMap?.filterKeys { it != null }?.map { it.key!!.trim() to it.value }?.toMap() ?: emptyMap())
+                photoMap.putAll(me.photoMap?.filterKeys { it != null }?.mapNotNull { entry -> entry.key?.trim() to entry.value }?.toMap() ?: emptyMap())
+                nameToIdMap.putAll(me.nameToIdMap?.filterKeys { it != null }?.mapNotNull { entry -> entry.key?.trim() to entry.value }?.toMap() ?: emptyMap())
 
                 this.playerStatCache.clear()
                 for (s in stats) {
@@ -629,6 +723,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
                 reconstructCurrentOverState()
                 recalculateMatchState()
+                if (isScorer) {
+                    saveMatchToDatabase(isFinished = false, isAbandoned = false, isLive = true)
+                }
                 updateUI()
             }
         }
@@ -753,6 +850,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
         if (!playerStatCache.containsKey(trimmedName)) {
             val p = Player(trimmedName)
             p.id = nameToIdMap[trimmedName]
+            p.gullyId = GullySyncManager.getCurrentGullyId(applicationContext) ?: "local"
             playerStatCache[trimmedName] = p
         }
         return playerStatCache[trimmedName]
@@ -985,9 +1083,20 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
         recalculateMatchState()
 
-        // Team Milestones (50, 100, 150...)
+        // Team Milestones (50, 60, 100, 150...)
         val total = innings.totalRuns
         val prevTotal = total - runs
+        
+        // 60 Run Milestone (as requested)
+        if (total >= 60 && prevTotal < 60) {
+            currentMatchId?.let { mId ->
+                val gId = GullySyncManager.getCurrentGullyId(applicationContext) ?: "local"
+                val teamName = innings.battingTeam ?: "Team"
+                GullySyncManager.sendMilestoneNotification(applicationContext, mId, gId, teamName, "reached 60 Runs")
+            }
+            triggerConfetti(colorsMilestone)
+        }
+
         if (total >= 50) {
             val milestone = (total / 50) * 50
             if (prevTotal < milestone) {
@@ -1031,11 +1140,19 @@ class MainActivity : BaseActivity(), ScoringProvider {
             val bowlerObj = bowler
             if (bowlerObj != null) {
                 val w = bowlerObj.wicketsTaken
-                if (w == 3 || w == 5) {
+                if (w == 2 || w == 3 || w == 4 || w == 5) {
                     val haulMsg = "$w WICKET HAUL for ${bowlerObj.name}!"
                     innings.addCommentary("FACT", haulMsg, "W", "FACT")
                     innings.commentary.firstOrNull()?.let { commentary.add(0, it) }
                     triggerConfetti(colorsMatchWin)
+
+                    // League Notification for 2w and 4w (as requested)
+                    if (w == 2 || w == 4) {
+                        currentMatchId?.let { mId ->
+                            val gId = GullySyncManager.getCurrentGullyId(applicationContext) ?: "local"
+                            GullySyncManager.sendMilestoneNotification(applicationContext, mId, gId, bowlerObj.name ?: "Bowler", "took a $w Wicket Haul")
+                        }
+                    }
                 }
                 
                 // Hat-ttrick check (3 consecutive bowler-credited wickets)
@@ -1078,21 +1195,32 @@ class MainActivity : BaseActivity(), ScoringProvider {
             triggerConfetti(colorsFour)
         }
 
-        // Batting Milestones (30, 50, 80, 100)
+        // Batting Milestones (30, 40, 50, 70, 80, 100)
         if (!isWicket) {
             val r = batsmanForRecord.runsScored
             val prevR = r - runs
             val milestone = when {
                 r >= 100 && prevR < 100 -> "HUNDRED! A magnificent century for ${batsmanForRecord.name}!" to "H"
                 r >= 80 && prevR < 80 -> "Superb innings! 80 up for ${batsmanForRecord.name}!" to "E"
+                r >= 70 && prevR < 70 -> "Brilliant 70! ${batsmanForRecord.name} is dominating." to "S"
                 r >= 50 && prevR < 50 -> "HALF-CENTURY! Well played, ${batsmanForRecord.name}!" to "F"
-                r >= 30 && prevR < 30 -> "Solid 30! ${batsmanForRecord.name} is looking good." to "T"
+                r >= 40 && prevR < 40 -> "Solid 40! ${batsmanForRecord.name} is looking strong." to "F"
+                r >= 30 && prevR < 30 -> "Good start! 30 up for ${batsmanForRecord.name}." to "T"
                 else -> null
             }
             milestone?.let { (msg, tag) ->
                 innings.addCommentary("FACT", msg, tag, "FACT")
                 innings.commentary.firstOrNull()?.let { commentary.add(0, it) }
                 triggerConfetti(colorsMilestone)
+
+                // League Notification for 40 and 70 (as requested)
+                if (r >= 40 && prevR < 40 || r >= 70 && prevR < 70) {
+                    val mValue = if (r >= 70) "70 Runs" else "40 Runs"
+                    currentMatchId?.let { mId ->
+                        val gId = GullySyncManager.getCurrentGullyId(applicationContext) ?: "local"
+                        GullySyncManager.sendMilestoneNotification(applicationContext, mId, gId, batsmanForRecord.name ?: "Batter", "scored $mValue")
+                    }
+                }
             }
         }
 
@@ -1114,7 +1242,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
         }
 
         updateUI()
-        saveMatchToDatabase(isFinished, isAbandoned, true)
+        saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
     }
 
     private fun swapBatsmen() {
@@ -1230,6 +1358,16 @@ class MainActivity : BaseActivity(), ScoringProvider {
         isOverCompleteDialogShowing = true
         
         val view = layoutInflater.inflate(R.layout.dialog_over_summary, null)
+        
+        val ordinal = when {
+            overNum % 100 in 11..13 -> "${overNum}th"
+            overNum % 10 == 1 -> "${overNum}st"
+            overNum % 10 == 2 -> "${overNum}nd"
+            overNum % 10 == 3 -> "${overNum}rd"
+            else -> "${overNum}th"
+        }
+        view.findViewById<TextView>(R.id.tvOverCompleteTitle).text = "$ordinal Over Complete"
+
         view.findViewById<TextView>(R.id.tvOverLabel).text = getString(R.string.over_label, overNum)
         view.findViewById<TextView>(R.id.tvScoreLabel).text = matchScore
         view.findViewById<TextView>(R.id.tvOverRuns).text = overRuns.toString()
@@ -1273,23 +1411,25 @@ class MainActivity : BaseActivity(), ScoringProvider {
         view.findViewById<TextView>(R.id.tvBowlerName).text = bowler?.name
         view.findViewById<TextView>(R.id.tvBowlerStats).text = "${bowler?.oversBowledDisplay}-${bowler?.maidens}-${bowler?.runsConceded}-${bowler?.wicketsTaken}"
 
-        showDynamicDialog {
+        val dialog = showDynamicDialog {
             setView(view)
             setCancelable(false)
-            setPositiveButton(getString(R.string.next_over)) { _, _ ->
-                isOverCompleteDialogShowing = false
-                overRuns = 0
-                overBowlerRuns = 0
-                overWickets = 0
-                overBallsList.clear()
-                swapBatsmen()
-                if (!isFinished && !isAbandoned) {
-                    val bowlingTeam = if (teamABatting) teamBNames else teamANames
-                    if (bowlingTeam != null && bowlingTeam.filterNotNull().size > 1) {
-                        showBowlerSelectionDialog(null, false)
-                    } else {
-                        updateUI()
-                    }
+        }
+
+        view.findViewById<View>(R.id.btnNextOverDialog).setOnClickListener {
+            dialog.dismiss()
+            isOverCompleteDialogShowing = false
+            overRuns = 0
+            overBowlerRuns = 0
+            overWickets = 0
+            overBallsList.clear()
+            swapBatsmen()
+            if (!isFinished && !isAbandoned) {
+                val bowlingTeam = if (teamABatting) teamBNames else teamANames
+                if (bowlingTeam != null && bowlingTeam.filterNotNull().size > 1) {
+                    showBowlerSelectionDialog(null, false)
+                } else {
+                    updateUI()
                 }
             }
         }
@@ -1394,9 +1534,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
         
         // If match is still active, show progress status
         if (!isFinished) {
-            if (!i1.isComplete) return "IN-PROGRESS"
+            if (!i1.isComplete) return "LIVE"
             if (i2 == null) return "FIRST INNINGS OVER"
-            if (!i2.isComplete) return "IN-PROGRESS"
+            if (!i2.isComplete) return "LIVE"
         }
 
         // If we reach here, either the match is naturally complete OR was manually finished
@@ -1617,7 +1757,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             .create()
         
         dialogRef[0]?.show()
-        ThemeManager.colorizeDialog(dialogRef[0]!!)
+        dialogRef[0]?.let { ThemeManager.colorizeDialog(it) }
     }
 
     private fun showWicketOnWideDialog(wideRuns: Int, facingBatsman: Player?) {
@@ -1841,7 +1981,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             .create()
         
         dialogRef[0]?.show()
-        ThemeManager.colorizeDialog(dialogRef[0]!!)
+        dialogRef[0]?.let { ThemeManager.colorizeDialog(it) }
 
         dialogRef[0]?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
             val input = etRuns.text.toString()
@@ -1894,7 +2034,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 }
                 
                 val fielderForRecord = if (breaker != "None") breaker else if (thrower != "None") thrower else null
-                commitWicket(outP, facingBatsman ?: striker!!, dStr, BallType.BYE, runs, true, fielderForRecord, 0, isStrikerEnd)
+                val currentStriker = facingBatsman ?: striker
+                if (currentStriker == null) {
+                    Toast.makeText(this, "No batsman available", Toast.LENGTH_SHORT).show()
+                } else {
+                    commitWicket(outP, currentStriker, dStr, BallType.BYE, runs, true, fielderForRecord, 0, isStrikerEnd)
+                }
             }
 
             if (nonStriker == null) {
@@ -1939,7 +2084,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     swapBatsmen()
                 }
             }
-            commitWicket(outP, facingBatsman ?: striker!!, "Obstructing the field", BallType.BYE, runs, false, null, 0, isStrikerEnd)
+            val currentStriker = facingBatsman ?: striker
+            if (currentStriker == null) {
+                Toast.makeText(this, "No batsman available", Toast.LENGTH_SHORT).show()
+            } else {
+                commitWicket(outP, currentStriker, "Obstructing the field", BallType.BYE, runs, false, null, 0, isStrikerEnd)
+            }
         }
 
         if (nonStriker == null) {
@@ -2025,7 +2175,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             .create()
         
         dialogRef[0]?.show()
-        ThemeManager.colorizeDialog(dialogRef[0]!!)
+        dialogRef[0]?.let { ThemeManager.colorizeDialog(it) }
 
         dialogRef[0]?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
             val input = etRuns.text.toString()
@@ -2078,7 +2228,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 }
                 
                 val fielderForRecord = if (breaker != "None") breaker else if (thrower != "None") thrower else null
-                commitWicket(outP, facingBatsman ?: striker!!, dStr, BallType.LEG_BYE, runs, true, fielderForRecord, 0, isStrikerEnd)
+                val currentStriker = facingBatsman ?: striker
+                if (currentStriker == null) {
+                    Toast.makeText(this, "No batsman available", Toast.LENGTH_SHORT).show()
+                } else {
+                    commitWicket(outP, currentStriker, dStr, BallType.LEG_BYE, runs, true, fielderForRecord, 0, isStrikerEnd)
+                }
             }
 
             if (nonStriker == null) {
@@ -2123,7 +2278,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     swapBatsmen()
                 }
             }
-            commitWicket(outP, facingBatsman ?: striker!!, "Obstructing the field", BallType.LEG_BYE, runs, false, null, 0, isStrikerEnd)
+            val currentStriker = facingBatsman ?: striker
+            if (currentStriker == null) {
+                Toast.makeText(this, "No batsman available", Toast.LENGTH_SHORT).show()
+            } else {
+                commitWicket(outP, currentStriker, "Obstructing the field", BallType.LEG_BYE, runs, false, null, 0, isStrikerEnd)
+            }
         }
 
         if (nonStriker == null) {
@@ -2204,7 +2364,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             .setNegativeButton("Cancel", null)
             .create()
         dialogRef[0]?.show()
-        ThemeManager.colorizeDialog(dialogRef[0]!!)
+        dialogRef[0]?.let { ThemeManager.colorizeDialog(it) }
     }
 
     private fun showOverthrowStep2Dialog(beforeRuns: Int) {
@@ -2259,7 +2419,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             .setNegativeButton("Cancel", null)
             .create()
         dialogRef[0]?.show()
-        ThemeManager.colorizeDialog(dialogRef[0]!!)
+        dialogRef[0]?.let { ThemeManager.colorizeDialog(it) }
     }
 
     private fun applyOverthrowLogic(before: Int, after: Int) {
@@ -2281,7 +2441,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             }
         }
         
-        saveMatchToDatabase(isFinished, isAbandoned, true)
+        saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
     }
 
 
@@ -2405,7 +2565,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             .create()
         
         dialogRef[0]?.show()
-        ThemeManager.colorizeDialog(dialogRef[0]!!)
+        dialogRef[0]?.let { ThemeManager.colorizeDialog(it) }
 
         dialogRef[0]?.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
             val runs = etRuns.text.toString().toIntOrNull() ?: 0
@@ -2543,7 +2703,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             .create()
         
         dialogRef[0]?.show()
-        ThemeManager.colorizeDialog(dialogRef[0]!!)
+        dialogRef[0]?.let { ThemeManager.colorizeDialog(it) }
     }
 
     private fun processObstructingFieldWithRuns(runs: Int) {
@@ -2954,7 +3114,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             showBatsmanSelectionDialog(wasStriker)
         }
         
-        saveMatchToDatabase(isFinished, isAbandoned, true)
+        saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
     }
 
     override fun handlePenaltyFlow() {
@@ -3306,11 +3466,15 @@ class MainActivity : BaseActivity(), ScoringProvider {
         
         recalculateMatchState()
         updateUI()
+        saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
     }
 
     override fun saveMatchToDatabase() {
-        saveMatchToDatabase(true, false, false)
-        finish()
+        saveMatchToDatabase(isFinished = true, isAbandoned = false, isLive = false)
+        // Delay finish slightly to ensure background task has captured all needed IDs
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (!isFinishing && !isDestroyed) finish()
+        }, 500)
     }
 
     override fun saveMatchToDatabase(isFinished: Boolean, isAbandoned: Boolean, isLive: Boolean) {
@@ -3324,12 +3488,15 @@ class MainActivity : BaseActivity(), ScoringProvider {
         isMilestone: Boolean
     ) {
         val m = match ?: return
+        val now = System.currentTimeMillis()
         
         // Update not-out minutes before saving to ensure latest data is captured
         updateNotOutMins(m.currentInnings, keepActive = isLive && !isFinished)
 
         if (isFinished) {
             this.isFinished = true
+            if (m.secondInnings != null) m.secondInningsEndTime = now
+            else m.firstInningsEndTime = now
         }
         if (isAbandoned) {
             if (!this.isAbandoned) {
@@ -3358,10 +3525,16 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val currentPhotos = HashMap(photoMap)
         val currentIds = HashMap(nameToIdMap)
         val entity = MatchEntity.fromMatch(m).apply {
+            val gId = GullySyncManager.getCurrentGullyId(applicationContext) ?: "local"
             this.id = matchId
             this.isFinished = isFinished
             this.isAbandoned = isAbandoned
-            this.isLive = isLive
+            // Critical Fix: A finished or abandoned match can NEVER be live
+            this.isLive = if (isFinished || isAbandoned) false else isLive
+            val nowPulse = System.currentTimeMillis()
+            this.lastScorerPulse = nowPulse
+            lastLocalPulseSent = nowPulse
+            this.gullyId = gId
             this.teamANames = currentTeamA
             this.teamBNames = currentTeamB
             this.photoMap = currentPhotos
@@ -3424,16 +3597,96 @@ class MainActivity : BaseActivity(), ScoringProvider {
                         db?.statsDao()?.insertStat(s)
                     }
                 }
+                
+                // CLOUD SYNC: Match Summary
+                val gId = GullySyncManager.getCurrentGullyId(applicationContext)
+                if (gId != null && isScorer) {
+                    GullySyncManager.syncMatchToCloud(gId, entity)
+                    
+                    // CLEANUP: Always try to remove the draft from the cloud once the match is in the matches collection
+                    GullySyncManager.deleteDraftFromCloud(gId, matchId)
+
+                    // LIVE NOTIFICATION LOGIC
+                    if (isLive && gId != "local") {
+                        if (!m.isStartNotificationSent) {
+                            // First time starting: Send "Match Started" alert
+                            GullySyncManager.sendMatchStartNotification(applicationContext, entity)
+                            m.isStartNotificationSent = true
+                            
+                            // Re-save with the flag set
+                            val updatedEntity = MatchEntity.fromMatch(m).apply { 
+                                this.id = matchId
+                                this.gullyId = gId
+                                this.startNotificationSent = true 
+                            }
+                            db?.matchDao()?.insertMatch(updatedEntity)
+                        } else {
+                            // Ongoing match: Send score update
+                            // To prevent hitting API limits, we only update every 3 balls or on a wicket
+                            val totalBalls = (match?.currentInnings?.balls?.size ?: 0)
+                            val isWicket = match?.currentInnings?.balls?.lastOrNull()?.isWicket ?: false
+                            
+                            if (totalBalls % 3 == 0 || isWicket || isFinished) {
+                                GullySyncManager.sendLiveScoreUpdate(applicationContext, entity)
+                            }
+                        }
+                    }
+
+                    // CLOUD SYNC: Update all participating players' global stats & increment career totals
+                    if (isLive && !m.isStartNotificationSent && gId != "local") {
+                        GullySyncManager.sendMatchStartNotification(applicationContext, entity)
+                        m.isStartNotificationSent = true
+                        // Minimal update to save the 'sent' flag
+                        db?.matchDao()?.insertMatch(MatchEntity.fromMatch(m).apply { 
+                            this.id = matchId
+                            this.gullyId = gId
+                            this.startNotificationSent = true 
+                        })
+                        
+                        runOnUiThread {
+                            Toast.makeText(applicationContext, "League alerted about live match!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+
+                    // CLOUD SYNC: Update all participating players' global stats & increment career totals
+                    if (isFinished && !isAbandoned) {
+                        finalStatsList.forEach { p ->
+                            p.id?.let { pid ->
+                                val pEntity = db?.playerDao()?.getPlayerById(pid)
+                                val globalIdToUse = pEntity?.globalId ?: pid
+                                
+                                if (pEntity != null) {
+                                    GullySyncManager.syncPlayerToCloud(gId, pEntity)
+                                }
+                                // ADDITIVE UPDATE: Increment global totals using the correct Global ID
+                                GullySyncManager.incrementGlobalPlayerStats(globalIdToUse, p.runsScored, p.wicketsTaken)
+                            }
+                        }
+                    }
+                }
+
                 // Refresh global rankings after database save
                 RankingRegistry.refresh(applicationContext, null)
+                
+                if (isFinished && !isAbandoned) {
+                    runOnUiThread {
+                        Toast.makeText(applicationContext, "Match Saved Successfully!", Toast.LENGTH_SHORT).show()
+                    }
+                }
             } catch (e: Exception) {
                 Log.e("SAVE_MATCH", "Failed to save match: ${e.message}")
+                runOnUiThread {
+                    Toast.makeText(applicationContext, "Error Saving Match: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
 
     override fun startNextInnings() {
+        val now = System.currentTimeMillis()
         updateNotOutMins(match?.firstInnings)
+        match?.firstInningsEndTime = now
+        match?.secondInningsStartTime = now
         
         // --- HARD RESET ACTIVE PLAYERS ---
         striker = null
@@ -3550,7 +3803,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
         }
 
         updateUI()
-        saveMatchToDatabase(false, false, true)
+        saveMatchToDatabase(isFinished = false, isAbandoned = false, isLive = true)
     }
 
     override fun updateUI() {
@@ -3567,7 +3820,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
         tvRateValue?.text = String.format(Locale.US, "%.2f", crr)
 
         val result = calculateMatchResult()
-        val isDecided = (result != null && result != "IN-PROGRESS") || isFinished || isAbandoned
+        val isDecided = (result != null && result != "IN-PROGRESS" && result != "LIVE" && !result.contains("FIRST INNINGS OVER")) || isFinished || isAbandoned
 
         if (isDecided) {
             layoutLiveHeader?.visibility = View.GONE
@@ -3630,7 +3883,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
         teamName: String?,
         playerName: String?,
         playerId: String?,
-        photoUri: String?
+        photoUri: String?,
+        jerseyNumber: String?
     ) {
         if (teamName == null || playerName == null) return
         val isTeamA = (teamName == match?.teamA)
@@ -3651,25 +3905,31 @@ class MainActivity : BaseActivity(), ScoringProvider {
             val db = getInstance(ctx)
             
             val trimmedName = playerName.trim()
+            val j = jerseyNumber ?: "0"
+            val gId = GullySyncManager.getCurrentGullyId(applicationContext) ?: "local"
+            
             val existing = if (playerId != null) {
                 db.playerDao().getPlayerById(playerId)
             } else {
-                db.playerDao().getPlayerByName(trimmedName)
+                db.playerDao().getPlayerByNameAndJersey(trimmedName, j, gId)
             }
 
             if (existing == null) {
-                val newP = PlayerEntity(trimmedName, "0", photoUri)
+                val newP = PlayerEntity(trimmedName, j, photoUri).apply { this.gullyId = gId }
                 db.playerDao().insertPlayer(newP)
                 runOnUiThread { nameToIdMap[playerName] = newP.id }
+                
+                // CLOUD SYNC: New Player
+                GullySyncManager.syncPlayerToCloud(gId, newP)
             } else {
-                if (!photoUri.isNullOrEmpty() && photoUri != existing.photoUri) {
-                    existing.photoUri = photoUri
-                    db.playerDao().insertPlayer(existing)
-                }
+                // EXACT PLAYER EXISTS: Don't update anything, just link to current match if needed
                 runOnUiThread { 
                     nameToIdMap[playerName] = existing.id
-                    // Update photo map if a new photo was added during scoring
-                    if (!photoUri.isNullOrEmpty()) photoMap[playerName] = photoUri
+                    // Only show toast if this was a manual entry (playerId is null)
+                    // If playerId was provided, user intentionally selected this player from database
+                    if (playerId == null) {
+                        Toast.makeText(applicationContext, "Player '$trimmedName #$j' already exists in this Gully!", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
@@ -3726,7 +3986,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 }
                 
                 commentaryFragment?.updateUI()
-                saveMatchToDatabase(isFinished, isAbandoned, true)
+                saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
             }
             .setNegativeButton("Cancel", null)
             .create()

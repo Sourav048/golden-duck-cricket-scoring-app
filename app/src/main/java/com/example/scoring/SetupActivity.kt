@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
@@ -12,10 +13,11 @@ import android.widget.Toast
 import com.google.android.material.materialswitch.MaterialSwitch
 
 class SetupActivity : BaseActivity() {
+    private var venueInput: AutoCompleteTextView? = null
     private var teamAInput: EditText? = null
     private var teamBInput: EditText? = null
     private var oversInput: EditText? = null
-    private var ballTypeSpinner: Spinner? = null
+    private var ballTypeInput: AutoCompleteTextView? = null
     private var switchRunsOnWide: MaterialSwitch? = null
     private var switchFreeHit: MaterialSwitch? = null
     private var switchRunsOnBye: MaterialSwitch? = null
@@ -32,10 +34,11 @@ class SetupActivity : BaseActivity() {
         try {
             setContentView(R.layout.activity_setup)
 
+            venueInput = findViewById(R.id.venueInput)
             teamAInput = findViewById(R.id.teamAInput)
             teamBInput = findViewById(R.id.teamBInput)
             oversInput = findViewById(R.id.oversInput)
-            ballTypeSpinner = findViewById(R.id.ballTypeSpinner)
+            ballTypeInput = findViewById(R.id.ballTypeSpinner)
             switchRunsOnWide = findViewById(R.id.switchRunsOnWide)
             switchFreeHit = findViewById(R.id.switchFreeHit)
             switchRunsOnBye = findViewById(R.id.switchRunsOnBye)
@@ -53,25 +56,37 @@ class SetupActivity : BaseActivity() {
                 getString(R.string.select_ball_type)
             )
 
-            val adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, ballTypes) {
-                override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-                    if (position == ballTypes.size - 1) {
-                        val v = View(context)
-                        v.visibility = View.GONE
-                        v.layoutParams = ViewGroup.LayoutParams(0, 0)
-                        return v
-                    }
-                    return super.getDropDownView(position, convertView, parent)
-                }
+            val ballTypesList = ballTypes.take(ballTypes.size - 1)
+            val adapter = ArrayAdapter<String>(this, R.layout.list_item_dropdown, ballTypesList)
+            ballTypeInput?.setAdapter(adapter)
+            // Removed auto-selection of first item to force user selection
 
-                override fun getCount(): Int = super.getCount() - 1
+            ballTypeInput?.setOnClickListener {
+                ballTypeInput?.showDropDown()
             }
 
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            ballTypeSpinner?.adapter = adapter
-            ballTypeSpinner?.setSelection(ballTypes.size - 1)
+            // Setup Venue Suggestions
+            AppDatabase.ioExecutor.execute {
+                val venues = AppDatabase.getInstance(this).matchDao().getUniqueVenues() ?: emptyList()
+                runOnUiThread {
+                    val venueAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, venues)
+                    venueInput?.setAdapter(venueAdapter)
+                    
+                    // Show dropdown when focused/clicked if there are items
+                    venueInput?.setOnFocusChangeListener { _, hasFocus ->
+                        if (hasFocus && (venueInput?.text?.isEmpty() == true)) {
+                            venueInput?.showDropDown()
+                        }
+                    }
+                    venueInput?.setOnClickListener {
+                        if (venueInput?.text?.isEmpty() == true) {
+                            venueInput?.showDropDown()
+                        }
+                    }
+                }
+            }
 
-            ballTypeSpinner?.setOnTouchListener { _, event ->
+            ballTypeInput?.setOnTouchListener { _, event ->
                 if (event.action == android.view.MotionEvent.ACTION_UP) {
                     hideKeyboard()
                 }
@@ -87,6 +102,7 @@ class SetupActivity : BaseActivity() {
             }
 
             if (intent.getBooleanExtra("cloneMatch", false)) {
+                venueInput?.setText(intent.getStringExtra("venue"))
                 teamAInput?.setText(intent.getStringExtra("teamAName"))
                 teamBInput?.setText(intent.getStringExtra("teamBName"))
                 oversInput?.setText(intent.getIntExtra("overs", 10).toString())
@@ -97,17 +113,11 @@ class SetupActivity : BaseActivity() {
                 switchOverthrow?.isChecked = intent.getBooleanExtra("ruleOverthrow", true)
 
                 intent.getStringExtra("ballType")?.let { bType ->
-                    val index = ballTypes.indexOfFirst { it.equals(bType, ignoreCase = true) || it.trim().equals(bType.trim(), ignoreCase = true) }
-                    if (index != -1) {
-                        ballTypeSpinner?.post { ballTypeSpinner?.setSelection(index) }
-                    }
+                    ballTypeInput?.setText(bType, false)
                 }
             }
 
-            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnStartMatch).apply {
-                setText(R.string.btn_next_add_players)
-                setOnClickListener { onNext() }
-            }
+            findViewById<View>(R.id.btnProceedTop).setOnClickListener { onNext() }
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Setup initialization error: ${e.message}", Toast.LENGTH_LONG).show()
@@ -116,6 +126,7 @@ class SetupActivity : BaseActivity() {
 
     private fun onNext() {
         hideKeyboard()
+        val venue = venueInput?.text?.toString()?.trim() ?: ""
         var teamA = teamAInput?.text?.toString()?.trim() ?: ""
         var teamB = teamBInput?.text?.toString()?.trim() ?: ""
 
@@ -144,14 +155,13 @@ class SetupActivity : BaseActivity() {
             return
         }
 
-        val selectedPos = ballTypeSpinner?.selectedItemPosition ?: -1
-        if (selectedPos == (ballTypeSpinner?.adapter?.count ?: -1)) {
-            Toast.makeText(this, "Please select a ball type", Toast.LENGTH_SHORT).show()
-            return
+        var ballType = ballTypeInput?.text?.toString()?.trim() ?: ""
+        if (ballType.isEmpty() || ballType == getString(R.string.select_ball_type)) {
+            ballType = "Not Specified"
         }
-        val ballType = ballTypeSpinner?.selectedItem?.toString() ?: ""
 
         val intentNext = Intent(this, PlayerEntryActivity::class.java).apply {
+            putExtra("venue", venue)
             putExtra("teamA", teamA)
             putExtra("teamB", teamB)
             putExtra("overs", overs)

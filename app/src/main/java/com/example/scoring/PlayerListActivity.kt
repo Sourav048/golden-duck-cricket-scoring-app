@@ -56,6 +56,7 @@ class PlayerListActivity : BaseActivity() {
     private var pendingJersey = ""
     private var pendingPhotoUri: String? = null
     private var currentCameraUri: Uri? = null
+    private var currentDialogPreview: ImageView? = null
 
     private val pickMedia: ActivityResultLauncher<PickVisualMediaRequest> =
         registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -73,6 +74,15 @@ class PlayerListActivity : BaseActivity() {
             }
         }
 
+    private val globalSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val player = result.data?.getSerializableExtra("selected_player") as? PlayerEntity
+            if (player != null) {
+                importPlayer(player)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
@@ -89,6 +99,28 @@ class PlayerListActivity : BaseActivity() {
                 startActivity(Intent(this, PlayerCompareActivity::class.java))
             }
 
+            findViewById<View>(R.id.btnImportPlayer)?.setOnClickListener {
+                globalSearchLauncher.launch(Intent(this, GlobalSearchActivity::class.java))
+            }
+
+            // REPAIR SYNC: Ensure all players have their origin and base stats pushed to the global network
+            val appContext = applicationContext
+            AppDatabase.ioExecutor.execute {
+                val dbInstance = db ?: getInstance(appContext)
+                val gId = GullySyncManager.getCurrentGullyId(appContext) ?: "local"
+                
+                // 1. DEDUPLICATE: Clean up any local copies (Per-Gully)
+                deduplicateLocalPlayers(dbInstance)
+
+                // 2. SYNC: Push updates
+                if (gId != "local") {
+                    val players = dbInstance.playerDao().getAllPlayersByGully(gId) ?: emptyList()
+                    players.filterNotNull().forEach { p ->
+                        GullySyncManager.syncPlayerToCloud(gId, p)
+                    }
+                }
+            }
+
             refresh(this, object : RankingRegistry.OnRankingsLoaded {
                 override fun onLoaded() {
                     if (!isFinishing) {
@@ -103,12 +135,16 @@ class PlayerListActivity : BaseActivity() {
     }
 
     private fun handleImageResult(uriString: String) {
-        if (pendingName.isNotEmpty()) {
-            savePlayer(pendingName, pendingJersey, uriString)
-        } else {
-            pendingPhotoUri = uriString
-            Toast.makeText(this, "Photo captured. Please re-open dialog to save.", Toast.LENGTH_SHORT).show()
+        pendingPhotoUri = uriString
+        // Update the preview image if dialog is still open
+        currentDialogPreview?.let { preview ->
+            try {
+                preview.setImageURI(Uri.parse(uriString))
+            } catch (e: Exception) {
+                Log.e("PlayerList", "Failed to load photo: ${e.message}")
+            }
         }
+        Toast.makeText(this, "Photo captured.", Toast.LENGTH_SHORT).show()
         pendingName = ""
         pendingJersey = ""
     }
@@ -125,32 +161,45 @@ class PlayerListActivity : BaseActivity() {
     }
 
     private fun loadLocalPlayers() {
+        val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
         AppDatabase.ioExecutor.execute {
-            val playersListFromDb = db?.playerDao()?.getAllPlayers() ?: ArrayList()
-            val playersList = ArrayList(playersListFromDb)
+            try {
+                val dbInstance = db ?: getInstance(this)
+                val playersListFromDb = dbInstance.playerDao().getAllPlayersByGully(gId)
+                val playersList = ArrayList(playersListFromDb?.filterNotNull() ?: emptyList())
 
-            playersList.sortWith { p1, p2 ->
-                if (p1 == null) return@sortWith 1
-                if (p2 == null) return@sortWith -1
+                playersList.sortWith { p1, p2 ->
+                    if (p1 == null && p2 == null) return@sortWith 0
+                    if (p1 == null) return@sortWith 1
+                    if (p2 == null) return@sortWith -1
 
-                val p1Ov1 = p1.id == RankingRegistry.topOverallId
-                val p2Ov1 = p2.id == RankingRegistry.topOverallId
-                if (p1Ov1 != p2Ov1) return@sortWith if (p1Ov1) -1 else 1
+                    val p1Ov1 = p1.id == RankingRegistry.topOverallId
+                    val p2Ov1 = p2.id == RankingRegistry.topOverallId
+                    if (p1Ov1 != p2Ov1) return@sortWith if (p1Ov1) -1 else 1
 
-                val p1Bat1 = p1.id == RankingRegistry.topBattingId
-                val p2Bat1 = p2.id == RankingRegistry.topBattingId
-                if (p1Bat1 != p2Bat1) return@sortWith if (p1Bat1) -1 else 1
+                    val p1Bat1 = p1.id == RankingRegistry.topBattingId
+                    val p2Bat1 = p2.id == RankingRegistry.topBattingId
+                    if (p1Bat1 != p2Bat1) return@sortWith if (p1Bat1) -1 else 1
 
-                val p1Bowl1 = p1.id == RankingRegistry.topBowlingId
-                val p2Bowl1 = p2.id == RankingRegistry.topBowlingId
-                if (p1Bowl1 != p2Bowl1) return@sortWith if (p1Bowl1) -1 else 1
+                    val p1Bowl1 = p1.id == RankingRegistry.topBowlingId
+                    val p2Bowl1 = p2.id == RankingRegistry.topBowlingId
+                    if (p1Bowl1 != p2Bowl1) return@sortWith if (p1Bowl1) -1 else 1
 
-                p1.createdAt.compareTo(p2.createdAt)
-            }
+                    p1.createdAt.compareTo(p2.createdAt)
+                }
 
-            runOnUiThread {
-                if (isFinishing) return@runOnUiThread
-                updateUI(playersList)
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) {
+                        updateUI(playersList)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("PLAYER_LIST", "Error loading players: ${e.message}")
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) {
+                        updateUI(mutableListOf())
+                    }
+                }
             }
         }
     }
@@ -181,6 +230,8 @@ class PlayerListActivity : BaseActivity() {
         val jerseyInput = view.findViewById<EditText>(R.id.playerJerseyInput)
         val quickAdd = view.findViewById<AutoCompleteTextView>(R.id.quickAddInput)
         val preview = view.findViewById<ImageView>(R.id.ivDialogPreview)
+        
+        currentDialogPreview = preview
 
         view.findViewById<View>(R.id.quickAddContainer)?.visibility = View.GONE
         view.findViewById<View>(R.id.quickAddDivider)?.visibility = View.GONE
@@ -189,8 +240,9 @@ class PlayerListActivity : BaseActivity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
                 if (s.length >= 1) {
+                    val gId = GullySyncManager.getCurrentGullyId(this@PlayerListActivity) ?: "local"
                     AppDatabase.ioExecutor.execute {
-                        val matches = db?.playerDao()?.getPlayersByJersey(s.toString()) ?: ArrayList()
+                        val matches = db?.playerDao()?.getPlayersByJerseyByGully(s.toString(), gId)?.filterNotNull() ?: ArrayList()
                         runOnUiThread {
                             if (isFinishing || isDestroyed) return@runOnUiThread
                             val names = matches.filterNotNull().map { "${it.name} (${it.jerseyNumber})" }
@@ -207,7 +259,8 @@ class PlayerListActivity : BaseActivity() {
         quickAdd.setOnItemClickListener { parent, view1, position, id ->
             val selected = parent.getItemAtPosition(position) as? String
             AppDatabase.ioExecutor.execute {
-                val players = db?.playerDao()?.getAllPlayers() ?: return@execute
+                val gId = GullySyncManager.getCurrentGullyId(this@PlayerListActivity) ?: "local"
+                val players = db?.playerDao()?.getAllPlayersByGully(gId)?.filterNotNull() ?: return@execute
                 for (p in players) {
                     if (p == null) continue
                     val matchName = "${p.name} (${p.jerseyNumber})"
@@ -239,6 +292,15 @@ class PlayerListActivity : BaseActivity() {
             setNegativeButton("Cancel", null)
         }
 
+        // Show pending photo if exists (from previous camera/gallery selection)
+        if (!pendingPhotoUri.isNullOrEmpty()) {
+            try {
+                preview.setImageURI(Uri.parse(pendingPhotoUri))
+            } catch (e: Exception) {
+                Log.e("PlayerList", "Failed to load pending photo: ${e.message}")
+            }
+        }
+
         view.findViewById<View>(R.id.btnTakePhoto).setOnClickListener {
             val name = nameInput.text.toString().trim()
             val jersey = jerseyInput.text.toString().trim()
@@ -246,7 +308,6 @@ class PlayerListActivity : BaseActivity() {
             if (jersey.isEmpty()) { jerseyInput.error = "Enter jersey (1-999)"; return@setOnClickListener }
             pendingName = name
             pendingJersey = jersey
-            dialog.dismiss()
             launchCamera()
         }
 
@@ -257,7 +318,6 @@ class PlayerListActivity : BaseActivity() {
             if (jersey.isEmpty()) { jerseyInput.error = "Enter jersey (1-999)"; return@setOnClickListener }
             pendingName = name
             pendingJersey = jersey
-            dialog.dismiss()
             launchGallery()
         }
 
@@ -265,14 +325,127 @@ class PlayerListActivity : BaseActivity() {
             val name = nameInput.text.toString().trim()
             val jersey = jerseyInput.text.toString().trim()
             if (name.isNotEmpty() && jersey.isNotEmpty()) {
-                savePlayer(name, jersey, pendingPhotoUri)
-                dialog.dismiss()
+                checkForDuplicateAndSave(name, jersey, pendingPhotoUri, dialog)
             } else {
                 if (name.isEmpty()) nameInput.error = "Required"
                 if (jersey.isEmpty()) jerseyInput.error = "1-999"
             }
         }
-        dialog.setOnDismissListener { pendingPhotoUri = null }
+        dialog.setOnDismissListener { 
+            pendingPhotoUri = null
+            currentDialogPreview = null
+        }
+    }
+
+    private fun checkForDuplicateAndSave(name: String, jersey: String, photo: String?, mainDialog: AlertDialog) {
+        val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
+        AppDatabase.ioExecutor.execute {
+            val db = getInstance(this)
+            // 1. Check for EXACT match (Name + Jersey)
+            val exactMatch = db.playerDao().getPlayerByNameAndJersey(name, jersey, gId)
+            
+            if (exactMatch != null) {
+                runOnUiThread {
+                    Toast.makeText(this@PlayerListActivity, "Player '${exactMatch.name} #${exactMatch.jerseyNumber}' already exists in this League!", Toast.LENGTH_LONG).show()
+                }
+                return@execute
+            }
+
+            // 2. Check for Name match only (Fuzzy Warning)
+            val nameMatch = db.playerDao().getPlayerByNameByGully(name, gId)
+            
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                
+                if (nameMatch != null) {
+                    showDynamicDialog {
+                        setTitle("Duplicate Name Found")
+                        setMessage("${nameMatch.name} - ${nameMatch.jerseyNumber} already exists in this League. Still want to add a new player with this name?")
+                        setPositiveButton("ADD ANYWAY") { _, _ ->
+                            savePlayer(name, jersey, photo)
+                            mainDialog.dismiss()
+                        }
+                        setNegativeButton("CANCEL", null)
+                    }
+                } else {
+                    savePlayer(name, jersey, photo)
+                    mainDialog.dismiss()
+                }
+            }
+        }
+    }
+
+    private fun importPlayer(player: PlayerEntity) {
+        val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
+        AppDatabase.ioExecutor.execute {
+            val db = getInstance(this)
+            val originalGlobalId = player.globalId ?: player.id
+
+            // 1. GULLY-SPECIFIC LINK: Check if this player already exists IN THIS GULLY
+            var existingInGully = db.playerDao().getPlayerByNameAndJersey(player.name, player.jerseyNumber, gId)
+            
+            // 2. SEARCH BY GLOBAL ID IN THIS GULLY
+            if (existingInGully == null) {
+                existingInGully = db.playerDao().getAllPlayersByGully(gId)?.find { it?.globalId == originalGlobalId }
+            }
+            
+            val finalPlayer = if (existingInGully != null) {
+                // UPDATE: Keep the player in this gully, just update their global identity
+                existingInGully.apply {
+                    this.globalId = originalGlobalId
+                    if (!player.photoBase64.isNullOrEmpty()) {
+                        val savedPath = PhotoUtils.base64ToPath(this@PlayerListActivity, player.photoBase64, this.id)
+                        if (savedPath != null) this.photoUri = savedPath
+                    }
+                }
+            } else {
+                // NEW: Create a new local entry for this gully (Does not affect other gullies)
+                player.apply {
+                    this.id = java.util.UUID.randomUUID().toString() // Important: New local ID
+                    this.globalId = originalGlobalId
+                    this.gullyId = gId
+                    this.createdAt = System.currentTimeMillis()
+                    if (!this.photoBase64.isNullOrEmpty()) {
+                        val savedPath = PhotoUtils.base64ToPath(this@PlayerListActivity, this.photoBase64, this.id)
+                        if (savedPath != null) this.photoUri = savedPath
+                    }
+                }
+            }
+
+            db.playerDao().insertPlayer(finalPlayer)
+            GullySyncManager.syncPlayerToCloud(gId, finalPlayer)
+
+            runOnUiThread {
+                val msg = if (existingInGully != null) "Updated ${player.name} in this League!" else "Imported ${player.name} to this League!"
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                loadLocalPlayers()
+            }
+        }
+    }
+
+    private fun deduplicateLocalPlayers(db: AppDatabase) {
+        // Logic: Merge duplicates ONLY within the same gully to avoid "moving" players accidentally
+        val allPlayers = db.playerDao().getAllPlayers()?.filterNotNull() ?: emptyList()
+        
+        // Group by (Gully ID + Name + Jersey)
+        val groups = allPlayers.groupBy { "${it.gullyId}|${it.name.lowercase().trim()}|${it.jerseyNumber.trim()}" }
+
+        groups.forEach { (_, matches) ->
+            if (matches.size > 1) {
+                // Keep the one with a photo or the oldest one
+                val target = matches.sortedWith(compareByDescending<PlayerEntity> { it.photoUri.isNotEmpty() }
+                    .thenBy { it.createdAt }
+                ).first()
+
+                matches.forEach { duplicate ->
+                    if (duplicate.id != target.id) {
+                        Log.d("DEDUPLICATION", "Merging local duplicate ${duplicate.name} in ${duplicate.gullyId}")
+                        db.statsDao().updatePlayerIdInStats(duplicate.id, target.id)
+                        db.playerDao().deletePlayer(duplicate)
+                    }
+                }
+            }
+        }
     }
 
     private fun launchCamera() {
@@ -307,23 +480,34 @@ class PlayerListActivity : BaseActivity() {
 
     private fun commitPlayerToDatabase(name: String, jersey: String, photoUri: String?) {
         val trimmedName = name.trim()
+        val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
         AppDatabase.ioExecutor.execute {
             val db = getInstance(this)
             
-            // Search for existing player by Name (fuzzy/trimmed/nocase) to prevent duplication
-            val existing = db.playerDao().getPlayerByName(trimmedName)
+            // UNIQUE IDENTITY: Check for existing player with both same Name AND same Jersey
+            val existing = db.playerDao().getPlayerByNameAndJersey(trimmedName, jersey, gId)
             
             val finalEntity = if (existing != null) {
+                // If exact match exists, just update photo if new one provided
                 existing.apply {
-                    this.jerseyNumber = jersey
                     if (!photoUri.isNullOrEmpty()) this.photoUri = photoUri
                 }
             } else {
-                PlayerEntity(trimmedName, jersey, photoUri)
+                // Create a separate player if name or jersey is different
+                PlayerEntity(trimmedName, jersey, photoUri).apply { this.gullyId = gId }
             }
 
             db.playerDao().insertPlayer(finalEntity)
             
+            // CLOUD SYNC
+            GullySyncManager.syncPlayerToCloud(gId, finalEntity)
+            
+            // CLOUD SYNC: Player Profile
+            val gId = GullySyncManager.getCurrentGullyId(applicationContext)
+            if (gId != null) {
+                GullySyncManager.syncPlayerToCloud(gId, finalEntity)
+            }
+
             runOnUiThread {
                 if (!isFinishing && !isDestroyed) {
                     loadLocalPlayers()
@@ -363,11 +547,15 @@ class PlayerListActivity : BaseActivity() {
             holder.joined.text = "Joined: ${df.format(Date(p.createdAt))}"
 
             if (!p.photoUri.isNullOrEmpty() && !isFinishing && !isDestroyed) {
-                Glide.with(holder.itemView.context)
-                    .load(p.photoUri)
-                    .placeholder(android.R.drawable.ic_menu_gallery)
-                    .error(android.R.drawable.ic_menu_gallery)
-                    .into(holder.photo)
+                try {
+                    Glide.with(holder.itemView.context)
+                        .load(p.photoUri)
+                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .error(android.R.drawable.ic_menu_gallery)
+                        .into(holder.photo)
+                } catch (e: Exception) {
+                    holder.photo.setImageResource(android.R.drawable.ic_menu_gallery)
+                }
             } else {
                 holder.photo.setImageResource(android.R.drawable.ic_menu_gallery)
             }

@@ -1,5 +1,8 @@
 package com.example.scoring
 
+import androidx.annotation.Keep
+
+@Keep
 class Ball {
     @JvmField
     var runs: Int = 0

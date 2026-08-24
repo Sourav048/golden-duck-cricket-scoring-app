@@ -6,9 +6,20 @@
     android:orientation="vertical"
     android:paddingHorizontal="20dp"
     android:paddingBottom="20dp"
-    android:paddingTop="32dp"
+    android:paddingTop="24dp"
     android:clipChildren="false"
     android:clipToPadding="false">
+
+    <TextView
+        android:id="@+id/tvOverCompleteTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="1st Over Complete"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurface"
+        android:gravity="center"
+        android:layout_marginBottom="20dp" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -170,4 +181,15 @@
             android:visibility="gone" />
 
     </FrameLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnNextOverDialog"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:layout_marginTop="20dp"
+        android:text="@string/next_over"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:cornerRadius="27dp"
+        style="@style/Widget.Material3.Button" />
 </LinearLayout>

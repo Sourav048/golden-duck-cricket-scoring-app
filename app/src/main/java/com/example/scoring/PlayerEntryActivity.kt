@@ -41,6 +41,7 @@ class PlayerEntryActivity : BaseActivity() {
 
     private var teamAName: String? = null
     private var teamBName: String? = null
+    private var venue: String? = null
     private var ballType: String? = null
     private var overs = 0
     private var ruleRunsOnWide = false
@@ -126,6 +127,7 @@ class PlayerEntryActivity : BaseActivity() {
         setContentView(R.layout.activity_player_entry)
 
         val intent = intent
+        venue = intent.getStringExtra("venue")
         teamAName = intent.getStringExtra("teamA")
         teamBName = intent.getStringExtra("teamB")
         overs = intent.getIntExtra("overs", 20)
@@ -211,7 +213,8 @@ class PlayerEntryActivity : BaseActivity() {
 
         AppDatabase.ioExecutor.execute {
             val ctx = applicationContext ?: return@execute
-            val allExisting = getInstance(ctx).playerDao().getAllPlayers()?.filterNotNull() ?: emptyList()
+            val gId = GullySyncManager.getCurrentGullyId(ctx) ?: "local"
+            val allExisting = getInstance(ctx).playerDao().getAllPlayersByGully(gId)?.filterNotNull() ?: emptyList()
 
             val displayList = allExisting.map { p ->
                 val safeName = p.name ?: "Unknown"
@@ -396,31 +399,43 @@ class PlayerEntryActivity : BaseActivity() {
 
     private fun commitOrUpdatePlayer(id: String?, name: String?, jersey: String?, photo: String?, playerList: MutableList<TempPlayer>, container: LinearLayout) {
         val trimmedName = name?.trim() ?: ""
+        val j = jersey ?: "0"
+        val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
         AppDatabase.ioExecutor.execute {
             val db = getInstance(this)
             
-            // 1. Try to find by ID
-            // 2. If no ID (manual entry), try to find by Name (Fuzzy/Trimmed/Case-Insensitive via SQL)
-            val pe = if (id != null) {
+            // Search for existing exact match
+            val existing = if (id != null) {
                 db.playerDao().getPlayerById(id)
             } else {
-                db.playerDao().getPlayerByName(trimmedName)
-            }?.apply {
-                this.name = trimmedName
-                this.jerseyNumber = jersey ?: ""
-                if (!photo.isNullOrEmpty()) this.photoUri = photo
+                db.playerDao().getPlayerByNameAndJersey(trimmedName, j, gId)
             }
 
-            val finalEntity = pe ?: PlayerEntity(trimmedName, jersey, photo)
-            db.playerDao().insertPlayer(finalEntity)
-            
+            val finalEntity: PlayerEntity
+            if (existing == null) {
+                // NEW PLAYER: Create and Sync
+                finalEntity = PlayerEntity(trimmedName, j, photo).apply { this.gullyId = gId }
+                db.playerDao().insertPlayer(finalEntity)
+                GullySyncManager.syncPlayerToCloud(gId, finalEntity)
+            } else {
+                // EXACT PLAYER EXISTS: Adopt them
+                finalEntity = existing
+                // Only show toast if this was a manual entry (id is null)
+                // If id was provided, user intentionally selected this player from database/clone
+                if (id == null) {
+                    runOnUiThread {
+                        Toast.makeText(this@PlayerEntryActivity, "Player '$trimmedName #$j' already exists in this Gully!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
                 val player = TempPlayer(finalEntity.id, finalEntity.name, finalEntity.jerseyNumber, finalEntity.photoUri)
                 playerList.add(player)
                 renderPlayerCard(container, player, playerList)
                 
-                // Final cleanup of state after successful add
+                // Final cleanup of state
                 pendingId = null
                 pendingName = ""
                 pendingJersey = ""
@@ -463,7 +478,11 @@ class PlayerEntryActivity : BaseActivity() {
         }
 
         AppDatabase.ioExecutor.execute {
+            val gId = GullySyncManager.getCurrentGullyId(this@PlayerEntryActivity) ?: "local"
             val draft = DraftMatchEntity()
+            draft.id = UUID.randomUUID().toString()
+            draft.gullyId = gId
+            draft.venue = venue
             draft.teamAName = teamAName
             draft.teamBName = teamBName
             draft.overs = overs
@@ -483,6 +502,12 @@ class PlayerEntryActivity : BaseActivity() {
             draft.teamBIds = ArrayList(teamBPlayers.map { it.id ?: UUID.randomUUID().toString() })
 
             getInstance(this).draftDao().insertDraft(draft)
+            
+            // CLOUD SYNC: Draft Match (The Hand-off Feature)
+            if (gId != "local") {
+                GullySyncManager.syncDraftToCloud(gId, draft)
+            }
+
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
                 val intent = Intent(this, TossActivity::class.java)
