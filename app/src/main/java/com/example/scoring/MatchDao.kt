@@ -49,8 +49,8 @@ interface MatchDao {
     @Query("SELECT * FROM matches WHERE isAbandoned = 1 AND gullyId = :gId ORDER BY playedAt DESC")
     fun getAbandonedMatchesByGullyLive(gId: String): LiveData<List<MatchEntity?>?>
 
-    @Query("SELECT DISTINCT venue FROM matches WHERE venue IS NOT NULL AND venue != ''")
-    fun getUniqueVenues(): List<String>?
+    @Query("SELECT DISTINCT venue FROM matches WHERE (gullyId = :gId) AND venue IS NOT NULL AND venue != ''")
+    fun getUniqueVenues(gId: String): List<String>?
 
     @Query("UPDATE matches SET gullyId = :newGId WHERE gullyId = 'local'")
     fun migrateLocalMatches(newGId: String)

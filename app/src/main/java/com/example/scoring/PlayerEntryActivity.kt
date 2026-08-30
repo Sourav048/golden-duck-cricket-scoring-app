@@ -472,8 +472,8 @@ class PlayerEntryActivity : BaseActivity() {
     }
 
     private fun startMatch() {
-        if (teamAPlayers.size <= 1 && teamBPlayers.size <= 1) {
-            Toast.makeText(this, "One team must have 2 Players", Toast.LENGTH_SHORT).show()
+        if (teamAPlayers.isEmpty() || teamBPlayers.isEmpty()) {
+            Toast.makeText(this, "Each team must have at least 1 Player", Toast.LENGTH_SHORT).show()
             return
         }
 

@@ -1,8 +1,8 @@
 [versions]
 # Gradle & Kotlin
-agp = "9.3.1"
+agp = "9.3.2"
 kotlin = "2.2.10"
-ksp = "2.3.2"
+ksp = "2.3.6"
 
 # Testing
 junit = "4.13.2"

@@ -67,7 +67,8 @@ class SetupActivity : BaseActivity() {
 
             // Setup Venue Suggestions
             AppDatabase.ioExecutor.execute {
-                val venues = AppDatabase.getInstance(this).matchDao().getUniqueVenues() ?: emptyList()
+                val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
+                val venues = AppDatabase.getInstance(this).matchDao().getUniqueVenues(gId) ?: emptyList()
                 runOnUiThread {
                     val venueAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, venues)
                     venueInput?.setAdapter(venueAdapter)
