@@ -371,35 +371,55 @@ class HomeActivity : BaseActivity() {
 
     private fun showReadMeDialog() {
         val manualText = """
-            <h3><b>🏆 Top Features</b></h3>
-            <p><b>League Notifications:</b> Stay updated with real-time push alerts for:
+            <h3><b>🏆 Top Features & Capabilities</b></h3>
+
+            <p><b>💬 Live League Chat & Messaging:</b>
+            <ul>
+                <li><b>In-App League Chat:</b> Chat live with fellow league members inside your joined leagues.</li>
+                <li><b>Replies & Mentions:</b> Long-press to quote-reply or type @ to tag players with autocomplete.</li>
+                <li><b>Reactions, Emojis & GIFs:</b> Express yourself with custom emoji reactions and GIF search.</li>
+                <li><b>Full-Screen Media Viewer:</b> View photos with zoom/pan and videos in full-screen mode.</li>
+                <li><b>In-App Web View:</b> Open shared links directly within the app.</li>
+            </ul>
+            </p>
+
+            <p><b>🔔 League & Chat Notifications:</b> Stay updated with real-time push alerts for:
             <ul>
                 <li>Match Starts & Venue details</li>
                 <li>Live Score updates (every 3 balls)</li>
                 <li>Milestones (40/70 Runs, 2/4 Wicket Hauls)</li>
-                <li>Final Match Results</li>
+                <li>Final Match Results & Chat Message Alerts</li>
             </ul>
             </p>
 
-            <p><b>Prestige Colors:</b> The top-ranked players in your league are honored with special colors and photo borders:
+            <p><b>🏏 Live Scoring & Match Engine:</b>
             <ul>
-                <li><font color='#FFD700'><b>Gold:</b></font> Overall #1 Player</li>
-                <li><font color='#FF8C00'><b>Orange:</b></font> Best Batter</li>
-                <li><font color='#800080'><b>Purple:</b></font> Best Bowler</li>
+                <li><b>Ball-by-Ball Live Scoring:</b> Real-time tracking of runs, extras (WD, NB, Bye, LB), wickets, and retirements.</li>
+                <li><b>Flexible Match Modes:</b> Standard League matches, 1v1 duels, and Gully Cricket.</li>
+                <li><b>Custom Ball Types:</b> Stumper, Red/Green Tennis, Leather, Wind Ball, Rubber, and Plastic.</li>
+                <li><b>Duckworth-Lewis-Stern (DLS):</b> Dynamic target revision for rain-affected matches.</li>
+                <li><b>Undo Last Ball & Drafts:</b> Revert ball entry errors or resume matches anytime from Match History.</li>
             </ul>
             </p>
-            
-            <p><b>Undo Last Ball:</b> Made a mistake? Use the <b>'Undo'</b> button to instantly revert the last ball and correct the score.</p>
-            
-            <p><b>Resume Drafts:</b> Matches are automatically saved. You can exit anytime and resume later from <b>Match History</b>.</p>
 
-            <p><b>Player Comparison:</b> Go to any player profile and tap <b>"Compare Players"</b> to see head-to-head stats with smart winner highlighting.</p>
-            
+            <p><b>📊 Player Analytics & Leaderboards:</b>
+            <ul>
+                <li><b>Radar Charts (Spider Maps):</b> Visual comparison of player archetypes across Strike Rate, Average, Economy, Lethality, and Fielding.</li>
+                <li><b>H2H Duels & Rivalry Badges:</b> Ball-by-ball Batter vs. Bowler analysis with "Bunny", "Owner", and "Fierce Rivalry" badges.</li>
+                <li><b>Prestige Colors:</b> Honor top league performers with Gold (#1 Overall), Orange (Best Batter), and Purple (Best Bowler).</li>
+                <li><b>Comprehensive Leaderboards:</b> Track Most Runs, Wickets, Best SR, Economy, 50s, 30s, and Multi-wicket hauls.</li>
+            </ul>
+            </p>
+
             <hr>
-            <h3><b>📁 League System</b></h3>
-            <p><b>Join or Create:</b> Go to "My Cricket" to join an existing league or start your own. Once joined, you will automatically receive alerts for every match played in that league.</p>
-            
-            <p><b>Deep Linking:</b> Tap on any notification to jump directly into the live scorecard or finished match summary.</p>
+            <h3><b>📁 League & Data Management</b></h3>
+            <p><b>Join or Create Leagues:</b> Go to "My Cricket" to join or manage leagues. Tap notifications to jump directly into live scorecards or summaries.</p>
+            <p><b>Backup & Restore:</b> Export or import full app data safely under Settings.</p>
+
+            <hr>
+            <h3><b>📧 Feedback & Support</b></h3>
+            <p>Have feedback, suggestions, or found an issue? We would love to hear from you!</p>
+            <p>Send your feedback to: <a href="mailto:goldenduckscorer@gmail.com"><b>goldenduckscorer@gmail.com</b></a></p>
         """.trimIndent()
 
         val tv = TextView(this).apply {
