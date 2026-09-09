@@ -59,4 +59,4 @@ Download the latest release APK (**`Golden_Duck_v5.0.apk`**) from the [Releases]
 
 ---
 
-Developed with ❤️ by **Sourav Sharma**
+Developed by **Sourav Sharma**
