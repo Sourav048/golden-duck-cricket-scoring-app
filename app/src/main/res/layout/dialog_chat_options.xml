@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/bg_dialog_rounded">
+
+    <!-- EMOJI REACTION BAR -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:layout_marginBottom="12dp">
+
+        <LinearLayout
+            android:id="@+id/layoutEmojiBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="6dp" />
+    </HorizontalScrollView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?attr/colorOutlineVariant"
+        android:layout_marginBottom="8dp" />
+
+    <!-- OPTIONS LIST -->
+    <TextView
+        android:id="@+id/optionReply"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:paddingVertical="12dp"
+        android:paddingHorizontal="16dp"
+        android:text="💬   Reply to Message"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/optionCopy"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:paddingVertical="12dp"
+        android:paddingHorizontal="16dp"
+        android:text="📋   Copy Text"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/optionDownloadMedia"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:paddingVertical="12dp"
+        android:paddingHorizontal="16dp"
+        android:text="⬇️   Download Media"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/optionInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:paddingVertical="12dp"
+        android:paddingHorizontal="16dp"
+        android:text="ℹ️   Message Info (Seen By)"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/optionDelete"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:paddingVertical="12dp"
+        android:paddingHorizontal="16dp"
+        android:text="🗑️   Delete Message"
+        android:textColor="#FF3B30"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+</LinearLayout>

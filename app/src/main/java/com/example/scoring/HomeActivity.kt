@@ -12,6 +12,8 @@ import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.text.method.LinkMovementMethod
 import android.util.TypedValue
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -88,6 +90,58 @@ class HomeActivity : BaseActivity() {
         }
 
         handleIncomingFileIntent(intent)
+        setupSwipeGesture()
+    }
+
+    private lateinit var gestureDetector: GestureDetector
+
+    private fun setupSwipeGesture() {
+        gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            private val SWIPE_THRESHOLD = 120
+            private val SWIPE_VELOCITY_THRESHOLD = 120
+
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                if (e1 == null) return false
+                val diffX = e2.x - e1.x
+                val diffY = e2.y - e1.y
+
+                // Detect horizontal swipe from Right to Left (Swipe Left)
+                if (kotlin.math.abs(diffX) > kotlin.math.abs(diffY) &&
+                    kotlin.math.abs(diffX) > SWIPE_THRESHOLD &&
+                    kotlin.math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD
+                ) {
+                    if (diffX < 0) {
+                        handleSwipeToLeagueChat()
+                        return true
+                    }
+                }
+                return false
+            }
+        })
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        gestureDetector.onTouchEvent(ev)
+        return super.dispatchTouchEvent(ev)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun handleSwipeToLeagueChat() {
+        val currentGully = GullySyncManager.getCurrentGullyId(this)
+        if (currentGully.isNullOrEmpty() || currentGully == "local") {
+            Toast.makeText(this, "Local Mode: Join or create a League for League Chat", Toast.LENGTH_SHORT).show()
+            openLeagueChat()
+        } else {
+            val intent = Intent(this, LeagueChatActivity::class.java)
+            intent.putExtra("LEAGUE_ID", currentGully)
+            startActivity(intent)
+            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+        }
     }
 
     override fun onResume() {
@@ -276,6 +330,7 @@ class HomeActivity : BaseActivity() {
 
     private fun showHomeMenu(v: View?) {
         val popup = PopupMenu(this, v)
+        popup.menu.add("Chat Within League")
         popup.menu.add("Export Records")
         popup.menu.add("Import Records")
         popup.menu.add("Delete Records")
@@ -284,6 +339,7 @@ class HomeActivity : BaseActivity() {
 
         popup.setOnMenuItemClickListener { item ->
             when (item.title.toString()) {
+                "Chat Within League" -> openLeagueChat()
                 "ReadMe(Manual)" -> showReadMeDialog()
                 "Dark/Light Mode" -> showThemeSettings()
                 "Export Records" -> checkSecurityAndLaunchExport()
@@ -293,6 +349,24 @@ class HomeActivity : BaseActivity() {
             true
         }
         popup.show()
+    }
+
+    private fun openLeagueChat() {
+        val currentGully = GullySyncManager.getCurrentGullyId(this)
+        if (currentGully.isNullOrEmpty() || currentGully == "local") {
+            AlertDialog.Builder(this)
+                .setTitle("League Chat")
+                .setMessage("You are currently in Local Mode. Please join or create a League (Gully) to chat with other players!")
+                .setPositiveButton("Go to Leagues") { _, _ ->
+                    startActivity(Intent(this, GullyManagementActivity::class.java))
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        } else {
+            val intent = Intent(this, LeagueChatActivity::class.java)
+            intent.putExtra("LEAGUE_ID", currentGully)
+            startActivity(intent)
+        }
     }
 
     private fun showReadMeDialog() {

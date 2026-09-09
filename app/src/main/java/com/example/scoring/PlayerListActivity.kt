@@ -161,6 +161,7 @@ class PlayerListActivity : BaseActivity() {
     }
 
     private fun loadLocalPlayers() {
+        PhotoUtils.fixAllExistingPhotos(this)
         val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
         AppDatabase.ioExecutor.execute {
             try {
@@ -550,6 +551,7 @@ class PlayerListActivity : BaseActivity() {
                 try {
                     Glide.with(holder.itemView.context)
                         .load(p.photoUri)
+                        .signature(com.bumptech.glide.signature.ObjectKey(File(p.photoUri).lastModified()))
                         .placeholder(android.R.drawable.ic_menu_gallery)
                         .error(android.R.drawable.ic_menu_gallery)
                         .into(holder.photo)

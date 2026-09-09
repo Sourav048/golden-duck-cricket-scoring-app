@@ -136,6 +136,7 @@ class PlayerDetailsActivity : BaseActivity() {
                 if (!player.photoUri.isNullOrEmpty() && !isFinishing && !isDestroyed) {
                     Glide.with(this)
                         .load(player.photoUri)
+                        .signature(com.bumptech.glide.signature.ObjectKey(File(player.photoUri).lastModified()))
                         .dontAnimate() // Better for shared element transitions
                         .placeholder(android.R.drawable.ic_menu_gallery)
                         .error(android.R.drawable.ic_menu_gallery)
@@ -167,7 +168,7 @@ class PlayerDetailsActivity : BaseActivity() {
                     card.strokeWidth = 0
                 }
 
-                iv.setOnClickListener { showFullScreenPhoto(player.photoUri) }
+                iv.setOnClickListener { showFullScreenPhoto(player) }
 
                 calculateAndDisplayStats(stats?.toMutableList())
                 calculateAndDisplayRankings()
@@ -175,16 +176,113 @@ class PlayerDetailsActivity : BaseActivity() {
         }
     }
 
-    private fun showFullScreenPhoto(uri: String?) {
-        if (uri.isNullOrEmpty()) return
+    private fun showFullScreenPhoto(player: PlayerEntity?) {
+        if (player == null || player.photoUri.isNullOrEmpty()) return
 
         val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
         dialog.setContentView(R.layout.dialog_full_screen_photo)
 
-        val iv = dialog.findViewById<ImageView>(R.id.ivFullScreen)
-        Glide.with(this).load(uri).into(iv)
+        val ivFullScreen = dialog.findViewById<ImageView>(R.id.ivFullScreen)
+        val btnRotate = dialog.findViewById<View>(R.id.btnRotatePhoto)
+        val btnSave = dialog.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSavePhoto)
+        btnSave?.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#00695C")))
+        btnSave?.setTextColor(android.graphics.Color.WHITE)
+        val btnClose = dialog.findViewById<View>(R.id.btnCloseFull)
 
-        dialog.findViewById<View>(R.id.btnCloseFull).setOnClickListener { dialog.dismiss() }
+        var currentRotationDegrees = 0f
+        var loadedBitmap: android.graphics.Bitmap? = null
+
+        java.util.concurrent.Executors.newSingleThreadExecutor().execute {
+            val file = File(player.photoUri)
+            val bitmap = if (file.exists() && file.isFile) {
+                android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+            } else if (!player.photoBase64.isNullOrEmpty()) {
+                val bytes = android.util.Base64.decode(player.photoBase64, android.util.Base64.DEFAULT)
+                android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            } else null
+
+            loadedBitmap = bitmap
+            runOnUiThread {
+                if (bitmap != null) {
+                    ivFullScreen.setImageBitmap(bitmap)
+                } else {
+                    Glide.with(this@PlayerDetailsActivity).load(player.photoUri).into(ivFullScreen)
+                }
+            }
+        }
+
+        btnRotate?.setOnClickListener {
+            val base = loadedBitmap ?: return@setOnClickListener
+
+            currentRotationDegrees = (currentRotationDegrees + 90f) % 360f
+
+            val matrix = android.graphics.Matrix()
+            matrix.postRotate(currentRotationDegrees)
+            val rotated = android.graphics.Bitmap.createBitmap(
+                base, 0, 0, base.width, base.height, matrix, true
+            )
+            ivFullScreen.setImageBitmap(rotated)
+
+            btnSave?.isEnabled = true
+            btnSave?.alpha = 1.0f
+        }
+
+        btnSave?.setOnClickListener {
+            val base = loadedBitmap ?: return@setOnClickListener
+            if (currentRotationDegrees == 0f) return@setOnClickListener
+
+            btnSave.isEnabled = false
+            btnSave.text = "SAVING..."
+
+            java.util.concurrent.Executors.newSingleThreadExecutor().execute {
+                try {
+                    val matrix = android.graphics.Matrix()
+                    matrix.postRotate(currentRotationDegrees)
+                    val finalRotated = android.graphics.Bitmap.createBitmap(
+                        base, 0, 0, base.width, base.height, matrix, true
+                    )
+
+                    val photoDir = File(filesDir, "player_photos")
+                    if (!photoDir.exists()) photoDir.mkdirs()
+                    val destFile = File(photoDir, "player_${player.id}.jpg")
+
+                    java.io.FileOutputStream(destFile).use { out ->
+                        finalRotated.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+                    }
+
+                    val newPath = destFile.absolutePath
+                    player.photoUri = newPath
+
+                    val newBase64 = PhotoUtils.pathToBase64(this@PlayerDetailsActivity, newPath)
+                    if (!newBase64.isNullOrEmpty()) {
+                        player.photoBase64 = newBase64
+                    }
+
+                    db?.playerDao()?.updatePlayer(player)
+
+                    val gId = GullySyncManager.getCurrentGullyId(this@PlayerDetailsActivity) ?: "local"
+                    if (gId != "local") {
+                        GullySyncManager.syncPlayerToCloud(gId, player)
+                    }
+
+                    runOnUiThread {
+                        Toast.makeText(this@PlayerDetailsActivity, "Photo saved & synced across app!", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                        loadPlayerData()
+                    }
+
+                } catch (e: Exception) {
+                    Log.e("PLAYER_DETAILS", "Error saving rotated photo: ${e.message}", e)
+                    runOnUiThread {
+                        btnSave.isEnabled = true
+                        btnSave.text = "SAVE"
+                        Toast.makeText(this@PlayerDetailsActivity, "Failed to save photo: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+        btnClose?.setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 

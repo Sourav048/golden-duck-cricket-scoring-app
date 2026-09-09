@@ -46,4 +46,15 @@
 
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- League Chat Theme Colors (Dark Mode) -->
+    <color name="sent_bubble_bg">#FFFFFF</color>
+    <color name="sent_bubble_text">#1F2937</color>
+    <color name="sent_bubble_time">#6B7280</color>
+    <color name="received_bubble_bg">#FFFFFF</color>
+    <color name="received_bubble_text">#1F2937</color>
+    <color name="received_bubble_time">#6B7280</color>
+    <color name="reaction_bg">#FFFFFF</color>
+    <color name="reaction_text">#1F2937</color>
+    <color name="reaction_stroke">#E2E8F0</color>
 </resources>

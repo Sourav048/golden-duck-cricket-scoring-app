@@ -96,6 +96,10 @@
         <activity android:name=".MatchDetailsActivity" android:exported="false" />
 
         <activity android:name=".GullyManagementActivity" android:exported="false" />
+        <activity
+            android:name=".LeagueChatActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
