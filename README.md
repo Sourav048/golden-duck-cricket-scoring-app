@@ -1,30 +1,62 @@
-# Golden Duck - A Cricket Scoring App
+# Golden Duck - A Cricket Scoring & League App 🏏
 
-Golden Duck is a professional-grade cricket scoring application for Android, designed to provide a seamless and detailed scoring experience for local matches, professional leagues, and recreational play.
-
-## 🚀 Key Features
-- **League Match Notifications**: Real-time alerts for match starts, score updates, and player milestones across your joined leagues (Powered by OneSignal).
-- **Live Scoring**: Real-time ball-by-ball scoring with support for Wides, No-Balls, Byes, and Leg-Byes.
-- **Advanced Player Comparison**: Visual **Radar Charts (Spider Maps)** that compare player archetypes across Strike Rate, Average, Bowling Lethality, Economy, and Fielding.
-- **Intelligent H2H Duels**: Deep ball-by-ball analysis to track direct interactions (e.g., exactly how many runs Batter A hit off Bowler B).
-- **Rivalry Badges**: Automated "Bunny", "Owner", or "Fierce Rivalry" badges based on historical head-to-head performance.
-- **Comprehensive Scorecards**: Full batting and bowling statistics, including strike rates, boundary percentages, and setting/chasing averages.
-- **Overs Summary**: Visual representation of every over with distinct markers for boundaries, wickets (W), and retirements.
-- **Player Rankings**: Integrated ranking system with "Prestige" color coding (Gold, Orange, Purple) for top performers in your League.
-- **Cloud Sync**: Seamless real-time syncing of matches and players across devices via Firebase.
-- **Match Persistence**: Automatic saving and resumption—never lose match data even if the device restarts.
-
-## 🛠 Tech Stack
-- **Language**: 100% Kotlin
-- **Database**: Room Persistence Library (SQLite) & Google Firebase (Firestore).
-- **Notifications**: OneSignal SDK for high-priority push delivery.
-- **UI Architecture**: ViewPager2, Fragment-based navigation, and Material Design 3.
-- **Charts**: **MPAndroidChart** for professional data visualization.
-- **Image Loading**: Glide for smooth player photo rendering.
-- **Animations**: Lottie for interactive match events and Confetti for victory celebrations.
-
-## 📥 Installation
-You can download the latest version of the app from the [Releases](https://github.com/Sourav048/golden-duck-cricket-scoring-app/releases) section of this repository.
+**Golden Duck** is a feature-rich, professional-grade cricket scoring and league management application for Android. Designed for local leagues, gully cricket, and recreational tournaments, it combines real-time ball-by-ball scoring, deep player analytics, live league chat, and real-time push notifications.
 
 ---
-Developed by **Sourav Sharma**
+
+## 🌟 Key Features
+
+### 💬 Live League Chat & Rich Messaging
+- **In-App League Chat**: Engage in live discussions with players and managers within your joined leagues.
+- **Rich Communication**:
+  - **Quoted Replies**: Long-press any message to reply with context.
+  - **@Mentions**: Tag fellow league members with auto-complete suggestions.
+  - **Reactions & Emojis**: React to messages with custom emojis.
+  - **GIF Integration**: Built-in GIF picker and search.
+- **Full-Screen Media Viewer**: Zoomable photo viewer and dedicated full-screen video player for match highlights and shared media.
+- **In-App Web Viewer**: Open shared web links directly within the app without leaving your chat session.
+
+### 🔔 League & Chat Notifications
+- **Real-Time Push Alerts**: Powered by OneSignal 5.x for instant match updates, score milestones, and incoming chat messages.
+- **System Notification Channels**: Clean, categorized notifications with quick action intents.
+
+### 📊 Live Scoring & Match Engine
+- **Ball-by-Ball Live Scoring**: Real-time tracking of runs, extras (Wides, No-Balls, Byes, Leg-Byes), wickets, and retirements.
+- **Flexible Match Modes**: Supports standard league matches, 1v1 duels, and Gully Cricket.
+- **Custom Ball Types**: Stumper, Red/Green Tennis, Leather, Wind Ball, Rubber, and Plastic.
+- **Duckworth-Lewis-Stern (DLS) Engine**: Dynamic target calculation for rain-affected matches.
+- **Venue Suggestions**: League-isolated venue autocomplete suggestions.
+
+### 📈 Advanced Analytics & Player Profiles
+- **Radar Charts (Spider Maps)**: Visual player comparison across Strike Rate, Average, Bowling Lethality, Economy, and Fielding using MPAndroidChart.
+- **Head-to-Head (H2H) Duels**: Ball-by-ball breakdown of batter vs. bowler interactions.
+- **Rivalry Badges**: Automatic "Bunny", "Owner", and "Fierce Rivalry" badges based on historical match stats.
+- **Prestige Rankings & Leaderboards**: Live leaderboards for Most Runs, Wickets, Best Strike Rate, Economy, 50s, 30s, 5W/3W/2W hauls, featuring Prestige status colors (Gold, Orange, Purple).
+
+### 💾 Sync, Backup & Architecture
+- **Offline-First & Local Persistence**: Built on Room Database for zero data loss during network disruptions.
+- **Cloud Sync**: Firebase Firestore integration for syncing matches, rosters, and stats across devices.
+- **Backup & Restore**: Export and import full app state seamlessly.
+
+---
+
+## 🛠 Tech Stack
+
+- **Language**: 100% Kotlin
+- **Architecture**: MVVM, Fragment-based navigation, ViewBinding
+- **Database**: Room Persistence Library (SQLite) & Firebase Firestore
+- **Push Notifications**: OneSignal SDK (v5.x)
+- **Charts & Data Visualization**: MPAndroidChart
+- **UI Components**: Material Design 3, ViewPager2, Custom Dialogs & Drawables
+- **Media Loading**: Glide & ExoPlayer/VideoView
+- **Animations**: Lottie & Confetti Engine
+
+---
+
+## 📥 Installation & Builds
+
+Download the latest release APK (**`Golden_Duck_v5.0.apk`**) from the [Releases](https://github.com/Sourav048/golden-duck-cricket-scoring-app/releases) section.
+
+---
+
+Developed with ❤️ by **Sourav Sharma**
