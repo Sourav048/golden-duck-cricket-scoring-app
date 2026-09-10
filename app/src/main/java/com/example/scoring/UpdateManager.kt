@@ -237,7 +237,7 @@ object UpdateManager {
                         }
 
                         if (destinationFile.exists()) {
-                            installApk(context, destinationFile)
+                            installApk(activity, destinationFile)
                         } else {
                             Toast.makeText(context, "Update download failed.", Toast.LENGTH_SHORT).show()
                         }
@@ -259,20 +259,24 @@ object UpdateManager {
         }
     }
 
-    private fun installApk(context: Context, apkFile: File) {
+    private fun installApk(activity: Activity, apkFile: File) {
         try {
-            val authority = "${context.packageName}.fileprovider"
-            val apkUri = FileProvider.getUriForFile(context, authority, apkFile)
+            val authority = "${activity.packageName}.fileprovider"
+            val apkUri = FileProvider.getUriForFile(activity.applicationContext, authority, apkFile)
 
             val installIntent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(apkUri, "application/vnd.android.package-archive")
                 flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
             }
 
-            context.startActivity(installIntent)
+            if (!activity.isFinishing && !activity.isDestroyed) {
+                activity.startActivity(installIntent)
+            } else {
+                activity.applicationContext.startActivity(installIntent)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to launch package installer", e)
-            Toast.makeText(context, "Failed to open update file: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, "Failed to open update file: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
         }
     }
 }
