@@ -11,9 +11,9 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 5,
-      "versionName": "5.0",
-      "outputFile": "Golden_Duck_v5.0.apk"
+      "versionCode": 6,
+      "versionName": "5.1",
+      "outputFile": "Golden_Duck_v5.1.apk"
     }
   ],
   "elementType": "File",
