@@ -1,0 +1,19 @@
+{
+  "fields": {
+    "latest_version_code": {
+      "integerValue": "7"
+    },
+    "version_name": {
+      "stringValue": "5.1"
+    },
+    "download_url": {
+      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v5.1.apk"
+    },
+    "release_notes": {
+      "stringValue": "• In-app update system\n• Performance optimizations and bug fixes"
+    },
+    "force_update": {
+      "booleanValue": false
+    }
+  }
+}
