@@ -11,6 +11,8 @@ import com.onesignal.OneSignal
 import com.onesignal.debug.LogLevel
 import com.onesignal.notifications.INotificationClickListener
 import com.onesignal.notifications.INotificationClickEvent
+import com.onesignal.notifications.INotificationLifecycleListener
+import com.onesignal.notifications.INotificationWillDisplayEvent
 
 class ScoringApp : Application() {
     companion object {
@@ -69,6 +71,44 @@ class ScoringApp : Application() {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     startActivity(intent)
+                }
+            }
+        })
+
+        // Handle Foreground Notifications (e.g. when user is on Home screen)
+        OneSignal.Notifications.addForegroundLifecycleListener(object : INotificationLifecycleListener {
+            override fun onWillDisplay(event: INotificationWillDisplayEvent) {
+                val data = event.notification.additionalData
+                val type = data?.optString("type")
+                val leagueId = data?.optString("leagueId")
+                val senderName = data?.optString("senderName")
+                val messageText = data?.optString("messageText")
+                val senderId = data?.optString("senderId")
+                val senderProfilePic = data?.optString("senderProfilePic")
+                val msgId = data?.optString("msgId")
+                val targetRecipientId = data?.optString("targetRecipientId") ?: data?.optString("replyRecipientId")
+                val isPersonalChat = data?.optBoolean("isPersonalChat", false) ?: false
+
+                if (type == "CHAT" && !leagueId.isNullOrEmpty()) {
+                    event.preventDefault()
+
+                    val gullyPrefs = getSharedPreferences("gully_prefs", MODE_PRIVATE)
+                    val myUserId = gullyPrefs.getString("chat_sender_id", null)
+                    if (!myUserId.isNullOrEmpty() && senderId == myUserId) {
+                        return
+                    }
+
+                    ChatNotificationHelper.handleIncomingChatMessage(
+                        context = this@ScoringApp,
+                        leagueId = leagueId,
+                        senderName = senderName ?: "Member",
+                        messageContent = messageText ?: event.notification.body ?: "",
+                        replyRecipientId = targetRecipientId,
+                        isPersonalChat = isPersonalChat,
+                        senderProfilePic = senderProfilePic,
+                        senderId = senderId,
+                        msgId = msgId
+                    )
                 }
             }
         })

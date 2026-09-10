@@ -2,4 +2,5 @@
 <paths>
     <external-files-path name="player_photos" path="Pictures/" />
     <cache-path name="export_temp" path="." />
+    <external-cache-path name="apk_downloads" path="." />
 </paths>

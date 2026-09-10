@@ -91,6 +91,9 @@ class HomeActivity : BaseActivity() {
 
         handleIncomingFileIntent(intent)
         setupSwipeGesture()
+
+        // Check for app updates via Firestore
+        UpdateManager.checkForUpdates(this)
     }
 
     private lateinit var gestureDetector: GestureDetector
