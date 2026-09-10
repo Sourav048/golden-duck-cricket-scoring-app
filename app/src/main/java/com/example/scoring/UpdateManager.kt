@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -31,12 +32,16 @@ object UpdateManager {
     private const val TAG = "UpdateManager"
     private const val CONFIG_COLLECTION = "app_config"
     private const val CONFIG_DOCUMENT = "update"
+    private const val PREFS_NAME = "app_update_prefs"
+    private const val KEY_SNOOZED_TIME = "snoozed_time"
+    private const val KEY_SNOOZED_VERSION = "snoozed_version"
+    private const val SNOOZE_DURATION_MS = 24 * 60 * 60 * 1000L // 24 hours
 
     /**
      * Checks Firebase Firestore for available app updates.
      * Compares local app versionCode with Firestore's latest_version_code.
      */
-    fun checkForUpdates(activity: Activity) {
+    fun checkForUpdates(activity: Activity, isManualCheck: Boolean = false) {
         try {
             val db = FirebaseFirestore.getInstance()
             db.collection(CONFIG_COLLECTION).document(CONFIG_DOCUMENT)
@@ -55,27 +60,58 @@ object UpdateManager {
                         Log.d(TAG, "Current versionCode: $currentVersionCode, Latest versionCode: $latestVersionCode")
 
                         if (latestVersionCode > currentVersionCode && downloadUrl.isNotBlank()) {
+                            // Check 24-hour snooze cooldown for non-forced updates (unless user clicked manual check)
+                            if (!isManualCheck && !forceUpdate && isSnoozed(activity, latestVersionCode)) {
+                                Log.d(TAG, "Update $latestVersionCode was snoozed by user within 24h. Skipping dialog.")
+                                return@addOnSuccessListener
+                            }
+
                             showUpdateDialog(
                                 activity = activity,
                                 versionName = versionName,
+                                versionCode = latestVersionCode,
                                 releaseNotes = releaseNotes,
                                 downloadUrl = downloadUrl,
                                 forceUpdate = forceUpdate
                             )
+                        } else if (isManualCheck) {
+                            Toast.makeText(activity, "You are using the latest version of Golden Duck!", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
                 .addOnFailureListener { e ->
                     Log.e(TAG, "Failed to check for updates from Firestore", e)
+                    if (isManualCheck) {
+                        Toast.makeText(activity, "Failed to check for updates.", Toast.LENGTH_SHORT).show()
+                    }
                 }
         } catch (e: Exception) {
             Log.e(TAG, "Error checking for app updates", e)
         }
     }
 
+    private fun isSnoozed(context: Context, versionCode: Long): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val snoozedTime = prefs.getLong(KEY_SNOOZED_TIME, 0L)
+        val snoozedVersion = prefs.getLong(KEY_SNOOZED_VERSION, 0L)
+
+        if (snoozedVersion != versionCode) return false
+
+        return (System.currentTimeMillis() - snoozedTime) < SNOOZE_DURATION_MS
+    }
+
+    private fun snoozeUpdate(context: Context, versionCode: Long) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putLong(KEY_SNOOZED_TIME, System.currentTimeMillis())
+            .putLong(KEY_SNOOZED_VERSION, versionCode)
+            .apply()
+    }
+
     private fun showUpdateDialog(
         activity: Activity,
         versionName: String,
+        versionCode: Long,
         releaseNotes: String,
         downloadUrl: String,
         forceUpdate: Boolean
@@ -100,7 +136,13 @@ object UpdateManager {
             .setCancelable(!forceUpdate)
 
         if (!forceUpdate) {
-            builder.setNegativeButton("Later", null)
+            builder.setNegativeButton("Later") { dialog, _ ->
+                dialog.dismiss()
+                snoozeUpdate(activity, versionCode)
+            }
+            builder.setOnCancelListener {
+                snoozeUpdate(activity, versionCode)
+            }
         }
 
         builder.show()
@@ -266,7 +308,23 @@ object UpdateManager {
 
             val installIntent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(apkUri, "application/vnd.android.package-archive")
-                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
+                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        Intent.FLAG_GRANT_PREFIX_URI_PERMISSION or
+                        Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+
+            // Explicitly grant URI read permissions for PackageInstaller on Android 14/15
+            val resInfoList = activity.packageManager.queryIntentActivities(
+                installIntent,
+                PackageManager.MATCH_DEFAULT_ONLY
+            )
+            for (resolveInfo in resInfoList) {
+                val packageName = resolveInfo.activityInfo.packageName
+                activity.grantUriPermission(
+                    packageName,
+                    apkUri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
             }
 
             if (!activity.isFinishing && !activity.isDestroyed) {
