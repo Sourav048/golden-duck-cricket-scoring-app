@@ -65,7 +65,7 @@ object LeagueNotificationManager {
                     put("filters", filterArray)
 
                     put("headings", JSONObject().apply { put("en", title) })
-                    put("subtitle", JSONObject().apply { put("en", "League: $leagueId") })
+                    put("subtitle", JSONObject().apply { put("en", leagueId) })
                     put("contents", JSONObject().apply { put("en", body) })
 
                     // 2. Styling & Branding
@@ -129,7 +129,10 @@ object LeagueNotificationManager {
         messageText: String,
         senderId: String? = null,
         targetRecipientId: String? = null,
-        recipientSenderLabel: String? = null
+        recipientSenderLabel: String? = null,
+        isPersonalChat: Boolean = false,
+        senderProfilePic: String? = null,
+        msgId: String? = null
     ) {
         val hasTargetRecipient = !targetRecipientId.isNullOrEmpty() && targetRecipientId != senderId
 
@@ -144,7 +147,10 @@ object LeagueNotificationManager {
                 senderId = senderId,
                 targetRecipientId = targetRecipientId,
                 recipientUserIdFilter = targetRecipientId,
-                excludeUserIdFilter = null
+                excludeUserIdFilter = null,
+                isPersonalChat = isPersonalChat,
+                senderProfilePic = senderProfilePic,
+                msgId = msgId
             )
 
             // 2. Target everyone else in the league: "SenderName: Message"
@@ -155,7 +161,10 @@ object LeagueNotificationManager {
                 senderId = senderId,
                 targetRecipientId = targetRecipientId,
                 recipientUserIdFilter = null,
-                excludeUserIdFilter = targetRecipientId
+                excludeUserIdFilter = targetRecipientId,
+                isPersonalChat = isPersonalChat,
+                senderProfilePic = senderProfilePic,
+                msgId = msgId
             )
         } else {
             // Normal message / reply to self: "SenderName: Message"
@@ -166,7 +175,10 @@ object LeagueNotificationManager {
                 senderId = senderId,
                 targetRecipientId = null,
                 recipientUserIdFilter = null,
-                excludeUserIdFilter = null
+                excludeUserIdFilter = null,
+                isPersonalChat = isPersonalChat,
+                senderProfilePic = senderProfilePic,
+                msgId = msgId
             )
         }
     }
@@ -178,7 +190,10 @@ object LeagueNotificationManager {
         senderId: String?,
         targetRecipientId: String?,
         recipientUserIdFilter: String?,
-        excludeUserIdFilter: String?
+        excludeUserIdFilter: String?,
+        isPersonalChat: Boolean,
+        senderProfilePic: String? = null,
+        msgId: String? = null
     ) {
         Executors.newSingleThreadExecutor().execute {
             try {
@@ -202,13 +217,6 @@ object LeagueNotificationManager {
                     })
 
                     if (!recipientUserIdFilter.isNullOrEmpty()) {
-                        put("include_aliases", JSONObject().apply {
-                            put("external_id", JSONArray().apply {
-                                put(recipientUserIdFilter)
-                            })
-                        })
-                        put("target_channel", "push")
-
                         filterArray.put(JSONObject().apply {
                             put("field", "tag")
                             put("key", "user_$recipientUserIdFilter")
@@ -233,6 +241,8 @@ object LeagueNotificationManager {
                     put("large_icon", "ic_launcher_custom")
 
                     put("collapse_id", "chat_$leagueId")
+                    put("android_group", ChatNotificationHelper.GROUP_KEY_LEAGUE_CHAT)
+                    put("android_group_message", JSONObject().apply { put("en", "$[notif_count] new messages") })
                     put("android_notification_id", ChatNotificationHelper.getNotificationId(leagueId))
 
                     put("priority", 10)
@@ -244,7 +254,10 @@ object LeagueNotificationManager {
                         put("senderName", senderName)
                         put("messageText", messageText)
                         put("senderId", senderId ?: "")
+                        put("senderProfilePic", senderProfilePic ?: "")
+                        put("msgId", msgId ?: "")
                         put("targetRecipientId", targetRecipientId ?: "")
+                        put("isPersonalChat", isPersonalChat)
                     })
                 }
 

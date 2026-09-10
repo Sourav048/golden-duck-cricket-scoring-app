@@ -217,19 +217,52 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="start"
-        android:layout_marginEnd="60dp"
-        android:orientation="vertical"
+        android:layout_marginEnd="40dp"
+        android:orientation="horizontal"
+        android:gravity="top"
         android:visibility="gone">
 
-        <TextView
-            android:id="@+id/tvReceivedSender"
+        <!-- Circular Profile Avatar Container -->
+        <FrameLayout
+            android:id="@+id/containerReceivedAvatar"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginTop="2dp">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivReceivedAvatar"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:scaleType="centerCrop"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Circle" />
+
+            <TextView
+                android:id="@+id/tvReceivedAvatarPlaceholder"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:gravity="center"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_circle_avatar"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:layout_marginBottom="0dp"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvReceivedSender"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="0dp"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="wrap_content"
@@ -390,6 +423,7 @@
                     android:textSize="17sp"
                     android:textColor="@color/reaction_text" />
             </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 

@@ -73,29 +73,6 @@ class ScoringApp : Application() {
             }
         })
 
-        // Custom Notification Handler for Grouped Chat Messages
-        OneSignal.Notifications.addForegroundLifecycleListener(object : com.onesignal.notifications.INotificationLifecycleListener {
-            override fun onWillDisplay(event: com.onesignal.notifications.INotificationWillDisplayEvent) {
-                val data = event.notification.additionalData
-                val type = data?.optString("type")
-                val leagueId = data?.optString("leagueId")
-                val senderName = data?.optString("senderName")
-                val messageText = data?.optString("messageText")
-                val targetRecipientId = data?.optString("targetRecipientId") ?: data?.optString("replyRecipientId")
-
-                if (type == "CHAT" && !leagueId.isNullOrEmpty()) {
-                    event.preventDefault()
-                    ChatNotificationHelper.handleIncomingChatMessage(
-                        this@ScoringApp,
-                        leagueId,
-                        senderName ?: "Member",
-                        messageText ?: event.notification.body ?: "",
-                        targetRecipientId
-                    )
-                }
-            }
-        })
-
         // Load and apply saved theme
         val prefs = getSharedPreferences("scoring_prefs", Context.MODE_PRIVATE)
         val savedMode = prefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)

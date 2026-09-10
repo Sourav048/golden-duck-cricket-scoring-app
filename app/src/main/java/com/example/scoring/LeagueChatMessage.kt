@@ -9,6 +9,7 @@ data class LeagueChatMessage(
     val id: String = "",
     val senderId: String = "",
     val senderName: String = "",
+    val senderProfilePic: String? = null,
     val messageText: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val type: String = "TEXT", // "TEXT", "IMAGE", "VIDEO", "SYSTEM"

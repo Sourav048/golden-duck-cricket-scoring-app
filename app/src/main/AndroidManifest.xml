@@ -27,6 +27,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Scoring">
 
+        <!-- OneSignal Background Notification Service Extension -->
+        <meta-data
+            android:name="com.onesignal.NotificationServiceExtension"
+            android:value="com.example.scoring.AppNotificationServiceExtension" />
+
         <!-- HOME — launches when the app icon is tapped -->
         <activity
             android:name=".HomeActivity"
@@ -100,6 +105,14 @@
             android:name=".LeagueChatActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <receiver
+            android:name=".NotificationReplyReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".NotificationDismissReceiver"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

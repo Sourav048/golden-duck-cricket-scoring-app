@@ -42,6 +42,7 @@ import java.util.UUID
 import android.text.Editable
 import android.text.TextWatcher
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.firestore.SetOptions
 import java.util.concurrent.Executors
 
@@ -52,6 +53,9 @@ class LeagueChatActivity : BaseActivity() {
         private const val SUPABASE_URL = "https://alyfggrwppkctlbroqzr.supabase.co"
         private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFseWZnZ3J3cHBrY3RsYnJvcXpyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODgxMTE4MSwiZXhwIjoyMTA0Mzg3MTgxfQ.OsUzeI4QQZG0QOVAaGu_4iVStPJaOmmWUBNXcgk1juk"
         private const val SUPABASE_BUCKET = "chat_videos"
+
+        @Volatile
+        var activeLeagueId: String? = null
     }
 
     private lateinit var tvLeagueSubtitle: TextView
@@ -79,6 +83,14 @@ class LeagueChatActivity : BaseActivity() {
     private lateinit var leagueId: String
     private lateinit var senderId: String
     private lateinit var senderName: String
+    private var senderProfilePic: String? = null
+
+    private var pendingProfilePicUri: Uri? = null
+    private var currentProfileCameraUri: Uri? = null
+    private val userProfilePicsMap = mutableMapOf<String, String>()
+
+    private var activeProfileDialogAvatarView: ImageView? = null
+    private var activeProfileDialogPlaceholderView: TextView? = null
 
     private lateinit var chatAdapter: LeagueChatAdapter
     private val messageList = mutableListOf<LeagueChatMessage>()
@@ -115,6 +127,36 @@ class LeagueChatActivity : BaseActivity() {
             launchCameraInternal()
         } else {
             Toast.makeText(this, "Camera permission is required to take photos.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val pickProfilePicLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            pendingProfilePicUri = uri
+            activeProfileDialogAvatarView?.let { iv ->
+                Glide.with(this).load(uri).circleCrop().into(iv)
+            }
+            activeProfileDialogPlaceholderView?.visibility = View.GONE
+            activeProfileDialogAvatarView?.visibility = View.VISIBLE
+        }
+    }
+
+    private val takeProfilePicLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success: Boolean ->
+        if (success && currentProfileCameraUri != null) {
+            pendingProfilePicUri = currentProfileCameraUri
+            activeProfileDialogAvatarView?.let { iv ->
+                Glide.with(this).load(currentProfileCameraUri).circleCrop().into(iv)
+            }
+            activeProfileDialogPlaceholderView?.visibility = View.GONE
+            activeProfileDialogAvatarView?.visibility = View.VISIBLE
+        }
+    }
+
+    private val requestProfileCameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+        if (isGranted) {
+            launchProfileCameraInternal()
+        } else {
+            Toast.makeText(this, "Camera permission is required to take photo.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -163,7 +205,7 @@ class LeagueChatActivity : BaseActivity() {
 
         btnSendMessage.setOnClickListener { sendMessage() }
         btnAttachMedia.setOnClickListener { showAttachmentOptions() }
-        btnChangeName.setOnClickListener { showChangeNameDialog() }
+        btnChangeName.setOnClickListener { showEditProfileDialog() }
 
         registerActiveChatUser()
         setupMentionsSystem()
@@ -174,7 +216,15 @@ class LeagueChatActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         if (::leagueId.isInitialized && leagueId.isNotBlank()) {
+            activeLeagueId = leagueId
             ChatNotificationHelper.clearNotificationForLeague(this, leagueId)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (::leagueId.isInitialized && activeLeagueId == leagueId) {
+            activeLeagueId = null
         }
     }
 
@@ -249,6 +299,8 @@ class LeagueChatActivity : BaseActivity() {
             prefs.edit().putString("chat_sender_name", storedName).apply()
         }
         senderName = storedName
+
+        senderProfilePic = prefs.getString("chat_sender_profile_pic", null)
     }
 
     private fun registerActiveChatUser() {
@@ -257,6 +309,7 @@ class LeagueChatActivity : BaseActivity() {
             val userMap = hashMapOf(
                 "userId" to senderId,
                 "displayName" to senderName,
+                "profilePic" to (senderProfilePic ?: ""),
                 "lastActive" to System.currentTimeMillis()
             )
             db.collection("gullies").document(leagueId)
@@ -286,19 +339,41 @@ class LeagueChatActivity : BaseActivity() {
         })
     }
 
+    private fun isSystemUser(idOrName: String?): Boolean {
+        if (idOrName.isNullOrBlank()) return false
+        val clean = idOrName.trim().lowercase()
+        return clean == "system" || clean == "system user" || clean.startsWith("system ")
+    }
+
     private fun loadLeaguePlayersAndChatUsers() {
         // 1. Listen to active chat users in Firestore
         db.collection("gullies").document(leagueId)
             .collection("chat_users")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
+                    activeChatUsersMap.clear()
+                    userProfilePicsMap.clear()
                     for (doc in snapshot.documents) {
+                        if (isSystemUser(doc.id)) continue
                         val name = doc.getString("displayName") ?: doc.getString("name")
-                        if (!name.isNullOrBlank()) {
+                        val pic = doc.getString("profilePic") ?: doc.getString("senderProfilePic")
+                        if (!name.isNullOrBlank() && !isSystemUser(name)) {
                             activeChatUsersMap[doc.id] = name.trim()
-                            activeChatUsersMap[name.trim().lowercase()] = name.trim()
+                        }
+                        if (!pic.isNullOrBlank() && !isSystemUser(name)) {
+                            userProfilePicsMap[doc.id] = pic.trim()
                         }
                     }
+                    chatAdapter.updateUserProfilePics(userProfilePicsMap)
+
+                    val allNames = mutableSetOf<String>()
+                    for (n in activeChatUsersMap.values) {
+                        if (!isSystemUser(n)) allNames.add(n)
+                    }
+                    for (p in allLeaguePlayersList) {
+                        if (p.name.isNotBlank() && !isSystemUser(p.name)) allNames.add(p.name.trim())
+                    }
+                    chatAdapter.updateKnownPlayerNames(allNames.toList())
                     checkAndFilterMentions()
                 }
             }
@@ -316,9 +391,11 @@ class LeagueChatActivity : BaseActivity() {
                 allLeaguePlayersList.addAll(validPlayers)
 
                 val allNames = mutableSetOf<String>()
-                allNames.addAll(activeChatUsersMap.values)
+                for (n in activeChatUsersMap.values) {
+                    if (!isSystemUser(n)) allNames.add(n)
+                }
                 for (p in allLeaguePlayersList) {
-                    if (p.name.isNotBlank()) allNames.add(p.name.trim())
+                    if (p.name.isNotBlank() && !isSystemUser(p.name)) allNames.add(p.name.trim())
                 }
                 chatAdapter.updateKnownPlayerNames(allNames.toList())
             }
@@ -358,9 +435,25 @@ class LeagueChatActivity : BaseActivity() {
 
     private fun updateMentionsList(query: String) {
         val chatUserNames = mutableSetOf<String>()
-        chatUserNames.addAll(activeChatUsersMap.values)
+        for ((id, name) in activeChatUsersMap) {
+            if (!isSystemUser(id) && !isSystemUser(name)) {
+                chatUserNames.add(name)
+            }
+        }
+
+        val activeUserIds = activeChatUsersMap.keys
         for (msg in messageList) {
-            if (msg.senderName.isNotBlank()) {
+            if (msg.type == "SYSTEM" || isSystemUser(msg.senderId) || isSystemUser(msg.senderName)) continue
+
+            val sId = msg.senderId.trim()
+            if (sId.isNotBlank() && !activeUserIds.contains(sId)) {
+                val resolved = resolvePlayerName(sId)
+                if (resolved.isNotBlank() && !resolved.startsWith("League Member") && !isSystemUser(resolved)) {
+                    chatUserNames.add(resolved)
+                } else if (msg.senderName.isNotBlank() && !isSystemUser(msg.senderName)) {
+                    chatUserNames.add(msg.senderName.trim())
+                }
+            } else if (sId.isBlank() && msg.senderName.isNotBlank() && !isSystemUser(msg.senderName)) {
                 chatUserNames.add(msg.senderName.trim())
             }
         }
@@ -371,6 +464,7 @@ class LeagueChatActivity : BaseActivity() {
 
         // 1. Group 1: Players in League Chat (ON TOP)
         for (name in chatUserNames) {
+            if (isSystemUser(name)) continue
             if (name.contains(query, ignoreCase = true) && !addedNames.contains(name.lowercase())) {
                 val matchingPlayerEntity = allLeaguePlayersList.firstOrNull { it.name.trim().equals(name, ignoreCase = true) }
                 val jersey = matchingPlayerEntity?.jerseyNumber ?: "0"
@@ -382,6 +476,7 @@ class LeagueChatActivity : BaseActivity() {
         // 2. Group 2: Other League Players
         for (p in allLeaguePlayersList) {
             val name = p.name.trim()
+            if (isSystemUser(name)) continue
             if (name.isNotBlank() && name.contains(query, ignoreCase = true) && !addedNames.contains(name.lowercase())) {
                 otherLeaguePlayers.add(MentionItem.Player(name = name, jersey = p.jerseyNumber, isActiveInChat = false))
                 addedNames.add(name.lowercase())
@@ -575,19 +670,10 @@ class LeagueChatActivity : BaseActivity() {
     private fun extractMentionedUserId(text: String): String? {
         if (!text.contains("@")) return null
 
-        for ((_, value) in activeChatUsersMap) {
-            if (value.isNotBlank() && text.contains("@$value", ignoreCase = true)) {
-                val foundUserId = activeChatUsersMap.entries.find { it.value.equals(value, ignoreCase = true) && it.key != value.lowercase() }?.key
-                if (!foundUserId.isNullOrBlank() && foundUserId != senderId) {
-                    return foundUserId
-                }
-            }
-        }
-
-        for (msg in messageList.reversed()) {
-            if (msg.senderName.isNotBlank() && text.contains("@${msg.senderName}", ignoreCase = true)) {
-                if (msg.senderId.isNotBlank() && msg.senderId != senderId) {
-                    return msg.senderId
+        for ((userId, name) in activeChatUsersMap) {
+            if (name.isNotBlank() && text.contains("@$name", ignoreCase = true)) {
+                if (userId != senderId) {
+                    return userId
                 }
             }
         }
@@ -596,6 +682,14 @@ class LeagueChatActivity : BaseActivity() {
             if (p.name.isNotBlank() && text.contains("@${p.name}", ignoreCase = true)) {
                 if (p.id.isNotBlank() && p.id != senderId) {
                     return p.id
+                }
+            }
+        }
+
+        for (msg in messageList.reversed()) {
+            if (msg.senderName.isNotBlank() && text.contains("@${msg.senderName}", ignoreCase = true)) {
+                if (msg.senderId.isNotBlank() && msg.senderId != senderId) {
+                    return msg.senderId
                 }
             }
         }
@@ -669,6 +763,7 @@ class LeagueChatActivity : BaseActivity() {
         val newMsg = hashMapOf(
             "senderId" to senderId,
             "senderName" to senderName,
+            "senderProfilePic" to (senderProfilePic ?: ""),
             "messageText" to text,
             "timestamp" to System.currentTimeMillis(),
             "type" to "TEXT",
@@ -683,19 +778,36 @@ class LeagueChatActivity : BaseActivity() {
             .document(leagueId)
             .collection("messages")
             .add(newMsg)
-            .addOnSuccessListener {
+            .addOnSuccessListener { docRef ->
                 LeagueNotificationManager.sendLeagueChatNotification(
                     leagueId = leagueId,
                     senderName = senderName,
                     messageText = text,
                     senderId = senderId,
                     targetRecipientId = targetRecipientId,
-                    recipientSenderLabel = customNotificationSender
+                    recipientSenderLabel = customNotificationSender,
+                    senderProfilePic = senderProfilePic,
+                    msgId = docRef.id
                 )
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Failed to send: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun sendSystemMessage(systemText: String) {
+        if (!::leagueId.isInitialized || leagueId.isBlank()) return
+        val systemMsg = hashMapOf(
+            "senderId" to "SYSTEM",
+            "senderName" to "System",
+            "messageText" to systemText,
+            "timestamp" to System.currentTimeMillis(),
+            "type" to "SYSTEM"
+        )
+        db.collection("gullies")
+            .document(leagueId)
+            .collection("messages")
+            .add(systemMsg)
     }
 
     private fun showAttachmentOptions() {
@@ -892,6 +1004,7 @@ class LeagueChatActivity : BaseActivity() {
         val newMsg = hashMapOf(
             "senderId" to senderId,
             "senderName" to senderName,
+            "senderProfilePic" to (senderProfilePic ?: ""),
             "messageText" to captionText,
             "mediaUrl" to mediaUrl,
             "timestamp" to System.currentTimeMillis(),
@@ -907,7 +1020,7 @@ class LeagueChatActivity : BaseActivity() {
             .document(leagueId)
             .collection("messages")
             .add(newMsg)
-            .addOnSuccessListener {
+            .addOnSuccessListener { docRef ->
                 val isGif = mediaType == "GIF" || LeagueChatAdapter.isGifUrl(mediaUrl)
                 val notifText = when {
                     isGif -> "🎞️ Sent a GIF"
@@ -924,7 +1037,9 @@ class LeagueChatActivity : BaseActivity() {
                     messageText = finalBody,
                     senderId = senderId,
                     targetRecipientId = targetRecipientId,
-                    recipientSenderLabel = customNotificationSender
+                    recipientSenderLabel = customNotificationSender,
+                    senderProfilePic = senderProfilePic,
+                    msgId = docRef.id
                 )
             }
             .addOnFailureListener { e ->
@@ -1140,14 +1255,14 @@ class LeagueChatActivity : BaseActivity() {
         if (userId.isBlank()) return "League Member"
         if (userId == senderId) return "$senderName (You)"
 
-        val activeName = activeChatUsersMap[userId] ?: activeChatUsersMap[userId.lowercase()]
+        val activeName = activeChatUsersMap[userId] ?: activeChatUsersMap.entries.firstOrNull { it.key.equals(userId, ignoreCase = true) }?.value
         if (!activeName.isNullOrBlank()) return activeName
-
-        val msgName = messageList.find { it.senderId == userId }?.senderName
-        if (!msgName.isNullOrBlank()) return msgName
 
         val playerEntityName = allLeaguePlayersList.find { it.id == userId || it.id.equals(userId, ignoreCase = true) }?.name
         if (!playerEntityName.isNullOrBlank()) return playerEntityName
+
+        val msgName = messageList.find { it.senderId == userId }?.senderName
+        if (!msgName.isNullOrBlank()) return msgName
 
         return "League Member (${userId.takeLast(4)})"
     }
@@ -1330,34 +1445,223 @@ class LeagueChatActivity : BaseActivity() {
         }
     }
 
-    private fun showChangeNameDialog() {
-        val input = EditText(this)
-        input.setText(senderName)
-        input.setSelection(senderName.length)
+    private fun launchProfileCamera() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            requestProfileCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        } else {
+            launchProfileCameraInternal()
+        }
+    }
 
-        AlertDialog.Builder(this)
-            .setTitle("Change Your Chat Name")
-            .setMessage("Enter the display name that others will see in the League Chat:")
-            .setView(input)
-            .setPositiveButton("Save") { _, _ ->
-                val newName = input.text.toString().trim()
-                if (newName.isNotEmpty()) {
-                    senderName = newName
-                    getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
-                        .edit()
-                        .putString("chat_sender_name", newName)
-                        .apply()
-                    tvLeagueSubtitle.text = "League: $leagueId • As: $senderName"
-                    registerActiveChatUser()
-                    Toast.makeText(this, "Name updated to $newName", Toast.LENGTH_SHORT).show()
-                }
+    private fun launchProfileCameraInternal() {
+        try {
+            val photoDir = File(cacheDir, "profile_photos")
+            if (!photoDir.exists()) photoDir.mkdirs()
+            val photoFile = File(photoDir, "profile_${System.currentTimeMillis()}.jpg")
+            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", photoFile)
+            currentProfileCameraUri = uri
+            takeProfilePicLauncher.launch(uri)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error launching profile camera: ${e.message}", e)
+            Toast.makeText(this, "Failed to open camera: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showEditProfileDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_profile, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val etDisplayName = dialogView.findViewById<TextInputEditText>(R.id.etDialogDisplayName)
+        val containerProfileAvatar = dialogView.findViewById<View>(R.id.containerProfileAvatar)
+        val ivProfileAvatar = dialogView.findViewById<ImageView>(R.id.ivDialogProfileAvatar)
+        val tvAvatarPlaceholder = dialogView.findViewById<TextView>(R.id.tvDialogAvatarPlaceholder)
+        val pbProfileUpload = dialogView.findViewById<View>(R.id.pbProfileUpload)
+        val btnCancel = dialogView.findViewById<View>(R.id.btnCancelDialog)
+        val btnSave = dialogView.findViewById<View>(R.id.btnSaveDialog)
+
+        activeProfileDialogAvatarView = ivProfileAvatar
+        activeProfileDialogPlaceholderView = tvAvatarPlaceholder
+        pendingProfilePicUri = null
+
+        etDisplayName.setText(senderName)
+        etDisplayName.setSelection(senderName.length)
+
+        fun updateDialogAvatarPreview() {
+            val currentPic = senderProfilePic
+            if (pendingProfilePicUri != null) {
+                ivProfileAvatar.visibility = View.VISIBLE
+                tvAvatarPlaceholder.visibility = View.GONE
+                Glide.with(this).load(pendingProfilePicUri).circleCrop().into(ivProfileAvatar)
+            } else if (!currentPic.isNullOrBlank()) {
+                ivProfileAvatar.visibility = View.VISIBLE
+                tvAvatarPlaceholder.visibility = View.GONE
+                Glide.with(this).load(currentPic).circleCrop().into(ivProfileAvatar)
+            } else {
+                ivProfileAvatar.visibility = View.GONE
+                tvAvatarPlaceholder.visibility = View.VISIBLE
+                val initial = senderName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "P"
+                tvAvatarPlaceholder.text = initial
+                tvAvatarPlaceholder.background = LeagueChatAdapter.createColoredCircleDrawable(
+                    LeagueChatAdapter.getAvatarColor(senderId.ifBlank { senderName })
+                )
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
+
+        updateDialogAvatarPreview()
+
+        containerProfileAvatar.setOnClickListener {
+            val hasPhoto = pendingProfilePicUri != null || !senderProfilePic.isNullOrEmpty()
+            val options = if (hasPhoto) {
+                arrayOf("Choose from Gallery", "Take Photo", "Remove Photo")
+            } else {
+                arrayOf("Choose from Gallery", "Take Photo")
+            }
+
+            AlertDialog.Builder(this)
+                .setTitle("Profile Photo")
+                .setItems(options) { _, which ->
+                    when (options[which]) {
+                        "Choose from Gallery" -> pickProfilePicLauncher.launch("image/*")
+                        "Take Photo" -> launchProfileCamera()
+                        "Remove Photo" -> {
+                            pendingProfilePicUri = null
+                            senderProfilePic = null
+                            updateDialogAvatarPreview()
+                        }
+                    }
+                }
+                .show()
+        }
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+
+        btnSave.setOnClickListener {
+            val newName = etDisplayName.text.toString().trim()
+            if (newName.isBlank()) {
+                Toast.makeText(this, "Display name cannot be empty", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val oldName = senderName
+
+            if (pendingProfilePicUri != null) {
+                pbProfileUpload.visibility = View.VISIBLE
+                btnSave.isEnabled = false
+                btnCancel.isEnabled = false
+
+                uploadProfilePicture(pendingProfilePicUri!!) { uploadedUrl ->
+                    pbProfileUpload.visibility = View.GONE
+                    btnSave.isEnabled = true
+                    btnCancel.isEnabled = true
+
+                    if (uploadedUrl != null) {
+                        senderProfilePic = uploadedUrl
+                    } else {
+                        Toast.makeText(this, "Failed to upload photo, saving name only", Toast.LENGTH_SHORT).show()
+                    }
+
+                    saveProfileChangesAndDismiss(dialog, oldName, newName)
+                }
+            } else {
+                saveProfileChangesAndDismiss(dialog, oldName, newName)
+            }
+        }
+
+        dialog.setOnDismissListener {
+            activeProfileDialogAvatarView = null
+            activeProfileDialogPlaceholderView = null
+        }
+
+        dialog.show()
+    }
+
+    private fun uploadProfilePicture(uri: Uri, callback: (String?) -> Unit) {
+        Executors.newSingleThreadExecutor().execute {
+            try {
+                val fileName = "avatar_${senderId}_${System.currentTimeMillis()}.jpg"
+                val url = URL("$SUPABASE_URL/storage/v1/object/$SUPABASE_BUCKET/$fileName")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Authorization", "Bearer $SUPABASE_KEY")
+                conn.setRequestProperty("apiKey", SUPABASE_KEY)
+                conn.setRequestProperty("Content-Type", "image/jpeg")
+                conn.doOutput = true
+
+                val inputStream = contentResolver.openInputStream(uri)
+                if (inputStream == null) {
+                    runOnUiThread { callback(null) }
+                    return@execute
+                }
+
+                val outputStream = conn.outputStream
+                val buffer = ByteArray(8192)
+                var bytesRead: Int
+                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    outputStream.write(buffer, 0, bytesRead)
+                }
+                outputStream.flush()
+                outputStream.close()
+                inputStream.close()
+
+                val responseCode = conn.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK || responseCode == 201) {
+                    val publicMediaUrl = "$SUPABASE_URL/storage/v1/object/public/$SUPABASE_BUCKET/$fileName"
+                    runOnUiThread { callback(publicMediaUrl) }
+                } else {
+                    runOnUiThread { callback(null) }
+                }
+                conn.disconnect()
+            } catch (e: Exception) {
+                Log.e(TAG, "Profile pic upload error: ${e.message}", e)
+                runOnUiThread { callback(null) }
+            }
+        }
+    }
+
+    private fun saveProfileChangesAndDismiss(dialog: AlertDialog, oldName: String, newName: String) {
+        val picToSave = senderProfilePic ?: ""
+        senderName = newName
+
+        getSharedPreferences("gully_prefs", MODE_PRIVATE)
+            .edit()
+            .putString("chat_sender_name", newName)
+            .putString("chat_sender_profile_pic", picToSave)
+            .apply()
+
+        tvLeagueSubtitle.text = "League: $leagueId • As: $senderName"
+        registerActiveChatUser()
+
+        activeChatUsersMap[senderId] = newName
+        if (picToSave.isNotBlank()) {
+            userProfilePicsMap[senderId] = picToSave
+            chatAdapter.updateUserProfilePics(userProfilePicsMap)
+        }
+
+        val allNames = mutableSetOf<String>()
+        allNames.addAll(activeChatUsersMap.values)
+        for (p in allLeaguePlayersList) {
+            if (p.name.isNotBlank()) allNames.add(p.name.trim())
+        }
+        chatAdapter.updateKnownPlayerNames(allNames.toList())
+        checkAndFilterMentions()
+
+        if (newName != oldName) {
+            sendSystemMessage("$oldName changed name to $newName")
+        }
+
+        Toast.makeText(this, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
+        dialog.dismiss()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        if (::leagueId.isInitialized && activeLeagueId == leagueId) {
+            activeLeagueId = null
+        }
         chatListener?.remove()
     }
 }

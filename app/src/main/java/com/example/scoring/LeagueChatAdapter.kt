@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.text.Spannable
 import android.text.SpannableString
@@ -50,6 +51,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
+import kotlin.math.abs
 
 class LeagueChatAdapter(
     private val currentUserId: String,
@@ -59,9 +61,15 @@ class LeagueChatAdapter(
     var onReplyClick: ((String) -> Unit)? = null
 
     private var knownPlayerNames: List<String> = emptyList()
+    private var userProfilePics: Map<String, String> = emptyMap()
 
     fun updateKnownPlayerNames(names: List<String>) {
         this.knownPlayerNames = names.filter { it.isNotBlank() }.sortedByDescending { it.length }
+        notifyDataSetChanged()
+    }
+
+    fun updateUserProfilePics(pics: Map<String, String>) {
+        this.userProfilePics = pics
         notifyDataSetChanged()
     }
 
@@ -70,6 +78,29 @@ class LeagueChatAdapter(
     }
 
     companion object {
+        fun getAvatarColor(key: String): Int {
+            val colors = intArrayOf(
+                0xFF1E88E5.toInt(), // Blue
+                0xFF43A047.toInt(), // Green
+                0xFFE53935.toInt(), // Red
+                0xFFFB8C00.toInt(), // Orange
+                0xFF8E24AA.toInt(), // Purple
+                0xFF00ACC1.toInt(), // Cyan
+                0xFFD81B60.toInt(), // Pink
+                0xFF3949AB.toInt(), // Indigo
+                0xFF00897B.toInt()  // Teal
+            )
+            val hash = abs(key.hashCode())
+            return colors[hash % colors.size]
+        }
+
+        fun createColoredCircleDrawable(colorInt: Int): GradientDrawable {
+            return GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(colorInt)
+            }
+        }
+
         fun buildReplyTextSnippet(msg: LeagueChatMessage): String {
             val isGif = msg.type == "GIF" || isGifUrl(msg.mediaUrl.orEmpty())
             val isVideo = msg.type == "VIDEO"
@@ -391,6 +422,8 @@ class LeagueChatAdapter(
         private val ivReceivedMedia: ImageView = itemView.findViewById(R.id.ivReceivedMedia)
         private val ivReceivedPlayOverlay: ImageView = itemView.findViewById(R.id.ivReceivedPlayOverlay)
         private val pbReceivedMediaLoading: ProgressBar = itemView.findViewById(R.id.pbReceivedMediaLoading)
+        private val ivReceivedAvatar: ImageView? = itemView.findViewById(R.id.ivReceivedAvatar)
+        private val tvReceivedAvatarPlaceholder: TextView? = itemView.findViewById(R.id.tvReceivedAvatarPlaceholder)
 
         // Quoted Reply views
         private val layoutSentReply: LinearLayout = itemView.findViewById(R.id.layoutSentReply)
@@ -583,6 +616,28 @@ class LeagueChatAdapter(
             } else {
                 layoutReceived.visibility = View.VISIBLE
                 tvReceivedSender.text = item.senderName.ifBlank { "League Member" }
+
+                // Bind Avatar for received message
+                val avatarUrl = item.senderProfilePic.takeIf { !it.isNullOrBlank() }
+                    ?: userProfilePics[item.senderId]
+
+                if (!avatarUrl.isNullOrBlank()) {
+                    ivReceivedAvatar?.visibility = View.VISIBLE
+                    tvReceivedAvatarPlaceholder?.visibility = View.GONE
+                    Glide.with(itemView.context)
+                        .load(avatarUrl)
+                        .circleCrop()
+                        .placeholder(R.drawable.bg_circle_avatar)
+                        .into(ivReceivedAvatar!!)
+                } else {
+                    ivReceivedAvatar?.visibility = View.GONE
+                    tvReceivedAvatarPlaceholder?.visibility = View.VISIBLE
+                    val initial = item.senderName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "P"
+                    tvReceivedAvatarPlaceholder?.text = initial
+                    val colorKey = item.senderId.ifBlank { item.senderName }
+                    tvReceivedAvatarPlaceholder?.background = createColoredCircleDrawable(getAvatarColor(colorKey))
+                }
+
                 bindMessageContent(
                     item = item,
                     effectiveMediaUrl = effectiveMediaUrl,
