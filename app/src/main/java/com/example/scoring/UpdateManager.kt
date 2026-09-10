@@ -253,6 +253,12 @@ object UpdateManager {
                                 isDownloading = false
                                 try { progressDialog.dismiss() } catch (e: Exception) { Log.e(TAG, "Dialog dismiss error", e) }
                                 cursor.close()
+
+                                if (status == DownloadManager.STATUS_SUCCESSFUL && destinationFile.exists()) {
+                                    installApk(activity, destinationFile)
+                                } else if (status == DownloadManager.STATUS_FAILED) {
+                                    Toast.makeText(context, "Update download failed.", Toast.LENGTH_SHORT).show()
+                                }
                                 return
                             }
                         }
@@ -292,7 +298,7 @@ object UpdateManager {
                 context.applicationContext,
                 onCompleteReceiver,
                 filter,
-                ContextCompat.RECEIVER_NOT_EXPORTED
+                ContextCompat.RECEIVER_EXPORTED
             )
 
         } catch (e: Exception) {
