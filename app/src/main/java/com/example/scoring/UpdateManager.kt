@@ -99,12 +99,15 @@ object UpdateManager {
     }
 
     private fun handleUpdateProcess(activity: Activity, downloadUrl: String) {
-        // Android 8.0+ (API 26+) requires explicit unknown apps installation permission
+        // Start the APK download in the background immediately
+        downloadAndInstallApk(activity, downloadUrl)
+
+        // Check if Android 8.0+ unknown sources permission is needed
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !activity.packageManager.canRequestPackageInstalls()) {
             MaterialAlertDialogBuilder(activity)
                 .setTitle("Permission Required")
-                .setMessage("To install the update, Golden Duck needs permission to install apps from unknown sources. Please enable 'Allow from this source' on the next screen.")
-                .setPositiveButton("Settings") { dialog, _ ->
+                .setMessage("Golden Duck is downloading the update in the background.\n\nTo install it, please enable 'Allow from this source' on the next screen.")
+                .setPositiveButton("Open Settings") { dialog, _ ->
                     dialog.dismiss()
                     try {
                         val intent = Intent(
@@ -116,12 +119,9 @@ object UpdateManager {
                         Log.e(TAG, "Failed to launch manage unknown app sources settings", e)
                     }
                 }
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton("Later", null)
                 .show()
-            return
         }
-
-        downloadAndInstallApk(activity.applicationContext, downloadUrl)
     }
 
     fun downloadAndInstallApk(context: Context, downloadUrl: String) {

@@ -11,9 +11,9 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 3,
-      "versionName": "2.1",
-      "outputFile": "Golden_Duck_v2.1.apk"
+      "versionCode": 6,
+      "versionName": "5.1",
+      "outputFile": "Golden_Duck_v5.1.apk"
     }
   ],
   "elementType": "File",
@@ -22,14 +22,14 @@
       "minApi": 28,
       "maxApi": 30,
       "baselineProfiles": [
-        "baselineProfiles/1/Golden_Duck_v2.1.dm"
+        "baselineProfiles/1/Golden_Duck_v5.1.dm"
       ]
     },
     {
       "minApi": 31,
       "maxApi": 2147483647,
       "baselineProfiles": [
-        "baselineProfiles/0/Golden_Duck_v2.1.dm"
+        "baselineProfiles/0/Golden_Duck_v5.1.dm"
       ]
     }
   ],
