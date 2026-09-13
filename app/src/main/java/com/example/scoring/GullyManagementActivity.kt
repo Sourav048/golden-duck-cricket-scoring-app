@@ -2,9 +2,11 @@ package com.example.scoring
 
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
@@ -99,33 +101,35 @@ class GullyManagementActivity : BaseActivity() {
     private fun performMigration() {
         val currentGId = GullySyncManager.getCurrentGullyId(this) ?: return
         
-        ThemeManager.createDynamicBuilder(this)
-            .setTitle("Sync Local Records")
-            .setMessage("All your previous local matches and players will be moved to '$currentGId' and uploaded to the cloud. Continue?")
-            .setPositiveButton("SYNC NOW") { _, _ ->
-                btnMigrate.isEnabled = false
-                btnMigrate.text = "Migrating..."
-                
-                GullyMigrationManager.migrateLocalToGully(this, currentGId, object : GullyMigrationManager.MigrationCallback {
-                    override fun onSuccess(count: Int) {
-                        runOnUiThread {
-                            Toast.makeText(this@GullyManagementActivity, "Successfully migrated $count records!", Toast.LENGTH_LONG).show()
-                            updateCurrentGullyUI()
-                            btnMigrate.text = "Sync Local History to Cloud"
-                            btnMigrate.isEnabled = true
+        GullyAdminManager.verifyAdminPinAndExecute(this, currentGId, "Sync Local Records") {
+            ThemeManager.createDynamicBuilder(this)
+                .setTitle("Sync Local Records")
+                .setMessage("All your previous local matches and players will be moved to '$currentGId' and uploaded to the cloud. Continue?")
+                .setPositiveButton("SYNC NOW") { _, _ ->
+                    btnMigrate.isEnabled = false
+                    btnMigrate.text = "Migrating..."
+                    
+                    GullyMigrationManager.migrateLocalToGully(this, currentGId, object : GullyMigrationManager.MigrationCallback {
+                        override fun onSuccess(count: Int) {
+                            runOnUiThread {
+                                Toast.makeText(this@GullyManagementActivity, "Successfully migrated $count records!", Toast.LENGTH_LONG).show()
+                                updateCurrentGullyUI()
+                                btnMigrate.text = "Sync Local History to Cloud"
+                                btnMigrate.isEnabled = true
+                            }
                         }
-                    }
-                    override fun onFailure(error: String) {
-                        runOnUiThread {
-                            Toast.makeText(this@GullyManagementActivity, "Migration failed: $error", Toast.LENGTH_LONG).show()
-                            btnMigrate.text = "Sync Local History to Cloud"
-                            btnMigrate.isEnabled = true
+                        override fun onFailure(error: String) {
+                            runOnUiThread {
+                                Toast.makeText(this@GullyManagementActivity, "Migration failed: $error", Toast.LENGTH_LONG).show()
+                                btnMigrate.text = "Sync Local History to Cloud"
+                                btnMigrate.isEnabled = true
+                            }
                         }
-                    }
-                })
-            }
-            .setNegativeButton("CANCEL", null)
-            .show()
+                    })
+                }
+                .setNegativeButton("CANCEL", null)
+                .show()
+        }
     }
 
 
@@ -205,16 +209,17 @@ class GullyManagementActivity : BaseActivity() {
         }
 
         private fun showRemoveDialog(id: String) {
-            showDynamicDialog {
-                setTitle("Remove from Switchboard?")
-                setMessage("Remove '$id' from your recent list? This won't delete the league data from the cloud.")
-                setPositiveButton("REMOVE") { _, _ ->
+            ThemeManager.createDynamicBuilder(this@GullyManagementActivity)
+                .setTitle("Remove from Switchboard?")
+                .setMessage("Remove '$id' from your recent list? This won't delete the league data from the cloud.")
+                .setPositiveButton("REMOVE") { _, _ ->
                     LeagueNotificationManager.unsubscribeFromLeague(id)
                     GullyHistoryManager.removeGully(this@GullyManagementActivity, id)
                     setupRecentList()
+                    updateCurrentGullyUI()
                 }
-                setNegativeButton("CANCEL", null)
-            }
+                .setNegativeButton("CANCEL", null)
+                .show()
         }
 
         inner class Holder(v: View) : RecyclerView.ViewHolder(v) {
@@ -238,10 +243,34 @@ class GullyManagementActivity : BaseActivity() {
         override fun onBindViewHolder(holder: PageHolder, position: Int) {
             if (position == 0) {
                 val btnJoin = holder.itemView.findViewById<MaterialButton>(R.id.btnJoin)
+                val etJoinPass = holder.itemView.findViewById<EditText>(R.id.etJoinPass)
+
                 btnJoin.setOnClickListener { performJoin(holder.itemView) }
+                etJoinPass?.setOnEditorActionListener { _, actionId, event ->
+                    if (actionId == EditorInfo.IME_ACTION_DONE ||
+                        actionId == EditorInfo.IME_ACTION_GO ||
+                        (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
+                        performJoin(holder.itemView)
+                        true
+                    } else {
+                        false
+                    }
+                }
             } else {
                 val btnCreate = holder.itemView.findViewById<MaterialButton>(R.id.btnCreate)
+                val etCreateAdminPin = holder.itemView.findViewById<EditText>(R.id.etCreateAdminPin)
+
                 btnCreate.setOnClickListener { performCreate(holder.itemView) }
+                etCreateAdminPin?.setOnEditorActionListener { _, actionId, event ->
+                    if (actionId == EditorInfo.IME_ACTION_DONE ||
+                        actionId == EditorInfo.IME_ACTION_GO ||
+                        (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)) {
+                        performCreate(holder.itemView)
+                        true
+                    } else {
+                        false
+                    }
+                }
             }
         }
 
@@ -294,13 +323,20 @@ class GullyManagementActivity : BaseActivity() {
     private fun performCreate(view: View) {
         val etId = view.findViewById<EditText>(R.id.etCreateId)
         val etPass = view.findViewById<EditText>(R.id.etCreatePass)
+        val etAdminPin = view.findViewById<EditText>(R.id.etCreateAdminPin)
         val btnCreate = view.findViewById<MaterialButton>(R.id.btnCreate)
 
         val id = etId.text.toString().trim().uppercase()
         val pass = etPass.text.toString().trim()
+        val adminPin = etAdminPin.text.toString().trim()
 
         if (id.isEmpty() || pass.isEmpty()) {
             Toast.makeText(this, "Enter a Name and Passcode", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (adminPin.length < 4) {
+            Toast.makeText(this, "Please set a 4-digit Admin PIN", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -309,8 +345,9 @@ class GullyManagementActivity : BaseActivity() {
         btnCreate.text = "Creating..."
         etId.isEnabled = false
         etPass.isEnabled = false
+        etAdminPin.isEnabled = false
 
-        GullySyncManager.createGully(id, pass, object : GullySyncManager.SyncCallback {
+        GullySyncManager.createGully(id, pass, adminPin, object : GullySyncManager.SyncCallback {
             override fun onSuccess(message: String) {
                 GullyHistoryManager.addGully(this@GullyManagementActivity, id, pass)
                 saveGullyPreference(id)
@@ -324,6 +361,7 @@ class GullyManagementActivity : BaseActivity() {
                     btnCreate.text = "Create League"
                     etId.isEnabled = true
                     etPass.isEnabled = true
+                    etAdminPin.isEnabled = true
                     Toast.makeText(this@GullyManagementActivity, error, Toast.LENGTH_LONG).show()
                 }
             }

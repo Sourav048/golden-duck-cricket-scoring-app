@@ -33,8 +33,12 @@ import com.example.scoring.AppDatabase.Companion.getInstance
 import com.example.scoring.BackupManager.BackupCallback
 import com.example.scoring.BackupManager.exportData
 import com.example.scoring.RankingRegistry.refresh
+import kotlinx.coroutines.launch
 import com.example.scoring.SecurityUtils.AuthCallback
 import com.example.scoring.SecurityUtils.authenticate
+import com.onesignal.OneSignal
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
@@ -78,6 +82,21 @@ class HomeActivity : BaseActivity() {
 
         // Load rankings on startup
         refresh(this, null)
+
+        // Request OneSignal Notification Permissions & Subscribe all joined leagues
+        try {
+            val gullyPrefs = getSharedPreferences("gully_prefs", MODE_PRIVATE)
+            val myUserId = gullyPrefs.getString("chat_sender_id", null)
+            val allGullies = GullyHistoryManager.getGullies(this)
+            for (g in allGullies) {
+                LeagueNotificationManager.subscribeToLeague(g.id, myUserId)
+            }
+            CoroutineScope(Dispatchers.Main).launch {
+                OneSignal.Notifications.requestPermission(true)
+            }
+        } catch (e: Exception) {
+            Log.e("HomeNotif", "Error requesting notification permission / subscribing tags: ${e.message}")
+        }
 
         // START GULLY SYNC ENGINE
         try {

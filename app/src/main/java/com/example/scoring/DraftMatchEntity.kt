@@ -1,9 +1,11 @@
 package com.example.scoring
 
+import androidx.annotation.Keep
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.UUID
 
+@Keep
 @Entity(tableName = "draft_matches")
 class DraftMatchEntity {
     @PrimaryKey

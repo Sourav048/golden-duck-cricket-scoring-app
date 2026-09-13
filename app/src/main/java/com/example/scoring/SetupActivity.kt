@@ -2,8 +2,8 @@ package com.example.scoring
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Button
@@ -59,10 +59,27 @@ class SetupActivity : BaseActivity() {
             val ballTypesList = ballTypes.take(ballTypes.size - 1)
             val adapter = ArrayAdapter<String>(this, R.layout.list_item_dropdown, ballTypesList)
             ballTypeInput?.setAdapter(adapter)
-            // Removed auto-selection of first item to force user selection
+
+            fun showBallTypeDropdown() {
+                hideKeyboard()
+                ballTypeInput?.showDropDown()
+            }
 
             ballTypeInput?.setOnClickListener {
-                ballTypeInput?.showDropDown()
+                showBallTypeDropdown()
+            }
+
+            ballTypeInput?.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    showBallTypeDropdown()
+                }
+            }
+
+            ballTypeInput?.setOnTouchListener { v, event ->
+                if (event.action == MotionEvent.ACTION_UP) {
+                    v.performClick()
+                }
+                false
             }
 
             // Setup Venue Suggestions
@@ -85,13 +102,6 @@ class SetupActivity : BaseActivity() {
                         }
                     }
                 }
-            }
-
-            ballTypeInput?.setOnTouchListener { _, event ->
-                if (event.action == android.view.MotionEvent.ACTION_UP) {
-                    hideKeyboard()
-                }
-                false
             }
 
             oversInput?.setOnEditorActionListener { _, actionId, _ ->

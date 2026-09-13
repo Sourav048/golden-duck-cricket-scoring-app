@@ -16,7 +16,10 @@
             android:id="@+id/etJoinId"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textCapCharacters" />
+            android:inputType="textCapCharacters"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:imeOptions="actionNext" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
@@ -30,7 +33,10 @@
             android:id="@+id/etJoinPass"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textPassword" />
+            android:inputType="textPassword"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:imeOptions="actionDone" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.button.MaterialButton

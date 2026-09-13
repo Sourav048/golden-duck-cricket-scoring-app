@@ -301,28 +301,30 @@ class PlayerDetailsActivity : BaseActivity() {
     }
 
     private fun checkSecurityForEdit() {
-        authenticate(this, "Edit Profile", "Provide security to edit player", object : AuthCallback {
-            override fun onSuccess() { showEditDialog() }
-            override fun onFailure(e: String?) {
-                Toast.makeText(this@PlayerDetailsActivity, "Failed: $e", Toast.LENGTH_SHORT).show()
-            }
-        })
+        showEditDialog()
     }
 
     private fun checkSecurityForDelete() {
-        authenticate(this, "Delete Player", "Provide security to delete player", object : AuthCallback {
-            override fun onSuccess() {
-                showDynamicDialog {
-                    setTitle("Delete Player")
-                    setMessage("Are you sure? This cannot be undone.")
-                    setPositiveButton("Delete") { d, w -> deletePlayer() }
-                    setNegativeButton("Cancel", null)
+        val gId = GullySyncManager.getCurrentGullyId(this)
+        if (gId != null) {
+            GullyAdminManager.verifyAdminPinAndExecute(this, gId, "Delete Player") {
+                deletePlayer()
+            }
+        } else {
+            authenticate(this, "Delete Player", "Provide security to delete player", object : AuthCallback {
+                override fun onSuccess() {
+                    showDynamicDialog {
+                        setTitle("Delete Player")
+                        setMessage("Are you sure? This cannot be undone.")
+                        setPositiveButton("Delete") { d, w -> deletePlayer() }
+                        setNegativeButton("Cancel", null)
+                    }
                 }
-            }
-            override fun onFailure(e: String?) {
-                Toast.makeText(this@PlayerDetailsActivity, "Failed: $e", Toast.LENGTH_SHORT).show()
-            }
-        })
+                override fun onFailure(e: String?) {
+                    Toast.makeText(this@PlayerDetailsActivity, "Failed: $e", Toast.LENGTH_SHORT).show()
+                }
+            })
+        }
     }
 
     private fun deletePlayer() {

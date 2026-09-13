@@ -6,6 +6,7 @@ import android.util.Log
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
+import androidx.annotation.Keep
 import com.google.gson.Gson
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
@@ -216,6 +217,7 @@ object BackupManager {
         fun onFailure(error: String?)
     }
 
+    @Keep
     class BackupBundle {
         var players: MutableList<PlayerEntity?>? = null
         var matches: MutableList<MatchEntity?>? = null

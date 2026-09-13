@@ -28,6 +28,9 @@ interface StatsDao {
     @Query("DELETE FROM player_match_stats")
     fun deleteAllStats()
 
+    @Query("DELETE FROM player_match_stats WHERE gullyId = :gId")
+    fun deleteAllStatsByGully(gId: String)
+
     @Query("UPDATE player_match_stats SET playerName = :newName WHERE playerId = :pId")
     fun updatePlayerNameInStats(pId: String, newName: String)
 

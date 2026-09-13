@@ -156,7 +156,7 @@ class TeamOversListFragment : Fragment() {
         return balls.sumOf { it.runs }
     }
 
-    private data class OverSummary(
+    data class OverSummary(
         val overNum: Int,
         val scoreAtEnd: String,
         val bowlerName: String,
@@ -166,7 +166,7 @@ class TeamOversListFragment : Fragment() {
         val isIncomplete: Boolean = false
     )
 
-    private inner class OversAdapter(private val overs: List<OverSummary>) :
+    inner class OversAdapter(private val overs: List<OverSummary>) :
         RecyclerView.Adapter<OversAdapter.Holder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {

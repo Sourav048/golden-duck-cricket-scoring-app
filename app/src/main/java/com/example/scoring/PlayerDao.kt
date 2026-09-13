@@ -42,6 +42,9 @@ interface PlayerDao {
     @Query("DELETE FROM players")
     fun deleteAllPlayers()
 
+    @Query("DELETE FROM players WHERE gullyId = :gId")
+    fun deleteAllPlayersByGully(gId: String)
+
     @Query("SELECT * FROM players WHERE TRIM(name) = TRIM(:name) AND jerseyNumber = :jersey AND gullyId = :gId COLLATE NOCASE LIMIT 1")
     fun getPlayerByNameAndJersey(name: String?, jersey: String?, gId: String): PlayerEntity?
 

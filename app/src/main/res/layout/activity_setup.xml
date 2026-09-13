@@ -183,7 +183,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Select Ball Type">
 
-                        <AutoCompleteTextView
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
                             android:id="@+id/ballTypeSpinner"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -191,6 +191,7 @@
                             android:padding="16dp"
                             android:dropDownHeight="wrap_content"
                             android:dropDownVerticalOffset="4dp"
+                            android:cursorVisible="false"
                             android:background="@null" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>

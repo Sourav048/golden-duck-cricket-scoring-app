@@ -1,6 +1,7 @@
 package com.example.scoring
 
 import android.content.Context
+import androidx.annotation.Keep
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
@@ -13,6 +14,7 @@ object GullyHistoryManager {
     private const val KEY_GULLIES = "joined_gullies"
     private val gson = Gson()
 
+    @Keep
     data class GullyRecord(val id: String, val passcode: String, val joinedAt: Long)
 
     fun addGully(context: Context, id: String, passcode: String) {

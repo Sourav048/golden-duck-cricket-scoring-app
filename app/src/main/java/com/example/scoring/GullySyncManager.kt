@@ -27,9 +27,9 @@ object GullySyncManager {
     }
 
     /**
-     * Registers a brand new Gully in the Cloud.
+     * Registers a brand-new Gully in the Cloud.
      */
-    fun createGully(id: String, pass: String, callback: SyncCallback) {
+    fun createGully(id: String, pass: String, adminPin: String, callback: SyncCallback) {
         val gullyRef = db.collection("gullies").document(id)
         
         gullyRef.get().addOnSuccessListener { doc ->
@@ -39,11 +39,14 @@ object GullySyncManager {
                 val data = hashMapOf(
                     "id" to id,
                     "passcode" to pass, 
+                    "adminPin" to adminPin,
                     "createdAt" to System.currentTimeMillis(),
                     "memberCount" to 1
                 )
                 gullyRef.set(data).addOnSuccessListener {
-                    LeagueNotificationManager.subscribeToLeague(id)
+                    val gullyPrefs = db.app.applicationContext.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
+                    val myUserId = gullyPrefs.getString("chat_sender_id", null)
+                    LeagueNotificationManager.subscribeToLeague(id, myUserId)
                     callback.onSuccess("League '$id' created successfully!")
                 }.addOnFailureListener { e ->
                     callback.onFailure("Cloud error: ${e.message}")
@@ -56,14 +59,16 @@ object GullySyncManager {
 
     /**
      * Verifies passcode and links phone to an existing Gully.
-     * Uses Source.SERVER to skip potentially slow local cache for instant verification.
+     * Uses Source. SERVER to skip potentially slow local cache for instant verification.
      */
     fun joinGully(id: String, pass: String, callback: SyncCallback) {
         db.collection("gullies").document(id).get(Source.SERVER).addOnSuccessListener { doc ->
             if (doc.exists()) {
                 val cloudPass = doc.getString("passcode")
                 if (cloudPass == pass) {
-                    LeagueNotificationManager.subscribeToLeague(id)
+                    val gullyPrefs = db.app.applicationContext.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
+                    val myUserId = gullyPrefs.getString("chat_sender_id", null)
+                    LeagueNotificationManager.subscribeToLeague(id, myUserId)
                     callback.onSuccess("Joined League '$id'")
                 } else {
                     callback.onFailure("Incorrect Passcode for '$id'")
@@ -84,7 +89,9 @@ object GullySyncManager {
         val appContext = context.applicationContext
         
         // Ensure user is subscribed to this league's notifications
-        LeagueNotificationManager.subscribeToLeague(gullyId)
+        val gullyPrefs = appContext.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
+        val myUserId = gullyPrefs.getString("chat_sender_id", null)
+        LeagueNotificationManager.subscribeToLeague(gullyId, myUserId)
         
         AppDatabase.ioExecutor.execute {
             val localDb = AppDatabase.getInstance(appContext)
@@ -96,8 +103,18 @@ object GullySyncManager {
                     
                     try {
                         val docs = snapshots?.documents ?: return@addSnapshotListener
+                        val cloudPlayerIds = docs.filter { it.exists() }.map { it.id }.toSet()
+
                         AppDatabase.ioExecutor.execute {
                             try {
+                                // RECONCILIATION: Delete local players for this gully missing from cloud snapshot
+                                val localPlayers = localDb.playerDao().getAllPlayersByGully(gullyId) ?: emptyList()
+                                localPlayers.forEach { localP ->
+                                    if (localP != null && !cloudPlayerIds.contains(localP.id)) {
+                                        localDb.playerDao().deletePlayer(localP)
+                                    }
+                                }
+
                                 docs.forEach { doc ->
                                     if (!doc.exists()) return@forEach
                                     val cloudPlayer = doc.toObject(PlayerEntity::class.java)
@@ -133,9 +150,21 @@ object GullySyncManager {
                     if (e != null) return@addSnapshotListener
                     
                     try {
-                        val changes = snapshots?.documentChanges ?: return@addSnapshotListener
+                        val docs = snapshots?.documents ?: emptyList()
+                        val cloudMatchIds = docs.filter { it.exists() }.map { it.id }.toSet()
+                        val changes = snapshots?.documentChanges ?: emptyList()
+
                         AppDatabase.ioExecutor.execute {
                             try {
+                                // RECONCILIATION: Delete local matches and stats for this gully missing from cloud snapshot
+                                val localMatches = localDb.matchDao().getAllMatchesByGully(gullyId) ?: emptyList()
+                                localMatches.forEach { localM ->
+                                    if (localM != null && !cloudMatchIds.contains(localM.id)) {
+                                        localDb.matchDao().deleteMatch(localM)
+                                        localDb.statsDao().deleteStatsByMatch(localM.id)
+                                    }
+                                }
+
                                 changes.forEach { dc ->
                                     val doc = dc.document
                                     if (dc.type == com.google.firebase.firestore.DocumentChange.Type.REMOVED) {
@@ -189,9 +218,20 @@ object GullySyncManager {
                     if (e != null) return@addSnapshotListener
                     
                     try {
-                        val changes = snapshots?.documentChanges ?: return@addSnapshotListener
+                        val docs = snapshots?.documents ?: emptyList()
+                        val cloudDraftIds = docs.filter { it.exists() }.map { it.id }.toSet()
+                        val changes = snapshots?.documentChanges ?: emptyList()
+
                         AppDatabase.ioExecutor.execute {
                             try {
+                                // RECONCILIATION: Delete local drafts for this gully missing from cloud snapshot
+                                val localDrafts = localDb.draftDao().getAllDrafts(gullyId) ?: emptyList()
+                                localDrafts.forEach { localD ->
+                                    if (localD != null && !cloudDraftIds.contains(localD.id)) {
+                                        localDb.draftDao().deleteDraft(localD)
+                                    }
+                                }
+
                                 changes.forEach { dc ->
                                     val doc = dc.document
                                     if (dc.type == com.google.firebase.firestore.DocumentChange.Type.REMOVED) {
@@ -222,33 +262,50 @@ object GullySyncManager {
                     if (e != null) {
                         // This happens if the gully is deleted or permissions changed
                         Log.e(TAG, "Gully access lost: ${e.message}")
-                        handleGullyLost(appContext)
+                        handleGullyLost(appContext, gullyId)
                         return@addSnapshotListener
                     }
                     
                     if (snapshot != null && !snapshot.exists()) {
                         Log.w(TAG, "Gully document was deleted in console.")
-                        handleGullyLost(appContext)
+                        handleGullyLost(appContext, gullyId)
                     }
                 }
         }
     }
 
-    private fun handleGullyLost(context: Context) {
-        val currentId = getCurrentGullyId(context) ?: return
+    private fun handleGullyLost(context: Context, lostId: String? = null) {
+        val currentId = lostId ?: getCurrentGullyId(context) ?: return
         
         stopSync()
-        // 1. Remove from Recent Switchboard automatically
+
+        // 1. Wipe all local DB data for this gully so ghost records never re-upload
+        AppDatabase.ioExecutor.execute {
+            try {
+                val localDb = AppDatabase.getInstance(context)
+                localDb.playerDao().deleteAllPlayersByGully(currentId)
+                localDb.matchDao().deleteAllMatchesByGully(currentId)
+                localDb.statsDao().deleteAllStatsByGully(currentId)
+                localDb.draftDao().deleteAllDraftsByGully(currentId)
+            } catch (ex: Exception) {
+                Log.e(TAG, "Error purging local gully data: ${ex.message}")
+            }
+        }
+
+        // 2. Remove from Recent Switchboard automatically
         LeagueNotificationManager.unsubscribeFromLeague(currentId)
         GullyHistoryManager.removeGully(context, currentId)
         
-        // 2. Revert to Local Mode in Prefs
-        context.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
-            .edit()
-            .remove("current_gully_id")
-            .apply()
+        // 3. Revert to Local Mode in Prefs if it was active
+        val activeGully = getCurrentGullyId(context)
+        if (activeGully.equals(currentId, ignoreCase = true)) {
+            context.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .remove("current_gully_id")
+                .apply()
+        }
             
-        // 3. Notify user on Main Thread
+        // 4. Notify user on Main Thread
         android.os.Handler(android.os.Looper.getMainLooper()).post {
             Toast.makeText(context, "League '$currentId' was deleted. Switched to Local Mode.", Toast.LENGTH_LONG).show()
         }

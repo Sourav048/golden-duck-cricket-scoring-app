@@ -41,7 +41,7 @@ object ChatNotificationHelper {
         return abs("chat_$leagueId".hashCode())
     }
 
-    private fun createNotificationChannels(context: Context) {
+    fun createNotificationChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -102,12 +102,6 @@ object ChatNotificationHelper {
             senderName
         } else {
             senderName
-        }
-
-        // 1. Check if this message was previously swiped away / dismissed by the user. If so, NEVER notify again!
-        if (isMessageDismissed(notifPrefs, msgId, effectiveSenderName, messageContent)) {
-            Log.d("ChatNotif", "Message was previously dismissed by user ($msgId). Ignoring notification forever.")
-            return
         }
 
         val gullyPrefs = context.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
@@ -181,11 +175,14 @@ object ChatNotificationHelper {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
 
+        val flagImmutable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+        val flagMutable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else flagImmutable
+
         val pendingIntent = PendingIntent.getActivity(
             context,
             notifId,
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or flagImmutable
         )
 
         // 1. Build Person objects for MessagingStyle
@@ -229,7 +226,7 @@ object ChatNotificationHelper {
             context,
             notifId,
             replyIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or flagMutable
         )
 
         val replyAction = NotificationCompat.Action.Builder(
@@ -248,7 +245,7 @@ object ChatNotificationHelper {
             context,
             notifId,
             deleteIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or flagImmutable
         )
 
         // 3. Build Individual Child Notification
@@ -326,7 +323,7 @@ object ChatNotificationHelper {
             context,
             SUMMARY_NOTIFICATION_ID,
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
         )
 
         val summaryBuilder = NotificationCompat.Builder(context, CHANNEL_ID_SILENT)

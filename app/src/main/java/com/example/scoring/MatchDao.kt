@@ -57,4 +57,7 @@ interface MatchDao {
 
     @Query("DELETE FROM matches")
     fun deleteAllMatches()
+
+    @Query("DELETE FROM matches WHERE gullyId = :gId")
+    fun deleteAllMatchesByGully(gId: String)
 }

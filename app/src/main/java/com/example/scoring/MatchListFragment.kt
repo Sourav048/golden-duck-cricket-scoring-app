@@ -322,43 +322,54 @@ class MatchListFragment : Fragment() {
 
             holder.itemView.setOnLongClickListener {
                 val c = context ?: return@setOnLongClickListener true
-                val dialog = ThemeManager.createDynamicBuilder(c)
-                    .setTitle("Delete Match")
-                    .setMessage("Do you want to permanently delete this match record?")
-                    .setPositiveButton("Delete") { d, w ->
-                        val act = activity ?: return@setPositiveButton
-                        authenticate(
-                            act,
-                            "Confirm Deletion",
-                            "Provide security to delete match history",
-                            object : AuthCallback {
-                                override fun onSuccess() {
-                                    AppDatabase.ioExecutor.execute {
-                                        val dbDel = getInstance(c)
-                                        val mMatch = dbDel.matchDao().getMatchById(m.id)
-                                        if (mMatch != null) dbDel.matchDao().deleteMatch(mMatch)
-                                        val mDraft = dbDel.draftDao().getDraftById(m.id)
-                                        if (mDraft != null) dbDel.draftDao().deleteDraft(mDraft)
-                                        
-                                        val gId = GullySyncManager.getCurrentGullyId(c)
-                                        if (gId != null) {
-                                            GullySyncManager.deleteMatchFromCloud(gId, m.id)
-                                            GullySyncManager.deleteDraftFromCloud(gId, m.id)
-                                        }
-                                        activity?.runOnUiThread { refresh() }
-                                    }
-                                }
-                                override fun onFailure(error: String?) {
-                                    context?.let {
-                                        Toast.makeText(it, "Failed: $error", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            })
+                val act = activity ?: return@setOnLongClickListener true
+                val gId = GullySyncManager.getCurrentGullyId(c)
+
+                val executeDelete = {
+                    AppDatabase.ioExecutor.execute {
+                        val dbDel = getInstance(c)
+                        val mMatch = dbDel.matchDao().getMatchById(m.id)
+                        if (mMatch != null) dbDel.matchDao().deleteMatch(mMatch)
+                        val mDraft = dbDel.draftDao().getDraftById(m.id)
+                        if (mDraft != null) dbDel.draftDao().deleteDraft(mDraft)
+                        
+                        if (gId != null) {
+                            GullySyncManager.deleteMatchFromCloud(gId, m.id)
+                            GullySyncManager.deleteDraftFromCloud(gId, m.id)
+                        }
+                        activity?.runOnUiThread { refresh() }
                     }
-                    .setNegativeButton("Cancel", null)
-                    .create()
-                dialog.show()
-                ThemeManager.colorizeDialog(dialog)
+                }
+
+                if (gId != null) {
+                    GullyAdminManager.verifyAdminPinAndExecute(act, gId, "Delete Match") {
+                        executeDelete()
+                    }
+                } else {
+                    val dialog = ThemeManager.createDynamicBuilder(c)
+                        .setTitle("Delete Match")
+                        .setMessage("Do you want to permanently delete this match record?")
+                        .setPositiveButton("Delete") { d, w ->
+                            authenticate(
+                                act,
+                                "Confirm Deletion",
+                                "Provide security to delete match history",
+                                object : AuthCallback {
+                                    override fun onSuccess() {
+                                        executeDelete()
+                                    }
+                                    override fun onFailure(error: String?) {
+                                        context?.let {
+                                            Toast.makeText(it, "Failed: $error", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                })
+                        }
+                        .setNegativeButton("Cancel", null)
+                        .create()
+                    dialog.show()
+                    ThemeManager.colorizeDialog(dialog)
+                }
                 true
             }
         }

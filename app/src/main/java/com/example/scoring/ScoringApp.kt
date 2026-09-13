@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
@@ -13,6 +14,7 @@ import com.onesignal.notifications.INotificationClickListener
 import com.onesignal.notifications.INotificationClickEvent
 import com.onesignal.notifications.INotificationLifecycleListener
 import com.onesignal.notifications.INotificationWillDisplayEvent
+import java.util.UUID
 
 class ScoringApp : Application() {
     companion object {
@@ -21,6 +23,21 @@ class ScoringApp : Application() {
         
         // REPLACE THIS with your real OneSignal App ID
         const val ONESIGNAL_APP_ID = "687185da-eba9-45a6-86ff-1ff86a490563"
+    }
+
+    fun getOrCreateUserId(): String {
+        val gullyPrefs = getSharedPreferences("gully_prefs", MODE_PRIVATE)
+        var id = gullyPrefs.getString("chat_sender_id", null)
+        if (id.isNullOrEmpty()) {
+            id = try {
+                Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+                    ?: UUID.randomUUID().toString()
+            } catch (e: Exception) {
+                UUID.randomUUID().toString()
+            }
+            gullyPrefs.edit().putString("chat_sender_id", id).apply()
+        }
+        return id
     }
 
     override fun onCreate() {
@@ -32,17 +49,16 @@ class ScoringApp : Application() {
 
         // OneSignal Initialization
         OneSignal.initWithContext(this, ONESIGNAL_APP_ID)
+        ChatNotificationHelper.createNotificationChannels(this)
 
-        val gullyPrefs = getSharedPreferences("gully_prefs", MODE_PRIVATE)
-        val currentUserId = gullyPrefs.getString("chat_sender_id", null)
-        if (!currentUserId.isNullOrEmpty()) {
-            try {
-                OneSignal.login(currentUserId)
-                OneSignal.User.addTag("user_$currentUserId", "active")
-                OneSignal.User.addTag("user_id", currentUserId)
-            } catch (e: Exception) {
-                Log.e("ScoringApp", "OneSignal login error: ${e.message}")
-            }
+        val currentUserId = getOrCreateUserId()
+        try {
+            OneSignal.login(currentUserId)
+            OneSignal.User.addTag("user_$currentUserId", "active")
+            OneSignal.User.addTag("user_id", currentUserId)
+            Log.d("ScoringApp", "OneSignal logged in user: $currentUserId")
+        } catch (e: Exception) {
+            Log.e("ScoringApp", "OneSignal login error: ${e.message}")
         }
 
         // Handle Notification Clicks
@@ -78,7 +94,8 @@ class ScoringApp : Application() {
         // Handle Foreground Notifications (e.g. when user is on Home screen)
         OneSignal.Notifications.addForegroundLifecycleListener(object : INotificationLifecycleListener {
             override fun onWillDisplay(event: INotificationWillDisplayEvent) {
-                val data = event.notification.additionalData
+                val notification = event.notification
+                val data = notification.additionalData
                 val type = data?.optString("type")
                 val leagueId = data?.optString("leagueId")
                 val senderName = data?.optString("senderName")
@@ -90,6 +107,7 @@ class ScoringApp : Application() {
                 val isPersonalChat = data?.optBoolean("isPersonalChat", false) ?: false
 
                 if (type == "CHAT" && !leagueId.isNullOrEmpty()) {
+                    // Suppress OneSignal's default single card display
                     event.preventDefault()
 
                     val gullyPrefs = getSharedPreferences("gully_prefs", MODE_PRIVATE)
@@ -98,11 +116,12 @@ class ScoringApp : Application() {
                         return
                     }
 
+                    // Build and post MessagingStyle notification
                     ChatNotificationHelper.handleIncomingChatMessage(
                         context = this@ScoringApp,
                         leagueId = leagueId,
                         senderName = senderName ?: "Member",
-                        messageContent = messageText ?: event.notification.body ?: "",
+                        messageContent = messageText ?: notification.body ?: "",
                         replyRecipientId = targetRecipientId,
                         isPersonalChat = isPersonalChat,
                         senderProfilePic = senderProfilePic,

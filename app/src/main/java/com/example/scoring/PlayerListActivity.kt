@@ -174,17 +174,12 @@ class PlayerListActivity : BaseActivity() {
                     if (p1 == null) return@sortWith 1
                     if (p2 == null) return@sortWith -1
 
-                    val p1Ov1 = p1.id == RankingRegistry.topOverallId
-                    val p2Ov1 = p2.id == RankingRegistry.topOverallId
-                    if (p1Ov1 != p2Ov1) return@sortWith if (p1Ov1) -1 else 1
+                    val score1 = getPrestigeScore(p1.id)
+                    val score2 = getPrestigeScore(p2.id)
 
-                    val p1Bat1 = p1.id == RankingRegistry.topBattingId
-                    val p2Bat1 = p2.id == RankingRegistry.topBattingId
-                    if (p1Bat1 != p2Bat1) return@sortWith if (p1Bat1) -1 else 1
-
-                    val p1Bowl1 = p1.id == RankingRegistry.topBowlingId
-                    val p2Bowl1 = p2.id == RankingRegistry.topBowlingId
-                    if (p1Bowl1 != p2Bowl1) return@sortWith if (p1Bowl1) -1 else 1
+                    if (score1 != score2) {
+                        return@sortWith score2.compareTo(score1) // Higher badge score comes first
+                    }
 
                     p1.createdAt.compareTo(p2.createdAt)
                 }
@@ -203,6 +198,31 @@ class PlayerListActivity : BaseActivity() {
                 }
             }
         }
+    }
+
+    private fun getPrestigeScore(playerId: String?): Int {
+        if (playerId.isNullOrEmpty()) return 0
+        var maxScore = 0
+
+        // Tier 1: #1 Leaders (1st Place Badges)
+        if (playerId == RankingRegistry.topOverallId) maxScore = maxOf(maxScore, 100)
+        if (playerId == RankingRegistry.topBattingId) maxScore = maxOf(maxScore, 90)
+        if (playerId == RankingRegistry.topBowlingId) maxScore = maxOf(maxScore, 80)
+
+        // Tier 2: #2 Leaders (2nd Place Badges)
+        val ovIdx = RankingRegistry.top3OverallIds.indexOf(playerId)
+        if (ovIdx == 1) maxScore = maxOf(maxScore, 70)
+        val batIdx = RankingRegistry.top3BattingIds.indexOf(playerId)
+        if (batIdx == 1) maxScore = maxOf(maxScore, 60)
+        val bowlIdx = RankingRegistry.top3BowlingIds.indexOf(playerId)
+        if (bowlIdx == 1) maxScore = maxOf(maxScore, 50)
+
+        // Tier 3: #3 Leaders (3rd Place Badges)
+        if (ovIdx == 2) maxScore = maxOf(maxScore, 40)
+        if (batIdx == 2) maxScore = maxOf(maxScore, 30)
+        if (bowlIdx == 2) maxScore = maxOf(maxScore, 20)
+
+        return maxScore
     }
 
     private fun updateUI(players: MutableList<PlayerEntity?>) {

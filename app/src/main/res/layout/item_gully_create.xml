@@ -17,22 +17,47 @@
             android:id="@+id/etCreateId"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textCapCharacters" />
+            android:inputType="textCapCharacters"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:imeOptions="actionNext" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Set Passcode"
+        android:hint="Set Member Passcode"
         app:passwordToggleEnabled="true"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="16dp"
         app:helperText="Give this to your friends to join">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etCreatePass"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textPassword" />
+            android:inputType="textPassword"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:imeOptions="actionNext" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Set 4-Digit Admin PIN"
+        app:passwordToggleEnabled="true"
+        android:layout_marginBottom="24dp"
+        app:helperText="Kept secret by Admin to protect and delete records">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etCreateAdminPin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberPassword"
+            android:maxLength="4"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:imeOptions="actionDone" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.button.MaterialButton

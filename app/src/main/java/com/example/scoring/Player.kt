@@ -1,5 +1,8 @@
 package com.example.scoring
 
+import androidx.annotation.Keep
+
+@Keep
 class Player {
     var id: String? = null
     var name: String? = null

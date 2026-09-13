@@ -1,5 +1,8 @@
 package com.example.scoring
 
+import androidx.annotation.Keep
+
+@Keep
 class Innings {
     @JvmField
     var battingTeam: String? = null

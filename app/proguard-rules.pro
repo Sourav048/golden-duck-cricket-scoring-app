@@ -1,8 +1,31 @@
-# --- GENERAL ANDROID ---
--keepattributes Signature, *Annotation*, EnclosingMethod, InnerClasses
+# --- GENERAL ANDROID & REFLECTION ATTRIBUTES ---
+-keepattributes Signature, *Annotation*, EnclosingMethod, InnerClasses, SourceFile, LineNumberTable
 -dontwarn android.hardware.biometrics.**
 
-# --- ROOM DATABASE ---
+# --- APP CODE, MODELS, & INNER CLASSES ---
+-keep class com.example.scoring.** { *; }
+-keepclassmembers class com.example.scoring.** { *; }
+-keepclassmembers class com.example.scoring.**$* { *; }
+-keepclassmembers enum com.example.scoring.** { *; }
+
+# --- ENUM VALUES PRESERVATION ---
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# --- GSON & TYPETOKEN REFLECTION ---
+-keep class com.google.gson.** { *; }
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+-keepclassmembers class * extends com.google.gson.reflect.TypeToken { *; }
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# --- ROOM DATABASE & CONVERTERS ---
+-keep class com.example.scoring.Converters { *; }
+-keepclassmembers class com.example.scoring.Converters { *; }
 -keepclassmembers class * extends androidx.room.RoomDatabase {
     <init>(...);
 }
@@ -14,8 +37,14 @@
 -keep class * implements androidx.room.RoomDatabase { *; }
 -keep interface * extends androidx.room.Dao { *; }
 
+# Keep Room Entities and DAOs
+-keep class com.example.scoring.PlayerEntity { *; }
+-keep class com.example.scoring.MatchEntity { *; }
+-keep class com.example.scoring.PlayerMatchStatEntity { *; }
+-keep class com.example.scoring.DraftMatchEntity { *; }
+-keep interface com.example.scoring.*Dao { *; }
+
 # --- DATA MODELS (Gson, Firestore, Room) ---
-# Keep all data classes and their members to prevent R8 from stripping/obfuscating fields used in reflection
 -keep class com.example.scoring.Ball { *; }
 -keep class com.example.scoring.BallType { *; }
 -keep class com.example.scoring.Match { *; }
@@ -26,29 +55,9 @@
 -keep class com.example.scoring.PartnershipEvent { *; }
 -keep class com.example.scoring.BackupManager$BackupBundle { *; }
 
-# Keep Room Entities and DAOs
--keep @androidx.room.Entity class * { *; }
--keep class com.example.scoring.PlayerEntity { *; }
--keep class com.example.scoring.MatchEntity { *; }
--keep class com.example.scoring.PlayerMatchStatEntity { *; }
--keep class com.example.scoring.DraftMatchEntity { *; }
--keep interface com.example.scoring.*Dao { *; }
-
-# General rule for all scoring data classes to ensure zero-arg constructors and fields are preserved
--keepclassmembers class com.example.scoring.** {
-    public <init>();
-    <fields>;
-}
-
-# Keep all classes in the package that are likely models
--keepclassmembers class com.example.scoring.** {
-    @com.google.gson.annotations.SerializedName <fields>;
-}
-
 # --- FIREBASE & GOOGLE ---
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }
--keepattributes SourceFile, LineNumberTable
 
 # --- LOTTIE ---
 -keep class com.airbnb.lottie.** { *; }
@@ -79,3 +88,19 @@
 # --- MPANDROIDCHART ---
 -keep class com.github.mikephil.charting.** { *; }
 -dontwarn com.github.mikephil.charting.**
+
+# --- ONESIGNAL PUSH NOTIFICATIONS ---
+-keep class com.onesignal.** { *; }
+-keep interface com.onesignal.** { *; }
+-dontwarn com.onesignal.**
+
+-keep class com.example.scoring.AppNotificationServiceExtension { *; }
+-keepclassmembers class com.example.scoring.AppNotificationServiceExtension { *; }
+-keep class com.example.scoring.NotificationReplyReceiver { *; }
+-keepclassmembers class com.example.scoring.NotificationReplyReceiver { *; }
+-keep class com.example.scoring.NotificationDismissReceiver { *; }
+-keepclassmembers class com.example.scoring.NotificationDismissReceiver { *; }
+-keep class com.example.scoring.ChatNotificationHelper { *; }
+-keepclassmembers class com.example.scoring.ChatNotificationHelper { *; }
+-keep class com.example.scoring.LeagueNotificationManager { *; }
+-keepclassmembers class com.example.scoring.LeagueNotificationManager { *; }

@@ -651,8 +651,8 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
             }
         }.attach()
 
-        if (isLive) {
-            viewPager?.setCurrentItem(1, false) // open on Live tab
+        pager.post {
+            pager.setCurrentItem(1, false)
         }
     }
 
