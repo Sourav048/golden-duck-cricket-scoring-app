@@ -36,6 +36,18 @@ object ChatNotificationHelper {
     const val GROUP_KEY_LEAGUE_CHAT = "com.example.scoring.LEAGUE_CHAT_GROUP"
     const val SUMMARY_NOTIFICATION_ID = 99991
     const val KEY_TEXT_REPLY = "key_text_reply"
+    const val ACTION_UPDATE_CHAT_BADGE = "com.example.scoring.UPDATE_CHAT_BADGE"
+
+    fun getUnreadMessageCount(context: Context): Int {
+        val notifPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val activeLeagues = getActiveLeagues(notifPrefs)
+        var total = 0
+        for (leagueId in activeLeagues) {
+            val queue = getQueue(notifPrefs, "queue_$leagueId")
+            total += queue.size
+        }
+        return total
+    }
 
     fun getNotificationId(leagueId: String): Int {
         return abs("chat_$leagueId".hashCode())
@@ -54,6 +66,7 @@ object ChatNotificationHelper {
             ).apply {
                 description = "Alerts for new League Chat messages"
                 enableVibration(true)
+                setShowBadge(true)
             }
 
             // 2. Silent Channel (Updates in-place without sound/vibration)
@@ -65,6 +78,7 @@ object ChatNotificationHelper {
                 description = "Silent updates for grouped League Chat messages"
                 setSound(null, null)
                 enableVibration(false)
+                setShowBadge(true)
             }
 
             notificationManager.createNotificationChannel(alertChannel)
@@ -248,11 +262,14 @@ object ChatNotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or flagImmutable
         )
 
+        val totalUnread = getUnreadMessageCount(context)
+
         // 3. Build Individual Child Notification
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_stat_onesignal_default)
             .setColor(0xFF00695C.toInt())
             .setSubText(leagueId)
+            .setNumber(totalUnread)
             .setStyle(messagingStyle)
             .setGroup(GROUP_KEY_LEAGUE_CHAT)
             .setGroupSummary(false)
@@ -272,10 +289,18 @@ object ChatNotificationHelper {
             builder.setDefaults(NotificationCompat.DEFAULT_ALL)
         }
 
-        notificationManager.notify(notifId, builder.build())
+        try {
+            notificationManager.notify(notifId, builder.build())
+        } catch (e: Exception) {
+            Log.e("ChatNotif", "Failed to post child notification: ${e.message}")
+        }
 
         // 4. Update Multi-Chat Group Summary Notification Tray
         updateGroupSummaryNotification(context, notificationManager)
+        try {
+            val intent = Intent(ACTION_UPDATE_CHAT_BADGE).setPackage(context.packageName)
+            context.sendBroadcast(intent)
+        } catch (_: Exception) {}
     }
 
     /**
@@ -326,18 +351,24 @@ object ChatNotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
         )
 
-        val summaryBuilder = NotificationCompat.Builder(context, CHANNEL_ID_SILENT)
+        // Fix 2: Use CHANNEL_ID_ALERT for group summary on Android 14/15/16 so children aren't silenced
+        val summaryBuilder = NotificationCompat.Builder(context, CHANNEL_ID_ALERT)
             .setSmallIcon(R.drawable.ic_stat_onesignal_default)
             .setColor(0xFF00695C.toInt())
             .setContentTitle("League Chats")
             .setContentText("$totalMessageCount new messages from ${activeLeagues.size} chats")
+            .setNumber(totalMessageCount)
             .setStyle(inboxStyle)
             .setGroup(GROUP_KEY_LEAGUE_CHAT)
             .setGroupSummary(true)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
 
-        notificationManager.notify(SUMMARY_NOTIFICATION_ID, summaryBuilder.build())
+        try {
+            notificationManager.notify(SUMMARY_NOTIFICATION_ID, summaryBuilder.build())
+        } catch (e: Exception) {
+            Log.e("ChatNotif", "Failed to post summary notification: ${e.message}")
+        }
     }
 
     fun clearNotificationForLeague(context: Context, leagueId: String) {
@@ -358,6 +389,10 @@ object ChatNotificationHelper {
 
         // Update or cancel group summary notification
         updateGroupSummaryNotification(context, notificationManager)
+        try {
+            val intent = Intent(ACTION_UPDATE_CHAT_BADGE).setPackage(context.packageName)
+            context.sendBroadcast(intent)
+        } catch (_: Exception) {}
     }
 
     private fun isMessageDismissed(prefs: SharedPreferences, msgId: String?, senderName: String, text: String): Boolean {

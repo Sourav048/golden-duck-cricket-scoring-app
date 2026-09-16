@@ -198,47 +198,112 @@
         app:cardBackgroundColor="?attr/colorSurfaceVariant"
         app:strokeWidth="0dp">
 
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="4dp">
+            android:layout_height="wrap_content">
 
-            <ImageButton
-                android:id="@+id/btnAttachMedia"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_camera"
-                app:tint="?attr/colorOnSurfaceVariant"
-                android:contentDescription="Attach Media" />
-
-            <EditText
-                android:id="@+id/etChatMessage"
-                android:layout_width="0dp"
+            <!-- Normal Input Layout -->
+            <LinearLayout
+                android:id="@+id/layoutChatInputBar"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@android:color/transparent"
-                android:hint="Type a message..."
-                android:inputType="textMultiLine|textCapSentences"
-                android:maxLines="4"
-                android:paddingVertical="10dp"
-                android:paddingHorizontal="8dp"
-                android:textColor="?attr/colorOnSurface"
-                android:textColorHint="?attr/colorOnSurfaceVariant"
-                android:textSize="15sp" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp">
 
-            <ImageButton
-                android:id="@+id/btnSendMessage"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_send"
-                app:tint="?attr/colorPrimary"
-                android:contentDescription="Send Message" />
-        </LinearLayout>
+                <ImageButton
+                    android:id="@+id/btnAttachMedia"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_camera"
+                    app:tint="?attr/colorOnSurfaceVariant"
+                    android:contentDescription="Attach Media" />
+
+                <EditText
+                    android:id="@+id/etChatMessage"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:hint="Type a message..."
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:maxLines="4"
+                    android:paddingVertical="10dp"
+                    android:paddingHorizontal="8dp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textColorHint="?attr/colorOnSurfaceVariant"
+                    android:textSize="15sp" />
+
+                <ImageButton
+                    android:id="@+id/btnRecordVoice"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_btn_speak_now"
+                    app:tint="?attr/colorPrimary"
+                    android:contentDescription="Record Voice Note" />
+
+                <ImageButton
+                    android:id="@+id/btnSendMessage"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_send"
+                    app:tint="?attr/colorPrimary"
+                    android:contentDescription="Send Message" />
+            </LinearLayout>
+
+            <!-- Voice Recording Active Overlay Bar -->
+            <LinearLayout
+                android:id="@+id/layoutVoiceRecordingBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp"
+                android:visibility="gone">
+
+                <ImageButton
+                    android:id="@+id/btnCancelVoiceRecord"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_delete"
+                    app:tint="?attr/colorError"
+                    android:contentDescription="Cancel Recording" />
+
+                <ImageView
+                    android:id="@+id/ivVoiceRecordDot"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:layout_marginStart="8dp"
+                    android:src="@android:drawable/presence_online"
+                    app:tint="?attr/colorError" />
+
+                <TextView
+                    android:id="@+id/tvVoiceRecordTimer"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="00:00"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorError" />
+
+                <ImageButton
+                    android:id="@+id/btnSendVoiceRecord"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_send"
+                    app:tint="?attr/colorPrimary"
+                    android:contentDescription="Send Voice Note" />
+            </LinearLayout>
+        </FrameLayout>
     </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>

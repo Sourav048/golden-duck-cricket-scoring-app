@@ -1,7 +1,16 @@
 package com.example.scoring
 
+import android.app.Activity
 import android.app.Dialog
+import android.app.DownloadManager
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.res.ColorStateList
+import android.util.Log
+import android.webkit.MimeTypeMap
+import androidx.core.content.FileProvider
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
@@ -24,6 +33,10 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.media.MediaPlayer
+import android.os.Handler
+import android.os.Looper
+import android.widget.SeekBar
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -44,6 +57,7 @@ import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -92,6 +106,380 @@ class LeagueChatAdapter(
             )
             val hash = abs(key.hashCode())
             return colors[hash % colors.size]
+        }
+
+        private var activeMediaPlayer: MediaPlayer? = null
+        private var activeAudioMsgId: String? = null
+        private var activePlayButton: ImageButton? = null
+        private var activeSeekBar: SeekBar? = null
+        private var activeHandler: Handler? = null
+        private var activeRunnable: Runnable? = null
+
+        fun stopAudioPlayback() {
+            try {
+                activeMediaPlayer?.apply {
+                    if (isPlaying) stop()
+                    release()
+                }
+            } catch (_: Exception) {}
+            activeMediaPlayer = null
+            activeAudioMsgId = null
+            activePlayButton?.setImageResource(R.drawable.ic_play)
+            activeSeekBar?.progress = 0
+            activeRunnable?.let { activeHandler?.removeCallbacks(it) }
+            activePlayButton = null
+            activeSeekBar = null
+            activeHandler = null
+            activeRunnable = null
+        }
+
+        fun formatFileSize(size: Long?): String {
+            if (size == null || size <= 0) return "File"
+            val kb = size / 1024.0
+            val mb = kb / 1024.0
+            return if (mb >= 1.0) {
+                String.format(Locale.US, "%.1f MB", mb)
+            } else if (kb >= 1.0) {
+                String.format(Locale.US, "%.0f KB", kb)
+            } else {
+                "$size B"
+            }
+        }
+
+        fun formatDuration(durationMs: Long?): String {
+            if (durationMs == null || durationMs <= 0) return "0:00"
+            val totalSec = durationMs / 1000
+            val min = totalSec / 60
+            val sec = totalSec % 60
+            return String.format(Locale.US, "%d:%02d", min, sec)
+        }
+
+        fun getMimeTypeFromFileName(fileName: String?): String {
+            if (fileName.isNullOrBlank()) return "*/*"
+            val ext = fileName.substringAfterLast('.', "").lowercase()
+            val mimeFromMap = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+            if (!mimeFromMap.isNullOrBlank()) return mimeFromMap
+
+            return when (ext) {
+                "pdf" -> "application/pdf"
+                "doc" -> "application/msword"
+                "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                "xls" -> "application/vnd.ms-excel"
+                "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                "ppt" -> "application/vnd.ms-powerpoint"
+                "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                "txt" -> "text/plain"
+                "csv" -> "text/csv"
+                "zip" -> "application/zip"
+                "rar" -> "application/x-rar-compressed"
+                "apk" -> "application/vnd.android.package-archive"
+                else -> "*/*"
+            }
+        }
+
+        fun openDocumentUrl(context: Context, url: String, fileName: String? = null) {
+            if (url.isBlank()) return
+            val docName = fileName.takeIf { !it.isNullOrBlank() } ?: "DocumentFile"
+            val isApk = docName.endsWith(".apk", ignoreCase = true) || url.contains(".apk", ignoreCase = true)
+
+            val activity = context as? Activity
+            if (activity != null) {
+                if (isApk) {
+                    downloadAndInstallApk(activity, url, docName)
+                } else {
+                    downloadAndOpenDocument(activity, url, docName)
+                }
+            } else {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Cannot open link: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        private fun downloadAndOpenDocument(activity: Activity, downloadUrl: String, fileName: String) {
+            try {
+                val mimeType = getMimeTypeFromFileName(fileName)
+                val cacheDir = activity.externalCacheDir ?: activity.cacheDir
+                val docDir = File(cacheDir, "chat_documents")
+                if (!docDir.exists()) docDir.mkdirs()
+
+                val destinationFile = File(docDir, fileName)
+
+                if (destinationFile.exists() && destinationFile.length() > 0) {
+                    openLocalDocumentFile(activity, destinationFile, mimeType)
+                    return
+                }
+
+                val downloadManager = activity.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                val request = DownloadManager.Request(Uri.parse(downloadUrl)).apply {
+                    setTitle("Downloading $fileName")
+                    setDescription("Preparing document...")
+                    setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    setDestinationUri(Uri.fromFile(destinationFile))
+                    if (mimeType != "*/*") {
+                        setMimeType(mimeType)
+                    }
+                }
+
+                val downloadId = downloadManager.enqueue(request)
+
+                val progressBar = ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
+                    isIndeterminate = false
+                    max = 100
+                    progress = 0
+                }
+
+                val tvProgress = TextView(activity).apply {
+                    text = "Opening document..."
+                    setPadding(0, 16, 0, 0)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                }
+
+                val layout = LinearLayout(activity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(48, 32, 48, 16)
+                    addView(progressBar)
+                    addView(tvProgress)
+                }
+
+                val progressDialog = MaterialAlertDialogBuilder(activity)
+                    .setTitle("Downloading $fileName")
+                    .setView(layout)
+                    .setCancelable(false)
+                    .show()
+
+                val handler = Handler(Looper.getMainLooper())
+                var isDownloading = true
+
+                val progressRunnable = object : Runnable {
+                    override fun run() {
+                        if (!isDownloading) return
+                        val query = DownloadManager.Query().setFilterById(downloadId)
+                        val cursor = downloadManager.query(query)
+                        if (cursor != null && cursor.moveToFirst()) {
+                            val bytesDownloadedIdx = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                            val bytesTotalIdx = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                            val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+
+                            if (bytesDownloadedIdx != -1 && bytesTotalIdx != -1) {
+                                val downloaded = cursor.getLong(bytesDownloadedIdx)
+                                val total = cursor.getLong(bytesTotalIdx)
+                                val status = if (statusIdx != -1) cursor.getInt(statusIdx) else 0
+
+                                if (total > 0) {
+                                    val percent = ((downloaded * 100) / total).toInt()
+                                    val downloadedMb = String.format(Locale.US, "%.1f", downloaded / (1024f * 1024f))
+                                    val totalMb = String.format(Locale.US, "%.1f", total / (1024f * 1024f))
+
+                                    progressBar.progress = percent
+                                    tvProgress.text = "Downloaded $percent% ($downloadedMb MB / $totalMb MB)"
+                                }
+
+                                if (status == DownloadManager.STATUS_SUCCESSFUL || status == DownloadManager.STATUS_FAILED) {
+                                    isDownloading = false
+                                    try { progressDialog.dismiss() } catch (_: Exception) {}
+                                    cursor.close()
+
+                                    if (status == DownloadManager.STATUS_SUCCESSFUL && destinationFile.exists()) {
+                                        openLocalDocumentFile(activity, destinationFile, mimeType)
+                                    } else if (status == DownloadManager.STATUS_FAILED) {
+                                        Toast.makeText(activity, "Failed to download document.", Toast.LENGTH_SHORT).show()
+                                    }
+                                    return
+                                }
+                            }
+                            cursor.close()
+                        }
+                        if (isDownloading) {
+                            handler.postDelayed(this, 300)
+                        }
+                    }
+                }
+
+                handler.post(progressRunnable)
+            } catch (e: Exception) {
+                Log.e("LeagueChatAdapter", "Error opening document", e)
+                Toast.makeText(activity, "Error opening document: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        private fun openLocalDocumentFile(activity: Activity, file: File, mimeType: String) {
+            try {
+                val authority = "${activity.packageName}.fileprovider"
+                val fileUri = FileProvider.getUriForFile(activity.applicationContext, authority, file)
+
+                val openIntent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(fileUri, mimeType)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
+                }
+
+                // Grant read URI permission to potential handling packages
+                val resInfoList = try {
+                    activity.packageManager.queryIntentActivities(openIntent, PackageManager.MATCH_DEFAULT_ONLY)
+                } catch (_: Exception) {
+                    emptyList()
+                }
+
+                for (resolveInfo in resInfoList) {
+                    val packageName = resolveInfo.activityInfo.packageName
+                    try {
+                        activity.grantUriPermission(
+                            packageName,
+                            fileUri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    } catch (_: Exception) {}
+                }
+
+                val chooser = Intent.createChooser(openIntent, "Open with").apply {
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                activity.startActivity(chooser)
+            } catch (e: ActivityNotFoundException) {
+                Toast.makeText(activity, "No supported app installed on device to open ${file.name}.", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Log.e("LeagueChatAdapter", "Error launching document chooser", e)
+                Toast.makeText(activity, "Cannot open file: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        private fun downloadAndInstallApk(activity: Activity, downloadUrl: String, fileName: String) {
+            try {
+                val cleanName = if (fileName.endsWith(".apk", ignoreCase = true)) fileName else "$fileName.apk"
+                val cacheDir = activity.externalCacheDir ?: activity.cacheDir
+                val destinationFile = File(cacheDir, cleanName)
+
+                if (destinationFile.exists()) {
+                    destinationFile.delete()
+                }
+
+                val downloadManager = activity.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                val request = DownloadManager.Request(Uri.parse(downloadUrl)).apply {
+                    setTitle("Downloading $cleanName")
+                    setDescription("Preparing APK for installation...")
+                    setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    setDestinationUri(Uri.fromFile(destinationFile))
+                    setMimeType("application/vnd.android.package-archive")
+                }
+
+                val downloadId = downloadManager.enqueue(request)
+
+                val progressBar = ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
+                    isIndeterminate = false
+                    max = 100
+                    progress = 0
+                }
+
+                val tvProgress = TextView(activity).apply {
+                    text = "Starting download..."
+                    setPadding(0, 16, 0, 0)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                }
+
+                val layout = LinearLayout(activity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(48, 32, 48, 16)
+                    addView(progressBar)
+                    addView(tvProgress)
+                }
+
+                val progressDialog = MaterialAlertDialogBuilder(activity)
+                    .setTitle("Downloading $cleanName")
+                    .setView(layout)
+                    .setCancelable(false)
+                    .show()
+
+                val handler = Handler(Looper.getMainLooper())
+                var isDownloading = true
+
+                val progressRunnable = object : Runnable {
+                    override fun run() {
+                        if (!isDownloading) return
+                        val query = DownloadManager.Query().setFilterById(downloadId)
+                        val cursor = downloadManager.query(query)
+                        if (cursor != null && cursor.moveToFirst()) {
+                            val bytesDownloadedIdx = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                            val bytesTotalIdx = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                            val statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+
+                            if (bytesDownloadedIdx != -1 && bytesTotalIdx != -1) {
+                                val downloaded = cursor.getLong(bytesDownloadedIdx)
+                                val total = cursor.getLong(bytesTotalIdx)
+                                val status = if (statusIdx != -1) cursor.getInt(statusIdx) else 0
+
+                                if (total > 0) {
+                                    val percent = ((downloaded * 100) / total).toInt()
+                                    val downloadedMb = String.format(Locale.US, "%.1f", downloaded / (1024f * 1024f))
+                                    val totalMb = String.format(Locale.US, "%.1f", total / (1024f * 1024f))
+
+                                    progressBar.progress = percent
+                                    tvProgress.text = "Downloaded $percent% ($downloadedMb MB / $totalMb MB)"
+                                }
+
+                                if (status == DownloadManager.STATUS_SUCCESSFUL || status == DownloadManager.STATUS_FAILED) {
+                                    isDownloading = false
+                                    try { progressDialog.dismiss() } catch (_: Exception) {}
+                                    cursor.close()
+
+                                    if (status == DownloadManager.STATUS_SUCCESSFUL && destinationFile.exists()) {
+                                        installApk(activity, destinationFile)
+                                    } else if (status == DownloadManager.STATUS_FAILED) {
+                                        Toast.makeText(activity, "APK download failed.", Toast.LENGTH_SHORT).show()
+                                    }
+                                    return
+                                }
+                            }
+                            cursor.close()
+                        }
+                        if (isDownloading) {
+                            handler.postDelayed(this, 300)
+                        }
+                    }
+                }
+
+                handler.post(progressRunnable)
+            } catch (e: Exception) {
+                Log.e("LeagueChatAdapter", "Error initiating APK download", e)
+                Toast.makeText(activity, "Failed to start APK download: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        private fun installApk(activity: Activity, apkFile: File) {
+            try {
+                val authority = "${activity.packageName}.fileprovider"
+                val apkUri = FileProvider.getUriForFile(activity.applicationContext, authority, apkFile)
+
+                val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(apkUri, "application/vnd.android.package-archive")
+                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                            Intent.FLAG_GRANT_PREFIX_URI_PERMISSION or
+                            Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+
+                val resInfoList = activity.packageManager.queryIntentActivities(
+                    installIntent,
+                    PackageManager.MATCH_DEFAULT_ONLY
+                )
+                for (resolveInfo in resInfoList) {
+                    val packageName = resolveInfo.activityInfo.packageName
+                    activity.grantUriPermission(
+                        packageName,
+                        apkUri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                }
+
+                activity.startActivity(installIntent)
+            } catch (e: Exception) {
+                Log.e("LeagueChatAdapter", "Error launching APK installer", e)
+                Toast.makeText(activity, "Failed to launch installer: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
 
         fun createColoredCircleDrawable(colorInt: Int): GradientDrawable {
@@ -412,6 +800,15 @@ class LeagueChatAdapter(
         private val ivSentPlayOverlay: ImageView = itemView.findViewById(R.id.ivSentPlayOverlay)
         private val pbSentMediaLoading: ProgressBar = itemView.findViewById(R.id.pbSentMediaLoading)
 
+        // Sent Document & Audio views
+        private val layoutSentDocument: View? = itemView.findViewById(R.id.layoutSentDocument)
+        private val tvSentDocName: TextView? = itemView.findViewById(R.id.tvSentDocName)
+        private val tvSentDocSize: TextView? = itemView.findViewById(R.id.tvSentDocSize)
+        private val layoutSentAudio: View? = itemView.findViewById(R.id.layoutSentAudio)
+        private val btnPlaySentAudio: ImageButton? = itemView.findViewById(R.id.btnPlaySentAudio)
+        private val sbSentAudioProgress: SeekBar? = itemView.findViewById(R.id.sbSentAudioProgress)
+        private val tvSentAudioDuration: TextView? = itemView.findViewById(R.id.tvSentAudioDuration)
+
         // Received views
         private val layoutReceived: LinearLayout = itemView.findViewById(R.id.layoutReceivedMessage)
         private val containerReceivedContent: LinearLayout = itemView.findViewById(R.id.containerReceivedContent)
@@ -424,6 +821,15 @@ class LeagueChatAdapter(
         private val pbReceivedMediaLoading: ProgressBar = itemView.findViewById(R.id.pbReceivedMediaLoading)
         private val ivReceivedAvatar: ImageView? = itemView.findViewById(R.id.ivReceivedAvatar)
         private val tvReceivedAvatarPlaceholder: TextView? = itemView.findViewById(R.id.tvReceivedAvatarPlaceholder)
+
+        // Received Document & Audio views
+        private val layoutReceivedDocument: View? = itemView.findViewById(R.id.layoutReceivedDocument)
+        private val tvReceivedDocName: TextView? = itemView.findViewById(R.id.tvReceivedDocName)
+        private val tvReceivedDocSize: TextView? = itemView.findViewById(R.id.tvReceivedDocSize)
+        private val layoutReceivedAudio: View? = itemView.findViewById(R.id.layoutReceivedAudio)
+        private val btnPlayReceivedAudio: ImageButton? = itemView.findViewById(R.id.btnPlayReceivedAudio)
+        private val sbReceivedAudioProgress: SeekBar? = itemView.findViewById(R.id.sbReceivedAudioProgress)
+        private val tvReceivedAudioDuration: TextView? = itemView.findViewById(R.id.tvReceivedAudioDuration)
 
         // Quoted Reply views
         private val layoutSentReply: LinearLayout = itemView.findViewById(R.id.layoutSentReply)
@@ -709,8 +1115,117 @@ class LeagueChatAdapter(
                 tvText.movementMethod = null
             }
 
-            // Handle Media (Image, GIF, Video)
-            if (!effectiveMediaUrl.isNullOrEmpty()) {
+            // Handle Document, Audio, and Image/Video Media
+            val layoutDoc = if (isSent) layoutSentDocument else layoutReceivedDocument
+            val tvDocName = if (isSent) tvSentDocName else tvReceivedDocName
+            val tvDocSize = if (isSent) tvSentDocSize else tvReceivedDocSize
+
+            val layoutAudio = if (isSent) layoutSentAudio else layoutReceivedAudio
+            val btnPlayAudio = if (isSent) btnPlaySentAudio else btnPlayReceivedAudio
+            val sbAudioProgress = if (isSent) sbSentAudioProgress else sbReceivedAudioProgress
+            val tvAudioDuration = if (isSent) tvSentAudioDuration else tvReceivedAudioDuration
+
+            frameMedia.visibility = View.GONE
+            layoutDoc?.visibility = View.GONE
+            layoutAudio?.visibility = View.GONE
+
+            if (item.type == "DOCUMENT") {
+                layoutDoc?.visibility = View.VISIBLE
+                tvDocName?.text = item.fileName ?: "Document"
+                tvDocSize?.text = formatFileSize(item.fileSize)
+                layoutDoc?.setOnClickListener {
+                    openDocumentUrl(context, item.mediaUrl.orEmpty(), item.fileName)
+                }
+                layoutDoc?.setOnLongClickListener(onLongClick)
+            } else if (item.type == "AUDIO") {
+                layoutAudio?.visibility = View.VISIBLE
+                tvAudioDuration?.text = formatDuration(item.durationMs)
+                layoutAudio?.setOnLongClickListener(onLongClick)
+
+                val audioColor = ContextCompat.getColor(context, if (isSent) R.color.sent_bubble_text else R.color.received_bubble_text)
+                val audioTint = ColorStateList.valueOf(audioColor)
+
+                if (activeAudioMsgId == item.id && activeMediaPlayer?.isPlaying == true) {
+                    btnPlayAudio?.setImageResource(R.drawable.ic_pause)
+                } else {
+                    btnPlayAudio?.setImageResource(R.drawable.ic_play)
+                }
+                btnPlayAudio?.imageTintList = audioTint
+
+                btnPlayAudio?.setOnClickListener {
+                    val audioUrl = item.mediaUrl
+                    if (audioUrl.isNullOrEmpty()) {
+                        Toast.makeText(context, "Audio file unavailable.", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+
+                    if (activeAudioMsgId == item.id) {
+                        val player = activeMediaPlayer
+                        if (player != null && player.isPlaying) {
+                            player.pause()
+                            btnPlayAudio?.setImageResource(R.drawable.ic_play)
+                            btnPlayAudio?.imageTintList = audioTint
+                        } else if (player != null) {
+                            player.start()
+                            btnPlayAudio?.setImageResource(R.drawable.ic_pause)
+                            btnPlayAudio?.imageTintList = audioTint
+                        }
+                    } else {
+                        stopAudioPlayback()
+                        try {
+                            val player = MediaPlayer().apply {
+                                setDataSource(context, Uri.parse(audioUrl))
+                                prepareAsync()
+                            }
+                            activeMediaPlayer = player
+                            activeAudioMsgId = item.id
+                            activePlayButton = btnPlayAudio
+                            activeSeekBar = sbAudioProgress
+
+                            val handler = Handler(Looper.getMainLooper())
+                            activeHandler = handler
+
+                            player.setOnPreparedListener { mp ->
+                                mp.start()
+                                btnPlayAudio?.setImageResource(R.drawable.ic_pause)
+                                btnPlayAudio?.imageTintList = audioTint
+                                sbAudioProgress?.max = mp.duration
+
+                                val runnable = object : Runnable {
+                                    override fun run() {
+                                        if (activeMediaPlayer == mp && mp.isPlaying) {
+                                            sbAudioProgress?.progress = mp.currentPosition
+                                            handler.postDelayed(this, 200)
+                                        }
+                                    }
+                                }
+                                activeRunnable = runnable
+                                handler.post(runnable)
+                            }
+
+                            player.setOnCompletionListener {
+                                btnPlayAudio?.setImageResource(R.drawable.ic_play)
+                                btnPlayAudio?.imageTintList = audioTint
+                                sbAudioProgress?.progress = 0
+                                stopAudioPlayback()
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Cannot play audio: ${e.message}", Toast.LENGTH_SHORT).show()
+                            stopAudioPlayback()
+                        }
+                    }
+                }
+
+                sbAudioProgress?.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                        if (fromUser && activeAudioMsgId == item.id && activeMediaPlayer != null) {
+                            activeMediaPlayer?.seekTo(progress)
+                        }
+                    }
+                    override fun onStartTrackingTouch(sb: SeekBar?) {}
+                    override fun onStopTrackingTouch(sb: SeekBar?) {}
+                })
+            } else if (!effectiveMediaUrl.isNullOrEmpty()) {
                 frameMedia.visibility = View.VISIBLE
                 ivPlayOverlay.visibility = if (isVideo) View.VISIBLE else View.GONE
 

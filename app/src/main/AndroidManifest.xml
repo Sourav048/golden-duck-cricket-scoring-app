@@ -5,6 +5,10 @@
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="*/*" />
+        </intent>
     </queries>
 
     <!-- CRITICAL: Internet permission for Firebase -->
@@ -16,6 +20,7 @@
 
     <!-- Camera permission for taking a player photo in-app -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Permission to trigger APK installation from inside the app -->

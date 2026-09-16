@@ -1,8 +1,12 @@
 package com.example.scoring
 
+import android.content.BroadcastReceiver
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.SharedPreferences
+import android.graphics.Color
 import android.net.Uri
 import android.util.Log
 import android.os.Build
@@ -25,6 +29,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.text.HtmlCompat
@@ -63,6 +68,8 @@ class HomeActivity : BaseActivity() {
         }
 
         findViewById<View>(R.id.btnHomeMenu).setOnClickListener { v -> showHomeMenu(v) }
+
+        findViewById<View>(R.id.btnHomeLeagueChat)?.setOnClickListener { openLeagueChat() }
 
         findViewById<View>(R.id.cardHistory).setOnClickListener {
             startActivity(Intent(this, MatchHistoryActivity::class.java))
@@ -166,9 +173,63 @@ class HomeActivity : BaseActivity() {
         }
     }
 
+    private val chatBadgeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            runOnUiThread {
+                updateLeagueChatBadge()
+            }
+        }
+    }
+
+    private val notifPrefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key != null && (key.startsWith("queue_") || key == "active_leagues")) {
+            runOnUiThread {
+                updateLeagueChatBadge()
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         updateGullyStatusUI()
+        updateLeagueChatBadge()
+        try {
+            ContextCompat.registerReceiver(
+                this,
+                chatBadgeReceiver,
+                IntentFilter(ChatNotificationHelper.ACTION_UPDATE_CHAT_BADGE),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        } catch (_: Exception) {}
+
+        try {
+            val prefs = getSharedPreferences("chat_notif_prefs", MODE_PRIVATE)
+            prefs.registerOnSharedPreferenceChangeListener(notifPrefListener)
+        } catch (_: Exception) {}
+    }
+
+    override fun onPause() {
+        super.onPause()
+        try {
+            unregisterReceiver(chatBadgeReceiver)
+        } catch (_: Exception) {}
+
+        try {
+            val prefs = getSharedPreferences("chat_notif_prefs", MODE_PRIVATE)
+            prefs.unregisterOnSharedPreferenceChangeListener(notifPrefListener)
+        } catch (_: Exception) {}
+    }
+
+    private fun updateLeagueChatBadge() {
+        val tvBadge = findViewById<TextView>(R.id.tvLeagueChatBadge) ?: return
+        val count = ChatNotificationHelper.getUnreadMessageCount(this)
+        if (count > 0) {
+            tvBadge.text = if (count > 99) "99+" else count.toString()
+            tvBadge.setTextColor(Color.WHITE)
+            tvBadge.visibility = View.VISIBLE
+        } else {
+            tvBadge.visibility = View.GONE
+        }
     }
 
     private fun updateGullyStatusUI() {
@@ -352,7 +413,6 @@ class HomeActivity : BaseActivity() {
 
     private fun showHomeMenu(v: View?) {
         val popup = PopupMenu(this, v)
-        popup.menu.add("Chat Within League")
         popup.menu.add("Export Records")
         popup.menu.add("Import Records")
         popup.menu.add("Delete Records")
@@ -361,7 +421,6 @@ class HomeActivity : BaseActivity() {
 
         popup.setOnMenuItemClickListener { item ->
             when (item.title.toString()) {
-                "Chat Within League" -> openLeagueChat()
                 "ReadMe(Manual)" -> showReadMeDialog()
                 "Dark/Light Mode" -> showThemeSettings()
                 "Export Records" -> checkSecurityAndLaunchExport()

@@ -247,7 +247,7 @@ object ThemeManager {
                 if (v.id == R.id.tvPlayerListTitle || v.id == R.id.tvFinalResultBanner || v.id == R.id.tvMatchConfigTitle) {
                     if (forceContrast) v.setTextColor(contrast) else v.setTextColor(seed)
                 } else if (v.id == R.id.tvDetailNameDisplay || v.id == R.id.tvDetailJerseyDisplay ||
-                    v.id == R.id.tvRankOverall || v.id == R.id.tvRankBatting || v.id == R.id.tvRankBowling) {
+                    v.id == R.id.tvRankOverall || v.id == R.id.tvRankBatting || v.id == R.id.tvRankBowling || v.id == R.id.tvPotmTotal) {
                     // Force contrast for details header, unless it's a prestige color
                     if (!isPrestige) v.setTextColor(contrast)
                 } else if (forceContrast) {

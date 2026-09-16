@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.onesignal.notifications.INotificationReceivedEvent
 import com.onesignal.notifications.INotificationServiceExtension
+import java.util.concurrent.Executors
 
 /**
  * OneSignal 5.x Service Extension that intercepts incoming notification payloads
@@ -39,18 +40,24 @@ class AppNotificationServiceExtension : INotificationServiceExtension {
                 return
             }
 
-            // Build WhatsApp-style MessagingStyle notification and group tray
-            ChatNotificationHelper.handleIncomingChatMessage(
-                context = event.context,
-                leagueId = leagueId,
-                senderName = senderName ?: "Member",
-                messageContent = messageText ?: notification.body ?: "",
-                replyRecipientId = targetRecipientId,
-                isPersonalChat = isPersonalChat,
-                senderProfilePic = senderProfilePic,
-                senderId = senderId,
-                msgId = msgId
-            )
+            // Build MessagingStyle notification and group tray asynchronously on background thread
+            Executors.newSingleThreadExecutor().execute {
+                try {
+                    ChatNotificationHelper.handleIncomingChatMessage(
+                        context = event.context,
+                        leagueId = leagueId,
+                        senderName = senderName ?: "Member",
+                        messageContent = messageText ?: notification.body ?: "",
+                        replyRecipientId = targetRecipientId,
+                        isPersonalChat = isPersonalChat,
+                        senderProfilePic = senderProfilePic,
+                        senderId = senderId,
+                        msgId = msgId
+                    )
+                } catch (e: Throwable) {
+                    Log.e("NotifExtension", "Error handling background chat notification: ${e.message}", e)
+                }
+            }
         }
     }
 }

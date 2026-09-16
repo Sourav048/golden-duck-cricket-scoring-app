@@ -96,6 +96,9 @@
 
 -keep class com.example.scoring.AppNotificationServiceExtension { *; }
 -keepclassmembers class com.example.scoring.AppNotificationServiceExtension { *; }
+-keep class * implements com.onesignal.notifications.INotificationServiceExtension { *; }
+-keep class * implements com.onesignal.notifications.INotificationLifecycleListener { *; }
+-keep class * implements com.onesignal.notifications.INotificationClickListener { *; }
 -keep class com.example.scoring.NotificationReplyReceiver { *; }
 -keepclassmembers class com.example.scoring.NotificationReplyReceiver { *; }
 -keep class com.example.scoring.NotificationDismissReceiver { *; }

@@ -1,16 +1,16 @@
 {
   "fields": {
     "latest_version_code": {
-      "integerValue": "7"
+      "integerValue": "8"
     },
     "version_name": {
-      "stringValue": "5.1"
+      "stringValue": "5.2"
     },
     "download_url": {
-      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v5.1.apk"
+      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v5.2.apk"
     },
     "release_notes": {
-      "stringValue": "• In-app update system\n• Performance optimizations and bug fixes"
+      "stringValue": "• In-app auto-update system\n• Admin PIN protection for deleting records\n• Performance optimizations and bug fixes"
     },
     "force_update": {
       "booleanValue": false

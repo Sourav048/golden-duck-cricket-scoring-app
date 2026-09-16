@@ -11,6 +11,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 
 class MatchHistoryActivity : BaseActivity() {
     private var viewPager: ViewPager2? = null
+    private var initialTabSet = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,9 +35,43 @@ class MatchHistoryActivity : BaseActivity() {
             TabLayoutMediator(tabLayout, pager) { tab, position ->
                 tab.text = titles[position]
             }.attach()
+
+            setupDefaultTabSelection()
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Match History initialization error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun setupDefaultTabSelection() {
+        val prefs = getSharedPreferences("match_history_prefs", MODE_PRIVATE)
+        val preferredTab = prefs.getInt("preferred_tab", -1)
+        if (preferredTab != -1) {
+            initialTabSet = true
+            viewPager?.post {
+                viewPager?.setCurrentItem(preferredTab, false)
+            }
+            prefs.edit().remove("preferred_tab").apply()
+            return
+        }
+
+        val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
+        val db = AppDatabase.getInstance(this)
+
+        db.matchDao().getMatchesByStatusByGullyLive(false, false, gId).observe(this) { liveList ->
+            if (!initialTabSet) {
+                initialTabSet = true
+                val now = System.currentTimeMillis()
+                val hasLiveMatch = liveList?.filterNotNull()?.any { m ->
+                    val diff = now - m.lastScorerPulse
+                    m.isLive && diff in -60000..120000
+                } == true
+
+                val defaultTab = if (hasLiveMatch) 0 else 1
+                viewPager?.post {
+                    viewPager?.setCurrentItem(defaultTab, false)
+                }
+            }
         }
     }
 

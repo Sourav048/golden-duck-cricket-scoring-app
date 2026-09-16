@@ -1,17 +1,24 @@
 package com.example.scoring
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
 import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
-import com.example.scoring.ThemeManager
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.scoring.AppDatabase.Companion.getInstance
@@ -20,15 +27,30 @@ import com.example.scoring.SecurityUtils.AuthCallback
 import com.example.scoring.SecurityUtils.authenticate
 import com.facebook.shimmer.ShimmerFrameLayout
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import androidx.lifecycle.ViewModelProvider
 
 class MatchListFragment : Fragment() {
     private var filterType = 0 // 0: Live, 1: Completed, 2: In-Progress, 3: Abandoned
     private var recyclerView: RecyclerView? = null
     private var matchAdapter: MatchHistoryAdapter? = null
     private lateinit var viewModel: MatchListViewModel
+
+    // Fast Scroller Views
+    private var viewTrack: View? = null
+    private var cardHandle: View? = null
+    private var viewTouchArea: View? = null
+    private var cardBubble: View? = null
+    private var tvBubbleText: TextView? = null
+
+    private val fastScrollHandler = Handler(Looper.getMainLooper())
+    private var fadeRunnable: Runnable? = null
+
+    sealed class MatchListItem {
+        data class Header(val dateTitle: String) : MatchListItem()
+        data class Match(val match: MatchEntity, val matchNumber: Int) : MatchListItem()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +72,8 @@ class MatchListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
+        setupFastScroller(view)
+
         viewModel = ViewModelProvider(this)[MatchListViewModel::class.java]
         
         val gId = GullySyncManager.getCurrentGullyId(requireContext()) ?: "local"
@@ -60,13 +84,119 @@ class MatchListFragment : Fragment() {
         }
     }
 
+    private fun setupFastScroller(v: View) {
+        viewTrack = v.findViewById(R.id.viewFastScrollTrack)
+        cardHandle = v.findViewById(R.id.cardFastScrollHandle)
+        viewTouchArea = v.findViewById(R.id.viewFastScrollTouchArea)
+        cardBubble = v.findViewById(R.id.cardFastScrollBubble)
+        tvBubbleText = v.findViewById(R.id.tvFastScrollBubbleText)
+        val rv = recyclerView ?: return
+
+        fadeRunnable = Runnable {
+            cardBubble?.animate()?.alpha(0f)?.setDuration(250)?.withEndAction {
+                cardBubble?.visibility = View.GONE
+                cardBubble?.alpha = 1f
+            }?.start()
+        }
+
+        rv.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                updateFastScrollerPosition()
+            }
+        })
+
+        viewTouchArea?.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                    fadeRunnable?.let { fastScrollHandler.removeCallbacks(it) }
+                    cardBubble?.animate()?.cancel()
+                    cardBubble?.visibility = View.VISIBLE
+                    cardBubble?.alpha = 1f
+
+                    val rvHeight = rv.height.toFloat()
+                    if (rvHeight > 0) {
+                        val touchY = event.y.coerceIn(0f, rvHeight)
+                        val progress = (touchY / rvHeight).coerceIn(0f, 1f)
+                        val count = matchAdapter?.itemCount ?: 0
+                        if (count > 0) {
+                            val targetPos = (progress * (count - 1)).toInt().coerceIn(0, count - 1)
+                            (rv.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(targetPos, 0)
+
+                            val dateTitle = matchAdapter?.getDateTitleForPosition(targetPos)
+                            if (!dateTitle.isNullOrEmpty()) {
+                                tvBubbleText?.text = dateTitle
+                            }
+                        }
+
+                        val topMargin = 16f * resources.displayMetrics.density
+                        val bottomMargin = 16f * resources.displayMetrics.density
+                        val handleHeight = cardHandle?.height?.toFloat() ?: 0f
+                        val availableHeight = (rvHeight - topMargin - bottomMargin - handleHeight).coerceAtLeast(1f)
+                        val handleY = topMargin + (progress * availableHeight)
+                        cardHandle?.translationY = handleY
+                        cardBubble?.translationY = handleY
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    v.performClick()
+                    fadeRunnable?.let { fastScrollHandler.postDelayed(it, 1000) }
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun updateFastScrollerPosition() {
+        val count = matchAdapter?.itemCount ?: 0
+        val rv = recyclerView ?: return
+        if (count < 4) {
+            viewTrack?.visibility = View.GONE
+            cardHandle?.visibility = View.GONE
+            viewTouchArea?.visibility = View.GONE
+            cardBubble?.visibility = View.GONE
+            return
+        }
+
+        viewTrack?.visibility = View.VISIBLE
+        cardHandle?.visibility = View.VISIBLE
+        viewTouchArea?.visibility = View.VISIBLE
+
+        val lm = rv.layoutManager as? LinearLayoutManager ?: return
+        val firstVisible = lm.findFirstVisibleItemPosition()
+        if (firstVisible < 0) return
+
+        val rvHeight = rv.height.toFloat()
+        if (rvHeight <= 0) return
+
+        val progress = firstVisible.toFloat() / (count - 1).coerceAtLeast(1).toFloat()
+        val topMargin = 16f * resources.displayMetrics.density
+        val bottomMargin = 16f * resources.displayMetrics.density
+        val handleHeight = cardHandle?.height?.toFloat() ?: 0f
+        val availableHeight = (rvHeight - topMargin - bottomMargin - handleHeight).coerceAtLeast(1f)
+        val handleY = topMargin + (progress * availableHeight)
+
+        cardHandle?.translationY = handleY
+        cardBubble?.translationY = handleY
+
+        val dateTitle = matchAdapter?.getDateTitleForPosition(firstVisible)
+        if (!dateTitle.isNullOrEmpty()) {
+            tvBubbleText?.text = dateTitle
+        }
+    }
+
+    private fun getMatchTime(m: MatchEntity): Long {
+        return if (m.firstInningsStartTime > 0) m.firstInningsStartTime else m.playedAt
+    }
+
     private fun updateUI(finalMatches: List<MatchEntity>?) {
         try {
             if (finalMatches == null) return
             val v = view ?: return
             val sortedMatches = finalMatches.sortedWith { m1, m2 ->
-                val t1 = if (m1.playedAt > 0) m1.playedAt else m1.firstInningsStartTime
-                val t2 = if (m2.playedAt > 0) m2.playedAt else m2.firstInningsStartTime
+                val t1 = getMatchTime(m1)
+                val t2 = getMatchTime(m2)
                 t2.compareTo(t1)
             }
 
@@ -80,11 +210,12 @@ class MatchListFragment : Fragment() {
             empty?.visibility = if (sortedMatches.isEmpty()) View.VISIBLE else View.GONE
             
             if (matchAdapter == null) {
-                matchAdapter = MatchHistoryAdapter(sortedMatches.toMutableList())
+                matchAdapter = MatchHistoryAdapter(sortedMatches)
                 recyclerView?.adapter = matchAdapter
             } else {
                 matchAdapter?.updateData(sortedMatches)
             }
+            updateFastScrollerPosition()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -92,35 +223,94 @@ class MatchListFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // No need to call refresh() anymore as we are observing LiveData
     }
 
     fun refresh() {
-        // Kept for backward compatibility if any other fragment calls it
         val gId = GullySyncManager.getCurrentGullyId(context) ?: "local"
         viewModel.setParams(gId, filterType)
     }
 
-    private inner class MatchHistoryAdapter(private var matches: MutableList<MatchEntity?>) :
-        RecyclerView.Adapter<MatchHistoryAdapter.Holder>() {
-        
+    private inner class MatchHistoryAdapter(rawMatches: List<MatchEntity?>) :
+        RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+        private val items = mutableListOf<MatchListItem>()
+
+        init {
+            buildItems(rawMatches)
+        }
+
         fun updateData(newMatches: List<MatchEntity?>) {
-            this.matches.clear()
-            this.matches.addAll(newMatches)
+            buildItems(newMatches)
             notifyDataSetChanged()
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-            return Holder(
-                LayoutInflater.from(parent.context)
-                    .inflate(R.layout.item_match_history, parent, false)
-            )
+        private fun buildItems(rawMatches: List<MatchEntity?>) {
+            items.clear()
+            val cleanMatches = rawMatches.filterNotNull()
+            val totalCount = cleanMatches.size
+            var lastHeaderKey: String? = null
+
+            // Pre-calculate count of matches per date header title
+            val headerCounts = mutableMapOf<String, Int>()
+            cleanMatches.forEach { m ->
+                val titleKey = formatDateHeader(getMatchTime(m))
+                headerCounts[titleKey] = (headerCounts[titleKey] ?: 0) + 1
+            }
+
+            cleanMatches.forEachIndexed { idx, m ->
+                val time = getMatchTime(m)
+                val headerKey = formatDateHeader(time)
+                if (headerKey != lastHeaderKey) {
+                    val count = headerCounts[headerKey] ?: 1
+                    val headerWithCount = "$headerKey($count)"
+                    items.add(MatchListItem.Header(headerWithCount))
+                    lastHeaderKey = headerKey
+                }
+                val matchNumber = totalCount - idx
+                items.add(MatchListItem.Match(m, matchNumber))
+            }
         }
 
-        override fun onBindViewHolder(holder: Holder, position: Int) {
-            val m = matches[position] ?: return
+        fun getDateTitleForPosition(position: Int): String {
+            if (position !in items.indices) return "MATCHES"
+            for (i in position downTo 0) {
+                val item = items[i]
+                if (item is MatchListItem.Header) {
+                    return item.dateTitle
+                }
+            }
+            return "MATCHES"
+        }
 
-            val displayDate = if (m.playedAt > 0) m.playedAt else m.firstInningsStartTime
+        override fun getItemViewType(position: Int): Int {
+            return if (items[position] is MatchListItem.Header) TYPE_HEADER else TYPE_MATCH
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            return if (viewType == TYPE_HEADER) {
+                val v = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_match_date_header, parent, false)
+                HeaderHolder(v)
+            } else {
+                val v = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_match_history, parent, false)
+                MatchHolder(v)
+            }
+        }
+
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            when (val item = items[position]) {
+                is MatchListItem.Header -> {
+                    (holder as HeaderHolder).tvTitle.text = item.dateTitle
+                }
+                is MatchListItem.Match -> {
+                    bindMatchHolder(holder as MatchHolder, item.match, item.matchNumber)
+                }
+            }
+        }
+
+        private fun bindMatchHolder(holder: MatchHolder, m: MatchEntity, matchNum: Int) {
+            val displayDate = getMatchTime(m)
             val sdf = SimpleDateFormat("MMM dd, yyyy - hh:mm a", Locale.getDefault())
             holder.tvDate.text = sdf.format(Date(displayDate))
 
@@ -167,15 +357,15 @@ class MatchListFragment : Fragment() {
                 val context = holder.itemView.context
                 
                 tvLive?.text = "LIVE"
-                tvLive?.setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.card_red))
+                tvLive?.setTextColor(ContextCompat.getColor(context, R.color.card_red))
                 dot?.setBackgroundResource(R.drawable.circle_bg_red)
                 dot?.visibility = View.VISIBLE
 
                 dot?.clearAnimation()
-                val anim = android.view.animation.AlphaAnimation(1.0f, 0.2f).apply {
+                val anim = AlphaAnimation(1.0f, 0.2f).apply {
                     duration = 800
-                    repeatMode = android.view.animation.Animation.REVERSE
-                    repeatCount = android.view.animation.Animation.INFINITE
+                    repeatMode = Animation.REVERSE
+                    repeatCount = Animation.INFINITE
                 }
                 dot?.startAnimation(anim)
             } else if (!m.isFinished && !m.isAbandoned) {
@@ -186,7 +376,7 @@ class MatchListFragment : Fragment() {
                 val context = holder.itemView.context
 
                 tvLive?.text = "PAUSED"
-                tvLive?.setTextColor(android.graphics.Color.parseColor("#FBC02D"))
+                tvLive?.setTextColor(Color.parseColor("#FBC02D"))
                 dot?.setBackgroundResource(R.drawable.circle_bg_yellow)
                 dot?.visibility = View.VISIBLE
                 dot?.clearAnimation()
@@ -216,7 +406,7 @@ class MatchListFragment : Fragment() {
             if (finalResult == "IN-PROGRESS" || finalResult == "PAUSED") {
                 holder.tvResult.setTextColor(ThemeManager.getSeedColor(context))
             } else if (finalResult == "LIVE") {
-                holder.tvResult.setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.card_red))
+                holder.tvResult.setTextColor(ContextCompat.getColor(context, R.color.card_red))
             } else {
                 holder.tvResult.setTextColor(ThemeManager.getThemeColor(context, com.google.android.material.R.attr.colorOnSurface))
             }
@@ -300,7 +490,6 @@ class MatchListFragment : Fragment() {
             val isCompletedTab = filterType == 1
             if (isCompletedTab) {
                 holder.tvMatchNumber.visibility = View.VISIBLE
-                val matchNum = matches.size - position
                 holder.tvMatchNumber.text = "Match #$matchNum"
             } else {
                 holder.tvMatchNumber.visibility = View.GONE
@@ -374,7 +563,7 @@ class MatchListFragment : Fragment() {
             }
         }
 
-        override fun getItemCount(): Int = matches.size
+        override fun getItemCount(): Int = items.size
 
         private fun calculateFallbackResult(m: MatchEntity): String {
             val i1Team = m.firstInningsTeam ?: m.teamAName ?: "Team 1"
@@ -403,27 +592,11 @@ class MatchListFragment : Fragment() {
             }
         }
 
-        inner class Holder(v: View) : RecyclerView.ViewHolder(v) {
-            val tvDate: TextView = v.findViewById(R.id.tvMatchDate)
-            val tvMatchNumber: TextView = v.findViewById(R.id.tvMatchNumber)
-            val layoutLive: View? = v.findViewById(R.id.layoutLiveIndicator)
-            val liveDot: View? = v.findViewById(R.id.viewLiveDot)
-            val tvTeamA: TextView = v.findViewById(R.id.tvTeamA)
-            val tvTeamB: TextView = v.findViewById(R.id.tvTeamB)
-            val tvScoreA: TextView = v.findViewById(R.id.tvScoreA)
-            val tvScoreB: TextView = v.findViewById(R.id.tvScoreB)
-            val tvResult: TextView = v.findViewById(R.id.tvMatchResult)
-            val tvPOTM: TextView = v.findViewById(R.id.tvPOTM)
-            val btnResume: View? = v.findViewById(R.id.btnResumeMatch)
-            val btnMenu: View? = v.findViewById(R.id.btnMatchMenu)
-        }
-
         private fun startSameSetup(m: MatchEntity) {
             val ctx = context ?: return
             AppDatabase.ioExecutor.execute {
                 val db = getInstance(ctx)
                 
-                // Prioritize direct lists if available
                 val teamANames = ArrayList<String?>()
                 val teamBNames = ArrayList<String?>()
                 
@@ -440,7 +613,6 @@ class MatchListFragment : Fragment() {
                         targetNames.add(name)
                         val pId = m.nameToIdMap?.get(name)
                         val photo = m.photoMap?.get(name)
-                        // Jersey and latest photo require a DB lookup
                         val pe = pId?.let { db.playerDao().getPlayerById(it) }
                         
                         ids.add(pId)
@@ -450,63 +622,92 @@ class MatchListFragment : Fragment() {
                     }
                 }
 
-                if (!m.teamANames.isNullOrEmpty() || !m.teamBNames.isNullOrEmpty()) {
-                    populateDetails(m.teamANames ?: emptyList(), teamAPhotos, teamAJerseys, teamAIds, teamANames)
-                    populateDetails(m.teamBNames ?: emptyList(), teamBPhotos, teamBJerseys, teamBIds, teamBNames)
-                } else {
-                    // Fallback for older matches without direct lists
-                    val stats = db.statsDao().getStatsByMatch(m.id)?.filterNotNull()
-                    stats?.forEach { s ->
-                        if (s == null) return@forEach
-                        val pe = db.playerDao().getPlayerById(s.playerId)
-                        if (s.teamName == m.teamAName) {
-                            teamANames.add(s.playerName)
-                            teamAPhotos.add(pe?.photoUri)
-                            teamAJerseys.add(pe?.jerseyNumber ?: "0")
-                            teamAIds.add(s.playerId)
-                        } else {
-                            teamBNames.add(s.playerName)
-                            teamBPhotos.add(pe?.photoUri)
-                            teamBJerseys.add(pe?.jerseyNumber ?: "0")
-                            teamBIds.add(s.playerId)
-                        }
-                    }
-                }
+                m.teamANames?.let { populateDetails(it, teamAPhotos, teamAJerseys, teamAIds, teamANames) }
+                m.teamBNames?.let { populateDetails(it, teamBPhotos, teamBJerseys, teamBIds, teamBNames) }
 
                 activity?.runOnUiThread {
-                    val intent = Intent(activity, SetupActivity::class.java)
-                    intent.putExtra("cloneMatch", true)
-                    intent.putExtra("venue", m.venue)
-                    intent.putExtra("teamAName", m.teamAName)
-                    intent.putExtra("teamBName", m.teamBName)
-                    intent.putExtra("overs", m.totalOvers)
-                    intent.putExtra("ballType", m.ballType ?: "Stumper") // Fallback
-                    intent.putExtra("ruleRunsOnWide", m.ruleRunsOnWide)
-                    intent.putExtra("ruleFreeHit", m.ruleFreeHit)
-                    intent.putExtra("ruleRunsOnBye", m.ruleRunsOnBye)
-                    intent.putExtra("ruleOverthrow", m.ruleOverthrow)
-                    intent.putStringArrayListExtra("teamANames", teamANames)
-                    intent.putStringArrayListExtra("teamBNames", teamBNames)
-                    intent.putStringArrayListExtra("teamAPhotos", teamAPhotos)
-                    intent.putStringArrayListExtra("teamBPhotos", teamBPhotos)
-                    intent.putStringArrayListExtra("teamAJerseys", teamAJerseys)
-                    intent.putStringArrayListExtra("teamBJerseys", teamBJerseys)
-                    intent.putStringArrayListExtra("teamAIds", teamAIds)
-                    intent.putStringArrayListExtra("teamBIds", teamBIds)
-                    startActivity(intent)
+                    val intent = Intent(ctx, SetupActivity::class.java).apply {
+                        putExtra("teamA", m.teamAName)
+                        putExtra("teamB", m.teamBName)
+                        putExtra("overs", m.totalOvers)
+                        putExtra("playerCountA", m.teamAPlayerCount)
+                        putExtra("playerCountB", m.teamBPlayerCount)
+                        putExtra("ballType", m.ballType)
+                        putExtra("venue", m.venue)
+                        putExtra("ruleRunsOnWide", m.ruleRunsOnWide)
+                        putExtra("ruleFreeHit", m.ruleFreeHit)
+                        putExtra("ruleRunsOnBye", m.ruleRunsOnBye)
+                        putExtra("ruleOverthrow", m.ruleOverthrow)
+                        putExtra("ruleEveryPlayerBats", m.ruleEveryPlayerBats)
+                        putExtra("isSharedOver", m.isSharedOver)
+
+                        putStringArrayListExtra("teamANames", teamANames)
+                        putStringArrayListExtra("teamBNames", teamBNames)
+                        putStringArrayListExtra("teamAPhotos", teamAPhotos)
+                        putStringArrayListExtra("teamBPhotos", teamBPhotos)
+                        putStringArrayListExtra("teamAJerseys", teamAJerseys)
+                        putStringArrayListExtra("teamBJerseys", teamBJerseys)
+                        putStringArrayListExtra("teamAIds", teamAIds)
+                        putStringArrayListExtra("teamBIds", teamBIds)
+                    }
+                    ctx.startActivity(intent)
                 }
             }
         }
     }
 
+    inner class HeaderHolder(v: View) : RecyclerView.ViewHolder(v) {
+        val tvTitle: TextView = v.findViewById(R.id.tvDateHeaderTitle)
+    }
+
+    inner class MatchHolder(v: View) : RecyclerView.ViewHolder(v) {
+        val tvDate: TextView = v.findViewById(R.id.tvMatchDate)
+        val tvMatchNumber: TextView = v.findViewById(R.id.tvMatchNumber)
+        val layoutLive: View? = v.findViewById(R.id.layoutLiveIndicator)
+        val liveDot: View? = v.findViewById(R.id.viewLiveDot)
+        val tvTeamA: TextView = v.findViewById(R.id.tvTeamA)
+        val tvTeamB: TextView = v.findViewById(R.id.tvTeamB)
+        val tvScoreA: TextView = v.findViewById(R.id.tvScoreA)
+        val tvScoreB: TextView = v.findViewById(R.id.tvScoreB)
+        val tvResult: TextView = v.findViewById(R.id.tvMatchResult)
+        val tvPOTM: TextView = v.findViewById(R.id.tvPOTM)
+        val btnResume: View? = v.findViewById(R.id.btnResumeMatch)
+        val btnMenu: View? = v.findViewById(R.id.btnMatchMenu)
+    }
+
+    private fun formatDateHeader(millis: Long): String {
+        if (millis <= 0) return "OTHER MATCHES"
+
+        val matchCal = Calendar.getInstance().apply { timeInMillis = millis }
+        val todayCal = Calendar.getInstance()
+        val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+
+        return when {
+            isSameDay(matchCal, todayCal) -> "TODAY"
+            isSameDay(matchCal, yesterdayCal) -> "YESTERDAY"
+            else -> {
+                val sdf = SimpleDateFormat("dd MMMM yyyy", Locale.US)
+                sdf.format(Date(millis)).uppercase(Locale.US)
+            }
+        }
+    }
+
+    private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+               cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+    }
+
     companion object {
-        @JvmStatic
+        private const val TYPE_HEADER = 0
+        private const val TYPE_MATCH = 1
+
         fun newInstance(type: Int): MatchListFragment {
-            val f = MatchListFragment()
-            val b = Bundle()
-            b.putInt("type", type)
-            f.arguments = b
-            return f
+            val fragment = MatchListFragment()
+            val args = Bundle().apply {
+                putInt("type", type)
+            }
+            fragment.arguments = args
+            return fragment
         }
     }
 }

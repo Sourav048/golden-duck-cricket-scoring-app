@@ -69,7 +69,7 @@
         <ImageView
             android:layout_width="20dp"
             android:layout_height="20dp"
-            android:src="@android:drawable/ic_media_play"
+            android:src="@drawable/ic_play"
             android:rotation="0"
             app:tint="?attr/colorOnSurfaceVariant"
             android:alpha="0.3"

@@ -149,11 +149,11 @@ class PlayerDetailsActivity : BaseActivity() {
                 applyPrestige(player.id, tvName, iv, contrastColor)
 
                 // 4. Handle ranking chip visibility
-                val chips = listOf(R.id.tvRankOverall, R.id.tvRankBatting, R.id.tvRankBowling)
+                val chips = listOf(R.id.tvRankOverall, R.id.tvRankBatting, R.id.tvRankBowling, R.id.tvPotmTotal)
                 chips.forEach { id ->
                     val tv = findViewById<TextView>(id)
-                    tv.setTextColor(contrastColor)
-                    (tv.parent as? MaterialCardView)?.setCardBackgroundColor(translucentContrast)
+                    tv?.setTextColor(contrastColor)
+                    (tv?.parent as? MaterialCardView)?.setCardBackgroundColor(translucentContrast)
                 }
 
                 val card = findViewById<MaterialCardView>(R.id.cardPhotoFrame)
@@ -492,11 +492,60 @@ class PlayerDetailsActivity : BaseActivity() {
                 bowling?.indexOfFirst { it?.playerId == id }?.let { idx -> if (idx >= 0) rBowl = "Bowling Ranking:- #${idx + 1}" }
             }
 
+            // Calculate POTM awards for existing & upcoming matches
+            val pName = currentPlayer?.name?.trim() ?: ""
+            val pGlobalId = currentPlayer?.globalId
+
+            val finishedMatches = if (pGlobalId != null) {
+                db?.matchDao()?.getMatchesByStatus(true, false)
+            } else {
+                db?.matchDao()?.getMatchesByStatusByGully(true, false, gId)
+            } ?: emptyList()
+
+            var potmCount = 0
+            for (m in finishedMatches) {
+                if (m == null) continue
+
+                // If POTM name is missing or TBD on an existing completed match, auto-compute it from match stats
+                if (m.playerOfTheMatchName.isNullOrEmpty() || m.playerOfTheMatchName == "TBD") {
+                    val matchStats = db?.statsDao()?.getStatsByMatch(m.id)?.filterNotNull() ?: emptyList()
+                    if (matchStats.isNotEmpty()) {
+                        var bestP: String? = null
+                        var maxPts = -1.0
+                        for (st in matchStats) {
+                            val pts = st.runsScored + (st.wicketsTaken * 25.0) + (st.sixes * 2.0) + st.fours.toDouble() +
+                                    (st.catches * 8.0) + (st.stumpings * 12.0) + (st.runOuts * 12.0) + (st.maidens * 15.0)
+                            if (pts > maxPts && pts > 0) {
+                                maxPts = pts
+                                bestP = st.playerName
+                            }
+                        }
+                        if (!bestP.isNullOrEmpty()) {
+                            m.playerOfTheMatchName = bestP
+                            db?.matchDao()?.updateMatch(m)
+                        }
+                    }
+                }
+
+                // Check if this player won POTM for this match
+                val potmWinner = m.playerOfTheMatchName?.trim()
+                if (!potmWinner.isNullOrEmpty() && !potmWinner.equals("TBD", ignoreCase = true)) {
+                    val isMatchByPlayerName = pName.isNotEmpty() && potmWinner.equals(pName, ignoreCase = true)
+                    val isMatchByPlayerId = playerId != null && m.nameToIdMap?.get(potmWinner) == playerId
+                    if (isMatchByPlayerName || isMatchByPlayerId) {
+                        potmCount++
+                    }
+                }
+            }
+
+            val rPotm = "Career Total POTMs: $potmCount"
+
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 findViewById<TextView>(R.id.tvRankOverall).text = rO
                 findViewById<TextView>(R.id.tvRankBatting).text = rBat
                 findViewById<TextView>(R.id.tvRankBowling).text = rBowl
+                findViewById<TextView>(R.id.tvPotmTotal).text = rPotm
             }
         }
     }

@@ -140,6 +140,16 @@
                             app:cardBackgroundColor="#25FFFFFF">
                             <TextView android:id="@+id/tvRankBowling" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingVertical="8dp" android:paddingHorizontal="16dp" android:tag="custom_color" android:text="Bowling Ranking:- #-" android:textSize="13sp" android:textStyle="bold" android:textColor="#FFFFFF" />
                         </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginVertical="4dp"
+                            app:cardCornerRadius="12dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#25FFFFFF">
+                            <TextView android:id="@+id/tvPotmTotal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingVertical="8dp" android:paddingHorizontal="16dp" android:tag="custom_color" android:text="Career Total POTM: 0" android:textSize="13sp" android:textStyle="bold" android:textColor="#FFFFFF" />
+                        </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
                 </LinearLayout>
             </RelativeLayout>

@@ -12,9 +12,12 @@ data class LeagueChatMessage(
     val senderProfilePic: String? = null,
     val messageText: String = "",
     val timestamp: Long = System.currentTimeMillis(),
-    val type: String = "TEXT", // "TEXT", "IMAGE", "VIDEO", "SYSTEM"
+    val type: String = "TEXT", // "TEXT", "IMAGE", "VIDEO", "GIF", "SYSTEM", "DOCUMENT", "AUDIO"
     val mediaUrl: String? = null,
     val thumbnailUrl: String? = null,
+    val fileName: String? = null,
+    val fileSize: Long? = null,
+    val durationMs: Long? = null,
     val replyToId: String? = null,
     val replyToSender: String? = null,
     val replyToText: String? = null,

@@ -3578,8 +3578,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
         if (isFinished && !isAbandoned) {
             var maxPoints = -1.0
             for (p in finalStatsList) {
-                val points = p.runsScored + (p.wicketsTaken * 25.0) + (p.sixes * 2.0) + p.fours.toDouble()
-                if (points > maxPoints) {
+                val points = p.runsScored + (p.wicketsTaken * 25.0) + (p.sixes * 2.0) + p.fours.toDouble() +
+                        (p.catches * 8.0) + (p.stumpings * 12.0) + (p.runOuts * 12.0) + (p.maidens * 15.0)
+                if (points > maxPoints && points > 0) {
                     maxPoints = points
                     bestPlayer = p.name
                 }

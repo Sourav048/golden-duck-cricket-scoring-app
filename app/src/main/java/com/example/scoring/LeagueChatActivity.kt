@@ -18,6 +18,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import com.bumptech.glide.Glide
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
@@ -41,6 +42,11 @@ import java.util.Locale
 import java.util.UUID
 import android.text.Editable
 import android.text.TextWatcher
+import android.media.MediaRecorder
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.provider.OpenableColumns
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.firestore.SetOptions
@@ -100,17 +106,87 @@ class LeagueChatActivity : BaseActivity() {
 
     private var currentCameraUri: Uri? = null
 
+    // Voice Recording Views & Controllers
+    private lateinit var btnRecordVoice: ImageButton
+    private lateinit var layoutChatInputBar: LinearLayout
+    private lateinit var layoutVoiceRecordingBar: LinearLayout
+    private lateinit var btnCancelVoiceRecord: ImageButton
+    private lateinit var tvVoiceRecordTimer: TextView
+    private lateinit var btnSendVoiceRecord: ImageButton
+
+    private var mediaRecorder: MediaRecorder? = null
+    private var audioFile: File? = null
+    private var recordStartTime = 0L
+    private var isRecordingAudio = false
+    private val recordHandler = Handler(Looper.getMainLooper())
+    private val recordRunnable = object : Runnable {
+        override fun run() {
+            if (isRecordingAudio) {
+                val elapsedSec = (System.currentTimeMillis() - recordStartTime) / 1000
+                val mins = elapsedSec / 60
+                val secs = elapsedSec % 60
+                tvVoiceRecordTimer.text = String.format(Locale.US, "%02d:%02d", mins, secs)
+                recordHandler.postDelayed(this, 1000)
+            }
+        }
+    }
+
     // Activity Result Launchers
-    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        if (uri != null) {
+    private val pickMultipleMediaLauncher = registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris: List<Uri> ->
+        if (!uris.isNullOrEmpty()) {
             val caption = etChatMessage.text.toString().trim()
             etChatMessage.setText("")
-            val mimeType = try { contentResolver.getType(uri) ?: "" } catch (e: Exception) { "" }
-            val isVideo = mimeType.startsWith("video/") || 
-                          uri.toString().endsWith(".mp4") || 
-                          uri.toString().endsWith(".mkv") || 
-                          uri.toString().endsWith(".3gp")
-            uploadAndSendMedia(uri, isVideo = isVideo, captionText = caption)
+            for ((index, uri) in uris.withIndex()) {
+                val mimeType = try { contentResolver.getType(uri) ?: "" } catch (e: Exception) { "" }
+                val isVideo = mimeType.startsWith("video/") || uri.toString().endsWith(".mp4") || uri.toString().endsWith(".mkv") || uri.toString().endsWith(".3gp")
+                val captionText = if (index == 0) caption else ""
+                uploadAndSendMedia(uri, isVideo = isVideo, captionText = captionText)
+            }
+        }
+    }
+
+    private val pickDocumentLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
+        if (!uris.isNullOrEmpty()) {
+            val caption = etChatMessage.text.toString().trim()
+            etChatMessage.setText("")
+            for ((index, uri) in uris.withIndex()) {
+                var docName = "Document"
+                var docSize = 0L
+                try {
+                    contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                        if (cursor.moveToFirst()) {
+                            if (nameIndex != -1) docName = cursor.getString(nameIndex) ?: "Document"
+                            if (sizeIndex != -1) docSize = cursor.getLong(sizeIndex)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error querying doc metadata: ${e.message}")
+                }
+
+                val mimeType = try { contentResolver.getType(uri) ?: "application/octet-stream" } catch (e: Exception) { "application/octet-stream" }
+                val captionText = if (index == 0) caption else ""
+                uploadAndSendDocument(uri, fileName = docName, fileSize = docSize, mimeType = mimeType, captionText = captionText)
+            }
+        }
+    }
+
+    private val requestAudioPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+        if (isGranted) {
+            startVoiceRecording()
+        } else {
+            Toast.makeText(this, "Microphone permission is required to record voice notes.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private var currentVideoUri: Uri? = null
+
+    private val captureVideoLauncher = registerForActivityResult(ActivityResultContracts.CaptureVideo()) { success: Boolean ->
+        if (success && currentVideoUri != null) {
+            val caption = etChatMessage.text.toString().trim()
+            etChatMessage.setText("")
+            uploadAndSendMedia(currentVideoUri!!, isVideo = true, captionText = caption)
         }
     }
 
@@ -186,6 +262,17 @@ class LeagueChatActivity : BaseActivity() {
         btnAttachMedia = findViewById(R.id.btnAttachMedia)
         btnChangeName = findViewById(R.id.btnChangeName)
 
+        btnRecordVoice = findViewById(R.id.btnRecordVoice)
+        layoutChatInputBar = findViewById(R.id.layoutChatInputBar)
+        layoutVoiceRecordingBar = findViewById(R.id.layoutVoiceRecordingBar)
+        btnCancelVoiceRecord = findViewById(R.id.btnCancelVoiceRecord)
+        tvVoiceRecordTimer = findViewById(R.id.tvVoiceRecordTimer)
+        btnSendVoiceRecord = findViewById(R.id.btnSendVoiceRecord)
+
+        btnRecordVoice.setOnClickListener { checkAudioPermissionAndRecord() }
+        btnCancelVoiceRecord.setOnClickListener { cancelVoiceRecording() }
+        btnSendVoiceRecord.setOnClickListener { stopAndSendVoiceRecording() }
+
         cardReplyPreview = findViewById(R.id.cardReplyPreview)
         tvReplySender = findViewById(R.id.tvReplySender)
         tvReplyText = findViewById(R.id.tvReplyText)
@@ -223,6 +310,13 @@ class LeagueChatActivity : BaseActivity() {
 
     override fun onPause() {
         super.onPause()
+        if (::leagueId.isInitialized && activeLeagueId == leagueId) {
+            activeLeagueId = null
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
         if (::leagueId.isInitialized && activeLeagueId == leagueId) {
             activeLeagueId = null
         }
@@ -811,13 +905,22 @@ class LeagueChatActivity : BaseActivity() {
     }
 
     private fun showAttachmentOptions() {
-        val options = arrayOf("📷 Camera", "🖼️ Gallery (Photos, GIFs & Videos)")
+        val options = arrayOf(
+            "📷 Camera Photo",
+            "🎥 Record Video", 
+            "🖼️ Gallery (Photos & Videos)", 
+            "📄 Document (PDF, ZIP, etc.)"
+        )
         AlertDialog.Builder(this)
-            .setTitle("Send Media")
+            .setTitle("Send Attachment")
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> launchCamera()
-                    1 -> pickImageLauncher.launch("*/*")
+                    1 -> launchVideoCamera()
+                    2 -> pickMultipleMediaLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+                    )
+                    3 -> pickDocumentLauncher.launch("*/*")
                 }
             }
             .show()
@@ -828,6 +931,28 @@ class LeagueChatActivity : BaseActivity() {
             requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         } else {
             launchCameraInternal()
+        }
+    }
+
+    private fun launchVideoCamera() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        } else {
+            launchVideoCameraInternal()
+        }
+    }
+
+    private fun launchVideoCameraInternal() {
+        try {
+            val videoDir = File(cacheDir, "chat_videos")
+            if (!videoDir.exists()) videoDir.mkdirs()
+            val videoFile = File(videoDir, "vid_${System.currentTimeMillis()}.mp4")
+            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", videoFile)
+            currentVideoUri = uri
+            captureVideoLauncher.launch(uri)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error launching video camera: ${e.message}", e)
+            Toast.makeText(this, "Failed to open video camera: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -999,9 +1124,12 @@ class LeagueChatActivity : BaseActivity() {
         replyMediaUrl: String? = null,
         replyMediaType: String? = null,
         targetRecipientId: String? = null,
-        customNotificationSender: String? = null
+        customNotificationSender: String? = null,
+        fileName: String? = null,
+        fileSize: Long? = null,
+        durationMs: Long? = null
     ) {
-        val newMsg = hashMapOf(
+        val newMsg = hashMapOf<String, Any?>(
             "senderId" to senderId,
             "senderName" to senderName,
             "senderProfilePic" to (senderProfilePic ?: ""),
@@ -1013,7 +1141,10 @@ class LeagueChatActivity : BaseActivity() {
             "replyToSender" to replySender,
             "replyToText" to replyText,
             "replyToMediaUrl" to replyMediaUrl,
-            "replyToMediaType" to replyMediaType
+            "replyToMediaType" to replyMediaType,
+            "fileName" to fileName,
+            "fileSize" to fileSize,
+            "durationMs" to durationMs
         )
 
         db.collection("gullies")
@@ -1022,9 +1153,11 @@ class LeagueChatActivity : BaseActivity() {
             .add(newMsg)
             .addOnSuccessListener { docRef ->
                 val isGif = mediaType == "GIF" || LeagueChatAdapter.isGifUrl(mediaUrl)
-                val notifText = when {
-                    isGif -> "🎞️ Sent a GIF"
-                    mediaType == "VIDEO" -> "🎥 Sent a Video"
+                val notifText = when (mediaType) {
+                    "GIF" -> "🎞️ Sent a GIF"
+                    "VIDEO" -> "🎥 Sent a Video"
+                    "DOCUMENT" -> "📄 Sent a Document: ${fileName ?: "File"}"
+                    "AUDIO" -> "🎙️ Sent a Voice Note"
                     else -> "📷 Sent a Photo"
                 }
 
@@ -1045,6 +1178,262 @@ class LeagueChatActivity : BaseActivity() {
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Failed to send media: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun checkAudioPermissionAndRecord() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            requestAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        } else {
+            startVoiceRecording()
+        }
+    }
+
+    private fun startVoiceRecording() {
+        try {
+            val audioDir = File(cacheDir, "chat_audio")
+            if (!audioDir.exists()) audioDir.mkdirs()
+            audioFile = File(audioDir, "voice_${System.currentTimeMillis()}.m4a")
+
+            mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(this)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaRecorder()
+            }.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(audioFile!!.absolutePath)
+                prepare()
+                start()
+            }
+
+            isRecordingAudio = true
+            recordStartTime = System.currentTimeMillis()
+            tvVoiceRecordTimer.text = "00:00"
+            layoutChatInputBar.visibility = View.GONE
+            layoutVoiceRecordingBar.visibility = View.VISIBLE
+            recordHandler.post(recordRunnable)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start audio recording: ${e.message}", e)
+            Toast.makeText(this, "Failed to record audio: ${e.message}", Toast.LENGTH_SHORT).show()
+            cancelVoiceRecording()
+        }
+    }
+
+    private fun stopAndSendVoiceRecording() {
+        if (!isRecordingAudio) return
+        try {
+            mediaRecorder?.apply {
+                stop()
+                release()
+            }
+            mediaRecorder = null
+            isRecordingAudio = false
+            recordHandler.removeCallbacks(recordRunnable)
+
+            val durationMs = System.currentTimeMillis() - recordStartTime
+            layoutVoiceRecordingBar.visibility = View.GONE
+            layoutChatInputBar.visibility = View.VISIBLE
+
+            val file = audioFile
+            if (file != null && file.exists() && file.length() > 0) {
+                val uri = Uri.fromFile(file)
+                uploadAndSendAudioNote(uri, fileName = "VoiceNote.m4a", fileSize = file.length(), durationMs = durationMs)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping audio recording: ${e.message}", e)
+            cancelVoiceRecording()
+        }
+    }
+
+    private fun cancelVoiceRecording() {
+        try {
+            mediaRecorder?.apply {
+                try { stop() } catch (_: Exception) {}
+                release()
+            }
+            mediaRecorder = null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error releasing media recorder: ${e.message}")
+        }
+        isRecordingAudio = false
+        recordHandler.removeCallbacks(recordRunnable)
+        audioFile?.delete()
+        layoutVoiceRecordingBar.visibility = View.GONE
+        layoutChatInputBar.visibility = View.VISIBLE
+    }
+
+    private fun uploadAndSendDocument(uri: Uri, fileName: String, fileSize: Long, mimeType: String, captionText: String) {
+        val progressDialog = AlertDialog.Builder(this)
+            .setTitle("Uploading Document...")
+            .setMessage("Uploading $fileName to cloud storage...")
+            .setCancelable(false)
+            .create()
+
+        progressDialog.show()
+
+        Executors.newSingleThreadExecutor().execute {
+            try {
+                val uniqueFileName = "${UUID.randomUUID()}_$fileName"
+                val url = URL("$SUPABASE_URL/storage/v1/object/$SUPABASE_BUCKET/$uniqueFileName")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Authorization", "Bearer $SUPABASE_KEY")
+                conn.setRequestProperty("apiKey", SUPABASE_KEY)
+                conn.setRequestProperty("Content-Type", mimeType)
+                conn.doOutput = true
+
+                val inputStream = contentResolver.openInputStream(uri)
+                if (inputStream == null) {
+                    runOnUiThread {
+                        progressDialog.dismiss()
+                        Toast.makeText(this@LeagueChatActivity, "Cannot read document file.", Toast.LENGTH_SHORT).show()
+                    }
+                    return@execute
+                }
+
+                val outputStream = conn.outputStream
+                val buffer = ByteArray(8192)
+                var bytesRead: Int
+                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    outputStream.write(buffer, 0, bytesRead)
+                }
+                outputStream.flush()
+                outputStream.close()
+                inputStream.close()
+
+                val responseCode = conn.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK || responseCode == 201) {
+                    val publicMediaUrl = "$SUPABASE_URL/storage/v1/object/public/$SUPABASE_BUCKET/$uniqueFileName"
+                    runOnUiThread {
+                        progressDialog.dismiss()
+                        sendMediaMessage(
+                            mediaUrl = publicMediaUrl,
+                            mediaType = "DOCUMENT",
+                            captionText = captionText,
+                            fileName = fileName,
+                            fileSize = fileSize
+                        )
+                    }
+                } else {
+                    val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    if (bytes != null && bytes.size <= 700_000) {
+                        val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                        val dataUrl = "data:$mimeType;base64,$base64"
+                        runOnUiThread {
+                            progressDialog.dismiss()
+                            sendMediaMessage(
+                                mediaUrl = dataUrl,
+                                mediaType = "DOCUMENT",
+                                captionText = captionText,
+                                fileName = fileName,
+                                fileSize = fileSize
+                            )
+                        }
+                    } else {
+                        runOnUiThread {
+                            progressDialog.dismiss()
+                            Toast.makeText(this@LeagueChatActivity, "Document upload failed ($responseCode).", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+                conn.disconnect()
+            } catch (e: Exception) {
+                Log.e(TAG, "Document upload error: ${e.message}", e)
+                runOnUiThread {
+                    progressDialog.dismiss()
+                    Toast.makeText(this@LeagueChatActivity, "Upload error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun uploadAndSendAudioNote(uri: Uri, fileName: String, fileSize: Long, durationMs: Long) {
+        val progressDialog = AlertDialog.Builder(this)
+            .setTitle("Sending Voice Note...")
+            .setMessage("Uploading audio...")
+            .setCancelable(false)
+            .create()
+
+        progressDialog.show()
+
+        Executors.newSingleThreadExecutor().execute {
+            try {
+                val uniqueFileName = "voice_${UUID.randomUUID()}.m4a"
+                val url = URL("$SUPABASE_URL/storage/v1/object/$SUPABASE_BUCKET/$uniqueFileName")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Authorization", "Bearer $SUPABASE_KEY")
+                conn.setRequestProperty("apiKey", SUPABASE_KEY)
+                conn.setRequestProperty("Content-Type", "audio/m4a")
+                conn.doOutput = true
+
+                val inputStream = contentResolver.openInputStream(uri)
+                if (inputStream == null) {
+                    runOnUiThread {
+                        progressDialog.dismiss()
+                        Toast.makeText(this@LeagueChatActivity, "Cannot read audio file.", Toast.LENGTH_SHORT).show()
+                    }
+                    return@execute
+                }
+
+                val outputStream = conn.outputStream
+                val buffer = ByteArray(8192)
+                var bytesRead: Int
+                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                    outputStream.write(buffer, 0, bytesRead)
+                }
+                outputStream.flush()
+                outputStream.close()
+                inputStream.close()
+
+                val responseCode = conn.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK || responseCode == 201) {
+                    val publicMediaUrl = "$SUPABASE_URL/storage/v1/object/public/$SUPABASE_BUCKET/$uniqueFileName"
+                    runOnUiThread {
+                        progressDialog.dismiss()
+                        sendMediaMessage(
+                            mediaUrl = publicMediaUrl,
+                            mediaType = "AUDIO",
+                            captionText = "",
+                            fileName = fileName,
+                            fileSize = fileSize,
+                            durationMs = durationMs
+                        )
+                    }
+                } else {
+                    val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    if (bytes != null && bytes.size <= 700_000) {
+                        val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                        val dataUrl = "data:audio/m4a;base64,$base64"
+                        runOnUiThread {
+                            progressDialog.dismiss()
+                            sendMediaMessage(
+                                mediaUrl = dataUrl,
+                                mediaType = "AUDIO",
+                                captionText = "",
+                                fileName = fileName,
+                                fileSize = fileSize,
+                                durationMs = durationMs
+                            )
+                        }
+                    } else {
+                        runOnUiThread {
+                            progressDialog.dismiss()
+                            Toast.makeText(this@LeagueChatActivity, "Audio upload failed ($responseCode).", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+                conn.disconnect()
+            } catch (e: Exception) {
+                Log.e(TAG, "Audio upload error: ${e.message}", e)
+                runOnUiThread {
+                    progressDialog.dismiss()
+                    Toast.makeText(this@LeagueChatActivity, "Upload error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun showOptionsDialog(msg: LeagueChatMessage) {

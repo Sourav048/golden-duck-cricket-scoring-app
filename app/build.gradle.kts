@@ -1,9 +1,18 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.gms.google.services)
     alias(libs.plugins.google.firebase.crashlytics)
+}
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
 }
 
 android {
@@ -14,16 +23,35 @@ android {
         applicationId = "com.example.scoring"
         minSdk = 24
         targetSdk = 35
-        versionCode = 7
-        versionName = "5.1"
+        versionCode = 8
+        versionName = "5.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
-        getByName("debug") {
-            isV1SigningEnabled = true
-            isV2SigningEnabled = true
+        val storePath = localProperties.getProperty("store.file")
+        val storePasswordProp = localProperties.getProperty("store.password")
+        val keyAliasProp = localProperties.getProperty("key.alias")
+        val keyPasswordProp = localProperties.getProperty("key.password")
+
+        val keystoreFile = if (!storePath.isNullOrBlank()) file(storePath) else null
+
+        if (keystoreFile != null && keystoreFile.exists()) {
+            getByName("debug") {
+                storeFile = keystoreFile
+                storePassword = storePasswordProp
+                keyAlias = keyAliasProp
+                keyPassword = keyPasswordProp
+            }
+            maybeCreate("release").apply {
+                storeFile = keystoreFile
+                storePassword = storePasswordProp
+                keyAlias = keyAliasProp
+                keyPassword = keyPasswordProp
+            }
+        } else {
+            maybeCreate("release")
         }
     }
 
@@ -31,11 +59,11 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
 
             applicationVariants.all {
                 val variant = this
@@ -48,6 +76,7 @@ android {
 
         debug {
             isDebuggable = true
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

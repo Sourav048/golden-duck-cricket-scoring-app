@@ -14,9 +14,8 @@ import java.util.concurrent.Executors
 object LeagueNotificationManager {
     private const val TAG = "LeagueNotify"
     
-    // REPLACE THIS with your OneSignal REST API Key
-    // WARNING: For production apps, this should be done via a backend server.
-    private const val ONESIGNAL_REST_API_KEY = "YOUR_REST_API_KEY_HERE"
+    // OneSignal REST API Key for server-side push dispatch
+    private const val ONESIGNAL_REST_API_KEY = "YOUR_ONESIGNAL_REST_API_KEY"
 
     private fun getAuthHeader(): String {
         return "Key $ONESIGNAL_REST_API_KEY"
@@ -66,6 +65,11 @@ object LeagueNotificationManager {
      * Sends a notification to all users tagged with a specific league.
      */
     fun sendLeagueNotification(leagueId: String, title: String, body: String, matchId: String? = null) {
+        if (ONESIGNAL_REST_API_KEY.isBlank()) {
+            Log.e(TAG, "Cannot send notification: ONESIGNAL_REST_API_KEY is not configured in LeagueNotificationManager.kt!")
+            return
+        }
+
         Executors.newSingleThreadExecutor().execute {
             try {
                 val url = URL("https://onesignal.com/api/v1/notifications")
@@ -224,6 +228,11 @@ object LeagueNotificationManager {
         senderProfilePic: String? = null,
         msgId: String? = null
     ) {
+        if (ONESIGNAL_REST_API_KEY.isBlank()) {
+            Log.e(TAG, "Cannot send chat notification: ONESIGNAL_REST_API_KEY is not configured in LeagueNotificationManager.kt!")
+            return
+        }
+
         Executors.newSingleThreadExecutor().execute {
             try {
                 val url = URL("https://onesignal.com/api/v1/notifications")

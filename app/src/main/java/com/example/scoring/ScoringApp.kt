@@ -15,6 +15,7 @@ import com.onesignal.notifications.INotificationClickEvent
 import com.onesignal.notifications.INotificationLifecycleListener
 import com.onesignal.notifications.INotificationWillDisplayEvent
 import java.util.UUID
+import java.util.concurrent.Executors
 
 class ScoringApp : Application() {
     companion object {
@@ -116,18 +117,24 @@ class ScoringApp : Application() {
                         return
                     }
 
-                    // Build and post MessagingStyle notification
-                    ChatNotificationHelper.handleIncomingChatMessage(
-                        context = this@ScoringApp,
-                        leagueId = leagueId,
-                        senderName = senderName ?: "Member",
-                        messageContent = messageText ?: notification.body ?: "",
-                        replyRecipientId = targetRecipientId,
-                        isPersonalChat = isPersonalChat,
-                        senderProfilePic = senderProfilePic,
-                        senderId = senderId,
-                        msgId = msgId
-                    )
+                    // Build and post MessagingStyle notification asynchronously on background thread
+                    Executors.newSingleThreadExecutor().execute {
+                        try {
+                            ChatNotificationHelper.handleIncomingChatMessage(
+                                context = this@ScoringApp,
+                                leagueId = leagueId,
+                                senderName = senderName ?: "Member",
+                                messageContent = messageText ?: notification.body ?: "",
+                                replyRecipientId = targetRecipientId,
+                                isPersonalChat = isPersonalChat,
+                                senderProfilePic = senderProfilePic,
+                                senderId = senderId,
+                                msgId = msgId
+                            )
+                        } catch (e: Throwable) {
+                            Log.e("ScoringApp", "Error displaying foreground notification: ${e.message}", e)
+                        }
+                    }
                 }
             }
         })
