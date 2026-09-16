@@ -452,19 +452,33 @@ class HomeActivity : BaseActivity() {
 
     private fun showReadMeDialog() {
         val manualText = """
-            <h3><b>🏆 Top Features & Capabilities</b></h3>
+            <h3><b>🔥 What's New in Version 5.3</b></h3>
+            <p>
+            <ul>
+                <li><b>🎙️ Voice Messages & Audio Notes:</b> Record, send, and listen to voice notes directly in League Chat with interactive play/pause controls and duration seekbars.</li>
+                <li><b>🔴 Live Unread Message Badges:</b> Real-time unread message counters on League Chat icon and action buttons so you never miss a chat notification.</li>
+                <li><b>🛡️ Gully Admin 4-Digit PIN Security:</b> Protect your Gully Leagues with a 4-digit Admin PIN for sensitive actions like match deletions and data migrations.</li>
+                <li><b>📅 Grouped Match History:</b> Match history is chronologically organized with clear date headers (Today, Yesterday, Specific Dates).</li>
+                <li><b>🖼️ Player Photo Image Guard & Auto-Fix:</b> Automatic EXIF orientation detection (fixes sideways photos), portrait auto-rotation, and smart 75% JPEG compression for instant loading.</li>
+                <li><b>⚡ Cloud Sync Payload Compression:</b> Heavy match data and commentary are compressed using GZIP (~95% payload reduction) for lightning-fast cloud sync.</li>
+            </ul>
+            </p>
+
+            <hr>
+            <h3><b>🏆 Core Features & Capabilities</b></h3>
 
             <p><b>💬 Live League Chat & Messaging:</b>
             <ul>
                 <li><b>In-App League Chat:</b> Chat live with fellow league members inside your joined leagues.</li>
-                <li><b>Replies & Mentions:</b> Long-press to quote-reply or type @ to tag players with autocomplete.</li>
-                <li><b>Reactions, Emojis & GIFs:</b> Express yourself with custom emoji reactions and GIF search.</li>
-                <li><b>Full-Screen Media Viewer:</b> View photos with zoom/pan and videos in full-screen mode.</li>
-                <li><b>In-App Web View:</b> Open shared links directly within the app.</li>
+                <li><b>Voice Messages:</b> Send audio recordings in real-time.</li>
+                <li><b>Replies & Mentions:</b> Long-press to quote-reply or type @ to tag players with autocomplete suggestions.</li>
+                <li><b>Reactions, Emojis & GIFs:</b> Express yourself with custom emoji reactions and built-in GIF search.</li>
+                <li><b>Full-Screen Media Viewer:</b> View photos with pinch-to-zoom and play videos in full screen.</li>
+                <li><b>In-App Web View:</b> Open shared links directly inside the app without switching apps.</li>
             </ul>
             </p>
 
-            <p><b>🔔 League & Chat Notifications:</b> Stay updated with real-time push alerts for:
+            <p><b>🔔 League & Chat Push Notifications:</b> Real-time OneSignal 5.x push alerts for:
             <ul>
                 <li>Match Starts & Venue details</li>
                 <li>Live Score updates (every 3 balls)</li>
@@ -478,15 +492,15 @@ class HomeActivity : BaseActivity() {
                 <li><b>Ball-by-Ball Live Scoring:</b> Real-time tracking of runs, extras (WD, NB, Bye, LB), wickets, and retirements.</li>
                 <li><b>Flexible Match Modes:</b> Standard League matches, 1v1 duels, and Gully Cricket.</li>
                 <li><b>Custom Ball Types:</b> Stumper, Red/Green Tennis, Leather, Wind Ball, Rubber, and Plastic.</li>
-                <li><b>Duckworth-Lewis-Stern (DLS):</b> Dynamic target revision for rain-affected matches.</li>
-                <li><b>Undo Last Ball & Drafts:</b> Revert ball entry errors or resume matches anytime from Match History.</li>
+                <li><b>Duckworth-Lewis-Stern (DLS):</b> Dynamic target calculation for rain-affected matches.</li>
+                <li><b>Undo Last Ball & Drafts:</b> Revert ball entry errors or resume unfinished matches anytime from Match History.</li>
             </ul>
             </p>
 
             <p><b>📊 Player Analytics & Leaderboards:</b>
             <ul>
                 <li><b>Radar Charts (Spider Maps):</b> Visual comparison of player archetypes across Strike Rate, Average, Economy, Lethality, and Fielding.</li>
-                <li><b>H2H Duels & Rivalry Badges:</b> Ball-by-ball Batter vs. Bowler analysis with "Bunny", "Owner", and "Fierce Rivalry" badges.</li>
+                <li><b>H2H Duels & Rivalry Badges:</b> Ball-by-ball Batter vs. Bowler breakdown with "Bunny", "Owner", and "Fierce Rivalry" badges.</li>
                 <li><b>Prestige Colors:</b> Honor top league performers with Gold (#1 Overall), Orange (Best Batter), and Purple (Best Bowler).</li>
                 <li><b>Comprehensive Leaderboards:</b> Track Most Runs, Wickets, Best SR, Economy, 50s, 30s, and Multi-wicket hauls.</li>
             </ul>

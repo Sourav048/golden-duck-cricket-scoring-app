@@ -62,7 +62,7 @@
 
 ## 📥 Installation & Builds
 
-Download the latest release APK (**`Golden_Duck_v5.2.apk`**) from the [Releases](https://github.com/Sourav048/golden-duck-cricket-scoring-app/releases) section.
+Download the latest release APK (**`Golden_Duck_v5.3.apk`**) from the [Releases](https://github.com/Sourav048/golden-duck-cricket-scoring-app/releases) section.
 
 ---
 

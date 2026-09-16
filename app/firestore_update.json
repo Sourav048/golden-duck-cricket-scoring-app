@@ -1,16 +1,16 @@
 {
   "fields": {
     "latest_version_code": {
-      "integerValue": "8"
+      "integerValue": "9"
     },
     "version_name": {
-      "stringValue": "5.2"
+      "stringValue": "5.3"
     },
     "download_url": {
-      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v5.2.apk"
+      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v5.3.apk"
     },
     "release_notes": {
-      "stringValue": "• In-app auto-update system\n• Admin PIN protection for deleting records\n• Performance optimizations and bug fixes"
+      "stringValue": "• Live League Chat voice audio messages & player controls\n• Live unread message badges on chat icon\n• Gully League 4-digit Admin PIN security\n• Grouped match history with date headers\n• Image Guard photo compression & EXIF auto-rotation"
     },
     "force_update": {
       "booleanValue": false
