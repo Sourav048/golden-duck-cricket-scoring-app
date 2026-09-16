@@ -26,6 +26,9 @@ android {
         versionCode = 9
         versionName = "5.3"
 
+        val onesignalRestApiKey = localProperties.getProperty("onesignal.rest.api.key") ?: ""
+        buildConfigField("String", "ONESIGNAL_REST_API_KEY", "\"$onesignalRestApiKey\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -91,6 +94,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     packaging {
