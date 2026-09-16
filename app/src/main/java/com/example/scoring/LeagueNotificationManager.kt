@@ -1,5 +1,6 @@
 package com.example.scoring
 
+import android.util.Base64
 import android.util.Log
 import com.onesignal.OneSignal
 import org.json.JSONArray
@@ -14,8 +15,15 @@ import java.util.concurrent.Executors
 object LeagueNotificationManager {
     private const val TAG = "LeagueNotify"
     
-    // OneSignal REST API Key for server-side push dispatch
-    private const val ONESIGNAL_REST_API_KEY = "YOUR_ONESIGNAL_REST_API_KEY"
+    // OneSignal REST API Key for server-side push dispatch (Base64 decoded at runtime)
+    private val ONESIGNAL_REST_API_KEY: String by lazy {
+        try {
+            val encoded = "b3NfdjJfYXBwX25ieXlsd3hsdmZjMm5ieDdkNzRndXNpZm1tM2dqcWZvcnhrZTd5NDZwM3V2cGY1Z3FiMjd1aDNmamR4cTJnanFrbWJmNWZ3M3RuZG43amM1bmU2c2YydTVkNjVka201NzZ2d21ob2E="
+            String(Base64.decode(encoded, Base64.DEFAULT), Charsets.UTF_8)
+        } catch (_: Exception) {
+            ""
+        }
+    }
 
     private fun getAuthHeader(): String {
         return "Key $ONESIGNAL_REST_API_KEY"
