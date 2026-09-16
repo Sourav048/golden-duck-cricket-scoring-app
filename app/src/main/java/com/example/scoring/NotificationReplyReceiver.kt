@@ -18,7 +18,8 @@ class NotificationReplyReceiver : BroadcastReceiver() {
 
         if (replyText.isNullOrBlank()) return
 
-        val leagueId = intent.getStringExtra("LEAGUE_ID") ?: return
+        val rawLeagueId = intent.getStringExtra("LEAGUE_ID") ?: return
+        val leagueId = if (rawLeagueId.trim().equals("local", ignoreCase = true)) "local" else rawLeagueId.trim().uppercase()
 
         val gullyPrefs = context.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
         val senderId = gullyPrefs.getString("chat_sender_id", "unknown_user") ?: "unknown_user"

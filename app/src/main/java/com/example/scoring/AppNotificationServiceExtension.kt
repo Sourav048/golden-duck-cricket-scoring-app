@@ -17,7 +17,8 @@ class AppNotificationServiceExtension : INotificationServiceExtension {
         val notification = event.notification
         val data = notification.additionalData
         val type = data?.optString("type")
-        val leagueId = data?.optString("leagueId")
+        val rawLeagueId = data?.optString("leagueId")
+        val leagueId = if (rawLeagueId.isNullOrBlank()) null else if (rawLeagueId.trim().equals("local", ignoreCase = true)) "local" else rawLeagueId.trim().uppercase()
         val senderName = data?.optString("senderName")
         val messageText = data?.optString("messageText")
         val senderId = data?.optString("senderId")

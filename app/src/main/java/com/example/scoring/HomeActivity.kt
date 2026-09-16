@@ -29,6 +29,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -193,6 +194,7 @@ class HomeActivity : BaseActivity() {
         super.onResume()
         updateGullyStatusUI()
         updateLeagueChatBadge()
+        syncNotificationPermissionWithOneSignal()
         try {
             ContextCompat.registerReceiver(
                 this,
@@ -206,6 +208,61 @@ class HomeActivity : BaseActivity() {
             val prefs = getSharedPreferences("chat_notif_prefs", MODE_PRIVATE)
             prefs.registerOnSharedPreferenceChangeListener(notifPrefListener)
         } catch (_: Exception) {}
+    }
+
+    private fun syncNotificationPermissionWithOneSignal() {
+        try {
+            val isEnabled = NotificationManagerCompat.from(this).areNotificationsEnabled()
+            val gullyPrefs = getSharedPreferences("gully_prefs", MODE_PRIVATE)
+            val myUserId = gullyPrefs.getString("chat_sender_id", null)
+
+            if (isEnabled) {
+                if (!myUserId.isNullOrEmpty()) {
+                    try {
+                        OneSignal.login(myUserId)
+                        OneSignal.User.addTag("user_$myUserId", "active")
+                    } catch (_: Exception) {}
+                }
+
+                val allGullies = GullyHistoryManager.getGullies(this)
+                for (g in allGullies) {
+                    LeagueNotificationManager.subscribeToLeague(g.id, myUserId)
+                }
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        OneSignal.Notifications.requestPermission(true)
+                    } catch (e: Exception) {
+                        Log.e("HomeNotif", "Error syncing notification state: ${e.message}")
+                    }
+                }
+            } else {
+                // If notifications are disabled/not subscribed, prompt user every 5 hours
+                val fiveHoursMs = 5 * 60 * 60 * 1000L
+                val notifPrefs = getSharedPreferences("chat_notif_prefs", MODE_PRIVATE)
+                val lastPromptTime = notifPrefs.getLong("last_notif_permission_prompt_time", 0L)
+                val currentTime = System.currentTimeMillis()
+
+                if (currentTime - lastPromptTime >= fiveHoursMs) {
+                    notifPrefs.edit().putLong("last_notif_permission_prompt_time", currentTime).apply()
+
+                    MaterialAlertDialogBuilder(this)
+                        .setTitle("Enable Notifications 🔔")
+                        .setMessage("Stay connected with your league! Enable notifications to receive live score updates, match alerts, and chat messages.")
+                        .setPositiveButton("Enable Now") { _, _ ->
+                            CoroutineScope(Dispatchers.Main).launch {
+                                try {
+                                    OneSignal.Notifications.requestPermission(true)
+                                } catch (_: Exception) {}
+                            }
+                        }
+                        .setNegativeButton("Later", null)
+                        .show()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("HomeNotif", "Error in syncNotificationPermissionWithOneSignal: ${e.message}")
+        }
     }
 
     override fun onPause() {

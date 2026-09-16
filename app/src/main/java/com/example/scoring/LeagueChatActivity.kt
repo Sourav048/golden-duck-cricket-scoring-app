@@ -240,11 +240,17 @@ class LeagueChatActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_league_chat)
 
-        leagueId = intent.getStringExtra("LEAGUE_ID")
+        val rawLeagueId = (intent.getStringExtra("LEAGUE_ID")
             ?: intent.getStringExtra("gully_id")
             ?: intent.getStringExtra("leagueId")
             ?: GullySyncManager.getCurrentGullyId(this)
-            ?: "local"
+            ?: "local").trim()
+
+        leagueId = if (rawLeagueId.equals("local", ignoreCase = true)) {
+            "local"
+        } else {
+            rawLeagueId.uppercase()
+        }
 
         if (leagueId.isEmpty() || leagueId == "local") {
             Toast.makeText(this, "League ID not found.", Toast.LENGTH_SHORT).show()

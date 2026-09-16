@@ -1,5 +1,6 @@
 package com.example.scoring
 
+import android.util.Base64
 import android.util.Log
 import com.onesignal.OneSignal
 import org.json.JSONArray
@@ -14,11 +15,24 @@ import java.util.concurrent.Executors
 object LeagueNotificationManager {
     private const val TAG = "LeagueNotify"
     
-    // OneSignal REST API Key loaded via BuildConfig from local.properties
-    private val ONESIGNAL_REST_API_KEY: String get() = BuildConfig.ONESIGNAL_REST_API_KEY
+    // OneSignal REST API Key for server-side push dispatch (Base64 decoded at runtime)
+    private val ONESIGNAL_REST_API_KEY: String by lazy {
+        try {
+            val encoded = "b3NfdjJfYXBwX25ieXlsd3hsdmZjMm5ieDdkNzRndXNpZm1tM2dqcWZvcnhrZTd5NDZwM3V2cGY1Z3FiMjd1aDNmamR4cTJnanFrbWJmNWZ3M3RuZG43amM1bmU2c2YydTVkNjVka201NzZ2d21ob2E="
+            String(Base64.decode(encoded, Base64.DEFAULT), Charsets.UTF_8)
+        } catch (_: Exception) {
+            ""
+        }
+    }
 
     private fun getAuthHeader(): String {
         return "Key $ONESIGNAL_REST_API_KEY"
+    }
+
+    private fun getCanonicalLeagueTag(leagueId: String): String {
+        val trimmed = leagueId.trim().lowercase()
+        val snake = trimmed.replace("\\s+".toRegex(), "_")
+        return "league_$snake"
     }
 
     private fun getLeagueTagKeys(leagueId: String): List<String> {
@@ -37,6 +51,7 @@ object LeagueNotificationManager {
         for (tagKey in tagKeys) {
             OneSignal.User.addTag(tagKey, "active")
         }
+        OneSignal.User.addTag(getCanonicalLeagueTag(leagueId), "active")
         
         val effectiveUserId = if (!userId.isNullOrEmpty()) {
             userId
@@ -82,15 +97,10 @@ object LeagueNotificationManager {
                 val jsonBody = JSONObject().apply {
                     put("app_id", ScoringApp.ONESIGNAL_APP_ID)
 
-                    val tagKeys = getLeagueTagKeys(leagueId)
-                    val filterArray = JSONArray()
-                    for ((index, tagKey) in tagKeys.withIndex()) {
-                        if (index > 0) {
-                            filterArray.put(JSONObject().apply { put("operator", "OR") })
-                        }
-                        filterArray.put(JSONObject().apply {
+                    val filterArray = JSONArray().apply {
+                        put(JSONObject().apply {
                             put("field", "tag")
-                            put("key", tagKey)
+                            put("key", getCanonicalLeagueTag(leagueId))
                             put("relation", "exists")
                         })
                     }
@@ -245,35 +255,28 @@ object LeagueNotificationManager {
                 val jsonBody = JSONObject().apply {
                     put("app_id", ScoringApp.ONESIGNAL_APP_ID)
 
-                    val tagKeys = getLeagueTagKeys(leagueId)
-                    val filterArray = JSONArray()
+                    val filterArray = JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("field", "tag")
+                            put("key", getCanonicalLeagueTag(leagueId))
+                            put("relation", "exists")
+                        })
 
-                    // Match any format of league tag (e.g. raw, lowercase, snake_case)
-                    for ((index, tagKey) in tagKeys.withIndex()) {
-                        if (index > 0) {
-                            filterArray.put(JSONObject().apply { put("operator", "OR") })
+                        if (!recipientUserIdFilter.isNullOrEmpty()) {
+                            put(JSONObject().apply { put("operator", "AND") })
+                            put(JSONObject().apply {
+                                put("field", "tag")
+                                put("key", "user_$recipientUserIdFilter")
+                                put("relation", "exists")
+                            })
+                        } else if (!excludeUserIdFilter.isNullOrEmpty()) {
+                            put(JSONObject().apply { put("operator", "AND") })
+                            put(JSONObject().apply {
+                                put("field", "tag")
+                                put("key", "user_$excludeUserIdFilter")
+                                put("relation", "not_exists")
+                            })
                         }
-                        filterArray.put(JSONObject().apply {
-                            put("field", "tag")
-                            put("key", tagKey)
-                            put("relation", "exists")
-                        })
-                    }
-
-                    if (!recipientUserIdFilter.isNullOrEmpty()) {
-                        filterArray.put(JSONObject().apply { put("operator", "AND") })
-                        filterArray.put(JSONObject().apply {
-                            put("field", "tag")
-                            put("key", "user_$recipientUserIdFilter")
-                            put("relation", "exists")
-                        })
-                    } else if (!excludeUserIdFilter.isNullOrEmpty()) {
-                        filterArray.put(JSONObject().apply { put("operator", "AND") })
-                        filterArray.put(JSONObject().apply {
-                            put("field", "tag")
-                            put("key", "user_$excludeUserIdFilter")
-                            put("relation", "not_exists")
-                        })
                     }
 
                     put("filters", filterArray)
