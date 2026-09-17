@@ -15,6 +15,8 @@ class PlayerEntity() : java.io.Serializable {
     var jerseyNumber: String = "0" // 2-3 digits
     @JvmField
     var photoUri: String = "" // file path to saved photo, empty if none
+    @Ignore
+    var photoUrl: String = "" // Supabase public image URL (Ignored by Room)
     var createdAt: Long = System.currentTimeMillis() // System.currentTimeMillis()
 
     var gullyId: String = "local" // Tag for multi-gully support

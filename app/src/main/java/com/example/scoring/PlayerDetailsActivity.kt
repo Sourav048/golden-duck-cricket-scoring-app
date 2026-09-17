@@ -24,12 +24,14 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.bumptech.glide.Glide
+import com.bumptech.glide.signature.ObjectKey
 import com.example.scoring.AppDatabase.Companion.getInstance
 import com.example.scoring.RankingRegistry.applyPrestige
 import com.example.scoring.SecurityUtils.AuthCallback
 import com.example.scoring.SecurityUtils.authenticate
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.imageview.ShapeableImageView
+import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -133,11 +135,17 @@ class PlayerDetailsActivity : BaseActivity() {
                 tvJersey.text = "#" + player.jerseyNumber
                 tvJersey.setTextColor(contrastColor)
 
-                if (!player.photoUri.isNullOrEmpty() && !isFinishing && !isDestroyed) {
+                val photoTarget: Any = when {
+                    player.photoUrl.isNotEmpty() -> player.photoUrl
+                    player.photoUri.isNotEmpty() -> player.photoUri
+                    else -> ""
+                }
+
+                if (photoTarget != "" && !isFinishing && !isDestroyed) {
                     Glide.with(this)
-                        .load(player.photoUri)
-                        .signature(com.bumptech.glide.signature.ObjectKey(File(player.photoUri).lastModified()))
-                        .dontAnimate() // Better for shared element transitions
+                        .load(photoTarget)
+                        .signature(ObjectKey("${player.id}_${player.lastSyncedAt}"))
+                        .dontAnimate()
                         .placeholder(android.R.drawable.ic_menu_gallery)
                         .error(android.R.drawable.ic_menu_gallery)
                         .into(iv)
@@ -329,8 +337,17 @@ class PlayerDetailsActivity : BaseActivity() {
 
     private fun deletePlayer() {
         val playerToDelete = currentPlayer ?: return
+        val gullyId = playerToDelete.gullyId.ifBlank { GullySyncManager.getCurrentGullyId(this) ?: "local" }
         AppDatabase.ioExecutor.execute {
             db?.playerDao()?.deletePlayer(playerToDelete)
+            if (gullyId != "local" && gullyId.isNotBlank()) {
+                FirebaseFirestore.getInstance()
+                    .collection("gullies")
+                    .document(gullyId)
+                    .collection("players")
+                    .document(playerToDelete.id)
+                    .delete()
+            }
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 Toast.makeText(this, "Player deleted", Toast.LENGTH_SHORT).show()
@@ -399,6 +416,7 @@ class PlayerDetailsActivity : BaseActivity() {
                 
                 // FIX: Ensure photo is saved to internal storage if it's a new URI
                 pendingPhotoUri?.let { uriStr ->
+                    player.lastSyncedAt = System.currentTimeMillis()
                     if (uriStr.startsWith("content://") || uriStr.startsWith("file://")) {
                         try {
                             val savedPath = PhotoUtils.savePhoto(this, Uri.parse(uriStr))

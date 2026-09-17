@@ -21,6 +21,8 @@ import androidx.core.graphics.drawable.IconCompat
 import com.bumptech.glide.Glide
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Collections
+import java.util.LinkedHashMap
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
@@ -97,6 +99,13 @@ object ChatNotificationHelper {
         val msgId: String = ""
     )
 
+    private val recentMsgKeys = Collections.synchronizedMap(object : LinkedHashMap<String, Long>(100, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>?): Boolean {
+            return size > 200
+        }
+    })
+
+    @Synchronized
     fun handleIncomingChatMessage(
         context: Context,
         leagueId: String,
@@ -109,6 +118,24 @@ object ChatNotificationHelper {
         msgId: String? = null
     ) {
         if (leagueId.isBlank()) return
+
+        val now = System.currentTimeMillis()
+
+        // 1. Thread-safe Message Deduplication Check (by msgId or sender+text)
+        val dedupeKey = if (!msgId.isNullOrEmpty()) {
+            "msg_$msgId"
+        } else {
+            "text_${leagueId}_${senderName}_${messageContent}"
+        }
+
+        synchronized(recentMsgKeys) {
+            val lastSeenTime = recentMsgKeys[dedupeKey]
+            if (lastSeenTime != null && (now - lastSeenTime) < 15000) {
+                Log.d("ChatNotif", "Thread-safe deduplication blocked duplicate notification for $dedupeKey")
+                return
+            }
+            recentMsgKeys[dedupeKey] = now
+        }
 
         val notifPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -151,17 +178,6 @@ object ChatNotificationHelper {
 
         // Retrieve queue for this league
         val currentQueue = getQueue(notifPrefs, keyQueue)
-
-        // Deduplication Check: Ignore if exact same sender & text was added within last 15 seconds
-        val lastMsg = currentQueue.lastOrNull()
-        val now = System.currentTimeMillis()
-        if (lastMsg != null && lastMsg.senderName == finalSenderName && lastMsg.text == messageContent) {
-            val timeDiff = now - lastMsg.timestamp
-            if (timeDiff < 15000) {
-                Log.d("ChatNotif", "Ignoring duplicate incoming message from $finalSenderName: $messageContent")
-                return
-            }
-        }
 
         // Add new message
         currentQueue.add(QueueMessage(finalSenderName, messageContent, now, senderProfilePic, msgId ?: ""))

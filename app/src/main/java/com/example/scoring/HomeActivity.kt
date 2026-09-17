@@ -220,14 +220,13 @@ class HomeActivity : BaseActivity() {
                 if (!myUserId.isNullOrEmpty()) {
                     try {
                         OneSignal.login(myUserId)
-                        OneSignal.User.addTag("user_$myUserId", "active")
+                        OneSignal.User.addTag("user_id", myUserId)
+                        OneSignal.User.removeTag("user_$myUserId")
                     } catch (_: Exception) {}
                 }
 
                 val allGullies = GullyHistoryManager.getGullies(this)
-                for (g in allGullies) {
-                    LeagueNotificationManager.subscribeToLeague(g.id, myUserId)
-                }
+                LeagueNotificationManager.syncAllSubscribedLeagues(this, allGullies.map { it.id }, myUserId)
 
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
@@ -509,15 +508,16 @@ class HomeActivity : BaseActivity() {
 
     private fun showReadMeDialog() {
         val manualText = """
-            <h3><b>🔥 What's New in Version 5.3</b></h3>
+            <h3><b>🔥 What's New in Version 6.0</b></h3>
             <p>
             <ul>
-                <li><b>🎙️ Voice Messages & Audio Notes:</b> Record, send, and listen to voice notes directly in League Chat with interactive play/pause controls and duration seekbars.</li>
-                <li><b>🔴 Live Unread Message Badges:</b> Real-time unread message counters on League Chat icon and action buttons so you never miss a chat notification.</li>
-                <li><b>🛡️ Gully Admin 4-Digit PIN Security:</b> Protect your Gully Leagues with a 4-digit Admin PIN for sensitive actions like match deletions and data migrations.</li>
-                <li><b>📅 Grouped Match History:</b> Match history is chronologically organized with clear date headers (Today, Yesterday, Specific Dates).</li>
-                <li><b>🖼️ Player Photo Image Guard & Auto-Fix:</b> Automatic EXIF orientation detection (fixes sideways photos), portrait auto-rotation, and smart 75% JPEG compression for instant loading.</li>
-                <li><b>⚡ Cloud Sync Payload Compression:</b> Heavy match data and commentary are compressed using GZIP (~95% payload reduction) for lightning-fast cloud sync.</li>
+                <li><b>📸 2160p 4K Ultra HD Player Photos:</b> Player photos are now processed and stored in 2160p 4K UHD quality on Supabase Storage.</li>
+                <li><b>⚡ Instant Photo Cache Invalidation:</b> Changing a player photo updates the image instantly across all devices without showing old cached pictures.</li>
+                <li><b>👻 Global Player Deletion:</b> Deleting a player removes them permanently across all devices in the league with zero ghost player re-uploads.</li>
+                <li><b>🚫 Single Notification Deduplication:</b> Message notifications arrive exactly once per message without repeating or double-firing.</li>
+                <li><b>🎙️ Voice Notes & Audio Messages:</b> Record, send, and listen to voice notes in League Chat with interactive play/pause controls.</li>
+                <li><b>🔴 Live Unread Message Badges:</b> Real-time unread message counters on League Chat icons and action buttons.</li>
+                <li><b>🛡️ Gully Admin 4-Digit PIN Security:</b> Protect Gully Leagues with a 4-digit Admin PIN for sensitive deletions and migrations.</li>
             </ul>
             </p>
 

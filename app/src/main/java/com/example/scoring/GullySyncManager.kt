@@ -122,14 +122,13 @@ object GullySyncManager {
                                         val local = localDb.playerDao().getPlayerById(cloudPlayer.id)
                                         
                                         if (local == null || cloudPlayer.lastSyncedAt > local.lastSyncedAt) {
-                                            // PHOTO SYNC: Reconstruct local image from cloud data ONLY if data is new
-                                            if (!cloudPlayer.photoBase64.isNullOrEmpty()) {
-                                                val isPathInvalid = local == null || local.photoUri.isEmpty() || !PhotoUtils.isValidInternalPath(local.photoUri)
-                                                if (isPathInvalid) {
-                                                    val savedPath = PhotoUtils.base64ToPath(appContext, cloudPlayer.photoBase64, cloudPlayer.id)
-                                                    if (savedPath != null) cloudPlayer.photoUri = savedPath
-                                                } else {
-                                                    cloudPlayer.photoUri = local.photoUri
+                                            // PHOTO SYNC: Prefer Supabase public photoUrl if available
+                                            if (cloudPlayer.photoUrl.isNotEmpty()) {
+                                                cloudPlayer.photoUri = cloudPlayer.photoUrl
+                                            } else if (!cloudPlayer.photoBase64.isNullOrEmpty()) {
+                                                val savedPath = PhotoUtils.base64ToPath(appContext, cloudPlayer.photoBase64, cloudPlayer.id)
+                                                if (savedPath != null) {
+                                                    cloudPlayer.photoUri = savedPath
                                                 }
                                             }
 
@@ -378,25 +377,31 @@ object GullySyncManager {
             val localWickets = localDb.statsDao().getGlobalTotalWickets(finalGlobalId) ?: 0
             val localMatches = localDb.statsDao().getGlobalTotalMatches(finalGlobalId)
 
-            // FORCE REFRESH: Always rebuild base64 during upload
-            if (player.photoUri.isNotEmpty()) {
+            // UPLOAD HD PHOTO TO SUPABASE & BUILD FALLBACK BASE64
+            if (player.photoUri.isNotEmpty() && !player.photoUri.startsWith("http")) {
+                val supabaseUrl = PhotoUtils.uploadPlayerPhotoToSupabase(context, player.photoUri, player.id)
+                if (!supabaseUrl.isNullOrEmpty()) {
+                    player.photoUrl = supabaseUrl
+                }
                 player.photoBase64 = PhotoUtils.pathToBase64(context, player.photoUri)
-            } else {
-                player.photoBase64 = null
+            } else if (player.photoUri.startsWith("http")) {
+                player.photoUrl = player.photoUri
             }
 
             // --- STEP 1: UPDATE GLOBAL DIRECTORY ---
             val docId = player.globalId ?: player.id
             val globalRef = db.collection("global_players").document(docId)
 
-            val profileUpdate = hashMapOf(
+            val profileUpdate = hashMapOf<String, Any>(
                 "name" to player.name,
                 "jersey" to player.jerseyNumber,
                 "universalId" to docId,
                 "lastUpdated" to System.currentTimeMillis()
             )
 
-            // ALWAYS try to include photo if we have it locally
+            if (player.photoUrl.isNotEmpty()) {
+                profileUpdate["photoUrl"] = player.photoUrl
+            }
             if (!player.photoBase64.isNullOrEmpty()) {
                 profileUpdate["photoBase64"] = player.photoBase64!!
             }

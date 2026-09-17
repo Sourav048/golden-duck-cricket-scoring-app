@@ -1,5 +1,6 @@
 package com.example.scoring
 
+import android.content.Context
 import android.util.Base64
 import android.util.Log
 import com.onesignal.OneSignal
@@ -11,10 +12,16 @@ import java.util.concurrent.Executors
 
 /**
  * Manages OneSignal Tags and App-to-App Notifications for Leagues.
+ *
+ * Optimized for OneSignal Free Plan (max 2 Data Tags per user profile):
+ *  - Tag 1: "user_id" (value = userId)
+ *  - Tag 2: "leagues" (value = ",league_id1,league_id2,")
  */
 object LeagueNotificationManager {
     private const val TAG = "LeagueNotify"
-    
+    private const val PREFS_NAME = "onesignal_league_tags_prefs"
+    private const val KEY_SUBSCRIBED_LEAGUES = "subscribed_leagues_set"
+
     // OneSignal REST API Key for server-side push dispatch (Base64 decoded at runtime)
     private val ONESIGNAL_REST_API_KEY: String by lazy {
         try {
@@ -42,38 +49,96 @@ object LeagueNotificationManager {
         return listOf("league_$trimmed", "league_$lower", "league_$snake").distinct()
     }
 
-    /**
-     * Tags the user with the league ID and user ID so they can receive targeted notifications.
-     */
-    fun subscribeToLeague(leagueId: String, userId: String? = null) {
-        if (leagueId.isBlank()) return
-        val tagKeys = getLeagueTagKeys(leagueId)
-        for (tagKey in tagKeys) {
-            OneSignal.User.addTag(tagKey, "active")
-        }
-        OneSignal.User.addTag(getCanonicalLeagueTag(leagueId), "active")
-        
-        val effectiveUserId = if (!userId.isNullOrEmpty()) {
-            userId
-        } else {
-            ScoringApp.instance?.getOrCreateUserId()
-        }
-        
-        if (!effectiveUserId.isNullOrEmpty()) {
-            OneSignal.User.addTag("user_$effectiveUserId", "active")
-        }
-        Log.d(TAG, "Tagged user for league tags: $tagKeys, userId: $effectiveUserId")
+    private fun getSubscribedLeagues(context: Context?): MutableSet<String> {
+        val ctx = context ?: ScoringApp.instance ?: return mutableSetOf()
+        val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val set = prefs.getStringSet(KEY_SUBSCRIBED_LEAGUES, null) ?: emptySet()
+        return set.toMutableSet()
+    }
+
+    private fun saveSubscribedLeagues(context: Context?, leagues: Set<String>) {
+        val ctx = context ?: ScoringApp.instance ?: return
+        val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putStringSet(KEY_SUBSCRIBED_LEAGUES, leagues).apply()
     }
 
     /**
-     * Removes the league tag from the user.
+     * Syncs all joined leagues at once into the single "leagues" tag key.
      */
-    fun unsubscribeFromLeague(leagueId: String) {
-        val tagKeys = getLeagueTagKeys(leagueId)
-        for (tagKey in tagKeys) {
-            OneSignal.User.removeTag(tagKey)
+    fun syncAllSubscribedLeagues(context: Context, leagueIds: List<String>, userId: String? = null) {
+        val canonicalLeagues = leagueIds.map { getCanonicalLeagueTag(it) }.filter { it.isNotBlank() }.toSet()
+        saveSubscribedLeagues(context, canonicalLeagues)
+        updateUserTags(context, userId)
+    }
+
+    /**
+     * Subscribes the user to a league by appending it to the single "leagues" tag key.
+     */
+    fun subscribeToLeague(leagueId: String, userId: String? = null, context: Context? = null) {
+        if (leagueId.isBlank()) return
+        val canonical = getCanonicalLeagueTag(leagueId)
+        val currentLeagues = getSubscribedLeagues(context)
+        currentLeagues.add(canonical)
+        saveSubscribedLeagues(context, currentLeagues)
+
+        // Remove legacy tag keys to clean up OneSignal profile
+        val legacyKeys = getLeagueTagKeys(leagueId)
+        for (k in legacyKeys) {
+            try { OneSignal.User.removeTag(k) } catch (_: Exception) {}
         }
-        Log.d(TAG, "Removed tags for league: $tagKeys")
+
+        updateUserTags(context, userId)
+        Log.d(TAG, "Subscribed to league: $canonical, total leagues: ${currentLeagues.size}")
+    }
+
+    /**
+     * Unsubscribes the user from a league by removing it from the single "leagues" tag key.
+     */
+    fun unsubscribeFromLeague(leagueId: String, context: Context? = null) {
+        if (leagueId.isBlank()) return
+        val canonical = getCanonicalLeagueTag(leagueId)
+        val currentLeagues = getSubscribedLeagues(context)
+        currentLeagues.remove(canonical)
+        saveSubscribedLeagues(context, currentLeagues)
+
+        // Remove legacy tag keys to clean up OneSignal profile
+        val legacyKeys = getLeagueTagKeys(leagueId)
+        for (k in legacyKeys) {
+            try { OneSignal.User.removeTag(k) } catch (_: Exception) {}
+        }
+
+        updateUserTags(context, null)
+        Log.d(TAG, "Unsubscribed from league: $canonical, remaining leagues: ${currentLeagues.size}")
+    }
+
+    /**
+     * Updates user tags so the user has AT MOST 2 Data Tags on OneSignal:
+     * 1) "user_id" -> userId
+     * 2) "leagues" -> ",league_1,league_2,"
+     */
+    private fun updateUserTags(context: Context? = null, userId: String? = null) {
+        try {
+            val effectiveUserId = if (!userId.isNullOrEmpty()) {
+                userId
+            } else {
+                ScoringApp.instance?.getOrCreateUserId()
+            }
+
+            if (!effectiveUserId.isNullOrEmpty()) {
+                OneSignal.User.addTag("user_id", effectiveUserId)
+                OneSignal.User.removeTag("user_$effectiveUserId")
+            }
+
+            val currentLeagues = getSubscribedLeagues(context)
+            if (currentLeagues.isNotEmpty()) {
+                val leaguesTagValue = "," + currentLeagues.joinToString(",") + ","
+                OneSignal.User.addTag("leagues", leaguesTagValue)
+            } else {
+                OneSignal.User.removeTag("leagues")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating user tags: ${e.message}")
+        }
     }
 
     /**
@@ -94,13 +159,24 @@ object LeagueNotificationManager {
                 conn.setRequestProperty("Authorization", getAuthHeader())
                 conn.doOutput = true
 
+                val canonicalTag = getCanonicalLeagueTag(leagueId)
+
                 val jsonBody = JSONObject().apply {
                     put("app_id", ScoringApp.ONESIGNAL_APP_ID)
 
                     val filterArray = JSONArray().apply {
+                        // Match new consolidated "leagues" tag key
                         put(JSONObject().apply {
                             put("field", "tag")
-                            put("key", getCanonicalLeagueTag(leagueId))
+                            put("key", "leagues")
+                            put("relation", "contains")
+                            put("value", ",$canonicalTag,")
+                        })
+                        // OR match legacy single tag key for backwards compatibility
+                        put(JSONObject().apply { put("operator", "OR") })
+                        put(JSONObject().apply {
+                            put("field", "tag")
+                            put("key", canonicalTag)
                             put("relation", "exists")
                         })
                     }
@@ -110,18 +186,16 @@ object LeagueNotificationManager {
                     put("subtitle", JSONObject().apply { put("en", leagueId) })
                     put("contents", JSONObject().apply { put("en", body) })
 
-                    // 2. Styling & Branding
+                    // Styling & Branding
                     put("android_accent_color", "FF00695C") // Deep Teal
                     put("small_icon", "ic_stat_onesignal_default")
                     put("large_icon", "ic_launcher_custom")
 
-                    // 3. COLLAPSE LOGIC & BUTTONS FOR MATCHES ONLY
+                    // COLLAPSE LOGIC & BUTTONS FOR MATCHES ONLY
                     if (!matchId.isNullOrEmpty()) {
                         put("collapse_id", matchId)
-                        // Use a consistent ID based on the match string to replace on device
                         put("android_notification_id", matchId.hashCode())
 
-                        // Action Buttons only for Match Updates
                         val buttonsArray = JSONArray().apply {
                             put(JSONObject().apply {
                                 put("id", "view_scorecard")
@@ -131,11 +205,9 @@ object LeagueNotificationManager {
                         put("buttons", buttonsArray)
                     }
 
-                    // 5. Behavior: Popup Enabled (High Priority)
                     put("priority", 10)
                     put("android_visibility", 1)
 
-                    // Data payload
                     put("data", JSONObject().apply {
                         put("type", "MATCH")
                         put("matchId", matchId ?: "")
@@ -150,7 +222,7 @@ object LeagueNotificationManager {
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     Log.d(TAG, "OneSignal Notification sent successfully for $leagueId")
                 } else {
-                    Log.e(TAG, "OneSignal API Error: $responseCode - ${conn.errorStream.bufferedReader().readText()}")
+                    Log.e(TAG, "OneSignal API Error: $responseCode - ${conn.errorStream?.bufferedReader()?.readText()}")
                 }
                 conn.disconnect()
 
@@ -162,9 +234,6 @@ object LeagueNotificationManager {
 
     /**
      * Sends a chat notification for a specific league.
-     * If a member is mentioned or replied to, sends a targeted receiver-centric notification
-     * (e.g., "SenderName(Mentioned You🗣️🗣️)" or "SenderName(Replied to you)")
-     * to that recipient, and a standard notification ("SenderName") to all other members.
      */
     fun sendLeagueChatNotification(
         leagueId: String,
@@ -252,30 +321,56 @@ object LeagueNotificationManager {
                 conn.setRequestProperty("Authorization", getAuthHeader())
                 conn.doOutput = true
 
+                val canonicalTag = getCanonicalLeagueTag(leagueId)
+
                 val jsonBody = JSONObject().apply {
                     put("app_id", ScoringApp.ONESIGNAL_APP_ID)
 
                     val filterArray = JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("field", "tag")
-                            put("key", getCanonicalLeagueTag(leagueId))
-                            put("relation", "exists")
-                        })
-
                         if (!recipientUserIdFilter.isNullOrEmpty()) {
-                            put(JSONObject().apply { put("operator", "AND") })
+                            // Target specifically the recipient user
+                            put(JSONObject().apply {
+                                put("field", "tag")
+                                put("key", "user_id")
+                                put("relation", "=")
+                                put("value", recipientUserIdFilter)
+                            })
+                            put(JSONObject().apply { put("operator", "OR") })
                             put(JSONObject().apply {
                                 put("field", "tag")
                                 put("key", "user_$recipientUserIdFilter")
                                 put("relation", "exists")
                             })
-                        } else if (!excludeUserIdFilter.isNullOrEmpty()) {
-                            put(JSONObject().apply { put("operator", "AND") })
+                        } else {
+                            // Target everyone in the league (new consolidated tag OR legacy tag)
                             put(JSONObject().apply {
                                 put("field", "tag")
-                                put("key", "user_$excludeUserIdFilter")
-                                put("relation", "not_exists")
+                                put("key", "leagues")
+                                put("relation", "contains")
+                                put("value", ",$canonicalTag,")
                             })
+                            put(JSONObject().apply { put("operator", "OR") })
+                            put(JSONObject().apply {
+                                put("field", "tag")
+                                put("key", canonicalTag)
+                                put("relation", "exists")
+                            })
+
+                            if (!excludeUserIdFilter.isNullOrEmpty()) {
+                                put(JSONObject().apply { put("operator", "AND") })
+                                put(JSONObject().apply {
+                                    put("field", "tag")
+                                    put("key", "user_id")
+                                    put("relation", "!=")
+                                    put("value", excludeUserIdFilter)
+                                })
+                                put(JSONObject().apply { put("operator", "AND") })
+                                put(JSONObject().apply {
+                                    put("field", "tag")
+                                    put("key", "user_$excludeUserIdFilter")
+                                    put("relation", "not_exists")
+                                })
+                            }
                         }
                     }
 

@@ -1,16 +1,16 @@
 {
   "fields": {
     "latest_version_code": {
-      "integerValue": "9"
+      "integerValue": "10"
     },
     "version_name": {
-      "stringValue": "5.3"
+      "stringValue": "6.0"
     },
     "download_url": {
-      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v5.3.apk"
+      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v6.0.apk"
     },
     "release_notes": {
-      "stringValue": "• Live League Chat voice audio messages & player controls\n• Live unread message badges on chat icon\n• Gully League 4-digit Admin PIN security\n• Grouped match history with date headers\n• Image Guard photo compression & EXIF auto-rotation"
+      "stringValue": "• 2160p 4K UHD player photo resolution & Supabase Storage sync\n• Instant Glide photo cache invalidation across all screens\n• Global ghost player deletion fix\n• Single-notification deduplication & anti-spam fix\n• Normalized league ID casing & 5-hour notification prompt"
     },
     "force_update": {
       "booleanValue": false

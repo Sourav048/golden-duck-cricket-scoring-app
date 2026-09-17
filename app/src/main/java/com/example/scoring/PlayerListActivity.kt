@@ -34,6 +34,7 @@ import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.signature.ObjectKey
 import com.example.scoring.AppDatabase.Companion.getInstance
 import com.example.scoring.RankingRegistry.applyPrestige
 import com.example.scoring.RankingRegistry.refresh
@@ -567,15 +568,21 @@ class PlayerListActivity : BaseActivity() {
             val df = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
             holder.joined.text = "Joined: ${df.format(Date(p.createdAt))}"
 
-            if (!p.photoUri.isNullOrEmpty() && !isFinishing && !isDestroyed) {
+            val photoTarget: Any = when {
+                p.photoUrl.isNotEmpty() -> p.photoUrl
+                p.photoUri.isNotEmpty() -> p.photoUri
+                else -> ""
+            }
+
+            if (photoTarget != "" && !isFinishing && !isDestroyed) {
                 try {
                     Glide.with(holder.itemView.context)
-                        .load(p.photoUri)
-                        .signature(com.bumptech.glide.signature.ObjectKey(File(p.photoUri).lastModified()))
+                        .load(photoTarget)
+                        .signature(ObjectKey("${p.id}_${p.lastSyncedAt}"))
                         .placeholder(android.R.drawable.ic_menu_gallery)
                         .error(android.R.drawable.ic_menu_gallery)
                         .into(holder.photo)
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     holder.photo.setImageResource(android.R.drawable.ic_menu_gallery)
                 }
             } else {

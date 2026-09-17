@@ -13,14 +13,60 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.UUID
 import java.util.concurrent.Executors
 
 @Keep
 object PhotoUtils {
     private const val PHOTO_DIR = "player_photos"
-    private const val MAX_SIZE = 400 // Max dimension in pixels for "Image Guard"
-    private const val QUALITY = 75   // Professional compression balance
+    private const val MAX_SIZE = 2160 // Max dimension in pixels for 2160p 4K UHD
+    private const val QUALITY = 85   // High Quality Crisp Compression
+
+    private const val SUPABASE_URL = "https://alyfggrwppkctlbroqzr.supabase.co"
+    private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFseWZnZ3J3cHBrY3RsYnJvcXpyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODgxMTE4MSwiZXhwIjoyMTA0Mzg3MTgxfQ.OsUzeI4QQZG0QOVAaGu_4iVStPJaOmmWUBNXcgk1juk"
+    private const val SUPABASE_BUCKET = "player_photos"
+
+    /**
+     * Uploads a local player photo to Supabase Storage and returns the public URL.
+     */
+    fun uploadPlayerPhotoToSupabase(context: Context, localPhotoPath: String?, playerId: String): String? {
+        if (localPhotoPath.isNullOrEmpty()) return null
+        val file = File(localPhotoPath)
+        if (!file.exists() || !file.isFile) return null
+
+        try {
+            val fileName = "player_${playerId}.jpg"
+            val url = URL("$SUPABASE_URL/storage/v1/object/$SUPABASE_BUCKET/$fileName")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Authorization", "Bearer $SUPABASE_KEY")
+            conn.setRequestProperty("apiKey", SUPABASE_KEY)
+            conn.setRequestProperty("x-upsert", "true")
+            conn.setRequestProperty("Content-Type", "image/jpeg")
+            conn.doOutput = true
+
+            file.inputStream().use { input ->
+                conn.outputStream.use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            val responseCode = conn.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK || responseCode == 201) {
+                val publicUrl = "$SUPABASE_URL/storage/v1/object/public/$SUPABASE_BUCKET/$fileName"
+                Log.d("PHOTO_UTILS", "Successfully uploaded player photo to Supabase: $publicUrl")
+                return publicUrl
+            } else {
+                Log.e("PHOTO_UTILS", "Failed to upload player photo to Supabase ($responseCode)")
+                return null
+            }
+        } catch (e: Exception) {
+            Log.e("PHOTO_UTILS", "Error uploading player photo to Supabase: ${e.message}")
+            return null
+        }
+    }
 
     /**
      * Scans and auto-fixes all existing saved player photos that are in landscape mode (width > height),
@@ -224,11 +270,11 @@ object PhotoUtils {
                 bitmap = upright
             }
 
-            // 3. Resize for Sync (Max 300px)
-            val processedBitmap = resizeBitmap(bitmap!!, 300)
+            // 3. Resize for Base64 Fallback (Max 500px for Firestore 1MB safety)
+            val processedBitmap = resizeBitmap(bitmap!!, 500)
             
             val outputStream = ByteArrayOutputStream()
-            processedBitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+            processedBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
             val bytes = outputStream.toByteArray()
             
             val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)

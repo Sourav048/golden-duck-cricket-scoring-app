@@ -55,8 +55,9 @@ class ScoringApp : Application() {
         val currentUserId = getOrCreateUserId()
         try {
             OneSignal.login(currentUserId)
-            OneSignal.User.addTag("user_$currentUserId", "active")
             OneSignal.User.addTag("user_id", currentUserId)
+            // Remove legacy tag key to stay within 2-tag Free Plan limit
+            OneSignal.User.removeTag("user_$currentUserId")
             Log.d("ScoringApp", "OneSignal logged in user: $currentUserId")
         } catch (e: Exception) {
             Log.e("ScoringApp", "OneSignal login error: ${e.message}")
@@ -88,53 +89,6 @@ class ScoringApp : Application() {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     startActivity(intent)
-                }
-            }
-        })
-
-        // Handle Foreground Notifications (e.g. when user is on Home screen)
-        OneSignal.Notifications.addForegroundLifecycleListener(object : INotificationLifecycleListener {
-            override fun onWillDisplay(event: INotificationWillDisplayEvent) {
-                val notification = event.notification
-                val data = notification.additionalData
-                val type = data?.optString("type")
-                val leagueId = data?.optString("leagueId")
-                val senderName = data?.optString("senderName")
-                val messageText = data?.optString("messageText")
-                val senderId = data?.optString("senderId")
-                val senderProfilePic = data?.optString("senderProfilePic")
-                val msgId = data?.optString("msgId")
-                val targetRecipientId = data?.optString("targetRecipientId") ?: data?.optString("replyRecipientId")
-                val isPersonalChat = data?.optBoolean("isPersonalChat", false) ?: false
-
-                if (type == "CHAT" && !leagueId.isNullOrEmpty()) {
-                    // Suppress OneSignal's default single card display
-                    event.preventDefault()
-
-                    val gullyPrefs = getSharedPreferences("gully_prefs", MODE_PRIVATE)
-                    val myUserId = gullyPrefs.getString("chat_sender_id", null)
-                    if (!myUserId.isNullOrEmpty() && senderId == myUserId) {
-                        return
-                    }
-
-                    // Build and post MessagingStyle notification asynchronously on background thread
-                    Executors.newSingleThreadExecutor().execute {
-                        try {
-                            ChatNotificationHelper.handleIncomingChatMessage(
-                                context = this@ScoringApp,
-                                leagueId = leagueId,
-                                senderName = senderName ?: "Member",
-                                messageContent = messageText ?: notification.body ?: "",
-                                replyRecipientId = targetRecipientId,
-                                isPersonalChat = isPersonalChat,
-                                senderProfilePic = senderProfilePic,
-                                senderId = senderId,
-                                msgId = msgId
-                            )
-                        } catch (e: Throwable) {
-                            Log.e("ScoringApp", "Error displaying foreground notification: ${e.message}", e)
-                        }
-                    }
                 }
             }
         })
