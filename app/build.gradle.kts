@@ -23,8 +23,8 @@ android {
         applicationId = "com.example.scoring"
         minSdk = 24
         targetSdk = 35
-        versionCode = 10
-        versionName = "6.0"
+        versionCode = 11
+        versionName = "6.1"
 
         val onesignalRestApiKey = localProperties.getProperty("onesignal.rest.api.key") ?: ""
         buildConfigField("String", "ONESIGNAL_REST_API_KEY", "\"$onesignalRestApiKey\"")

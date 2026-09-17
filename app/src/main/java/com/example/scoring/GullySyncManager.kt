@@ -123,7 +123,7 @@ object GullySyncManager {
                                         
                                         if (local == null || cloudPlayer.lastSyncedAt > local.lastSyncedAt) {
                                             // PHOTO SYNC: Prefer Supabase public photoUrl if available
-                                            if (cloudPlayer.photoUrl.isNotEmpty()) {
+                                            if (!cloudPlayer.photoUrl.isNullOrEmpty()) {
                                                 cloudPlayer.photoUri = cloudPlayer.photoUrl
                                             } else if (!cloudPlayer.photoBase64.isNullOrEmpty()) {
                                                 val savedPath = PhotoUtils.base64ToPath(appContext, cloudPlayer.photoBase64, cloudPlayer.id)
@@ -399,7 +399,7 @@ object GullySyncManager {
                 "lastUpdated" to System.currentTimeMillis()
             )
 
-            if (player.photoUrl.isNotEmpty()) {
+            if (!player.photoUrl.isNullOrEmpty()) {
                 profileUpdate["photoUrl"] = player.photoUrl
             }
             if (!player.photoBase64.isNullOrEmpty()) {

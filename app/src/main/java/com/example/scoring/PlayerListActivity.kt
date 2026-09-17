@@ -569,8 +569,8 @@ class PlayerListActivity : BaseActivity() {
             holder.joined.text = "Joined: ${df.format(Date(p.createdAt))}"
 
             val photoTarget: Any = when {
-                p.photoUrl.isNotEmpty() -> p.photoUrl
-                p.photoUri.isNotEmpty() -> p.photoUri
+                !p.photoUrl.isNullOrEmpty() -> p.photoUrl
+                !p.photoUri.isNullOrEmpty() -> p.photoUri
                 else -> ""
             }
 

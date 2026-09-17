@@ -508,16 +508,15 @@ class HomeActivity : BaseActivity() {
 
     private fun showReadMeDialog() {
         val manualText = """
-            <h3><b>🔥 What's New in Version 6.0</b></h3>
+            <h3><b>🔥 What's New in Version 6.1</b></h3>
             <p>
             <ul>
-                <li><b>📸 2160p 4K Ultra HD Player Photos:</b> Player photos are now processed and stored in 2160p 4K UHD quality on Supabase Storage.</li>
-                <li><b>⚡ Instant Photo Cache Invalidation:</b> Changing a player photo updates the image instantly across all devices without showing old cached pictures.</li>
-                <li><b>👻 Global Player Deletion:</b> Deleting a player removes them permanently across all devices in the league with zero ghost player re-uploads.</li>
-                <li><b>🚫 Single Notification Deduplication:</b> Message notifications arrive exactly once per message without repeating or double-firing.</li>
+                <li><b>🔒 Secure Cloudflare Relay:</b> Serverless proxy architecture protects push API secrets and delivers notifications with 100% security.</li>
+                <li><b>⚡ Blink-of-an-Eye Delivery:</b> Instant client-side message ID generation and HTTP socket reuse deliver notifications in under 200ms.</li>
+                <li><b>♾️ Unlimited League Subscriptions:</b> Switched to individual tag subscriptions (`league_<id>`) eliminating OneSignal tag length caps.</li>
+                <li><b>🚫 Smart Message Deduplication:</b> Multi-layer deduplication guarantees notifications and unread badges arrive exactly once per message.</li>
+                <li><b>📸 2160p 4K Ultra HD Player Photos:</b> Player photos processed and stored in 2160p 4K UHD quality on Supabase Storage.</li>
                 <li><b>🎙️ Voice Notes & Audio Messages:</b> Record, send, and listen to voice notes in League Chat with interactive play/pause controls.</li>
-                <li><b>🔴 Live Unread Message Badges:</b> Real-time unread message counters on League Chat icons and action buttons.</li>
-                <li><b>🛡️ Gully Admin 4-Digit PIN Security:</b> Protect Gully Leagues with a 4-digit Admin PIN for sensitive deletions and migrations.</li>
             </ul>
             </p>
 

@@ -4,7 +4,9 @@ import android.Manifest
 import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -24,6 +26,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import com.bumptech.glide.signature.ObjectKey
 import com.example.scoring.AppDatabase.Companion.getInstance
 import com.example.scoring.RankingRegistry.applyPrestige
@@ -136,8 +140,8 @@ class PlayerDetailsActivity : BaseActivity() {
                 tvJersey.setTextColor(contrastColor)
 
                 val photoTarget: Any = when {
-                    player.photoUrl.isNotEmpty() -> player.photoUrl
-                    player.photoUri.isNotEmpty() -> player.photoUri
+                    !player.photoUrl.isNullOrEmpty() -> player.photoUrl
+                    !player.photoUri.isNullOrEmpty() -> player.photoUri
                     else -> ""
                 }
 
@@ -185,7 +189,14 @@ class PlayerDetailsActivity : BaseActivity() {
     }
 
     private fun showFullScreenPhoto(player: PlayerEntity?) {
-        if (player == null || player.photoUri.isNullOrEmpty()) return
+        if (player == null) return
+        val photoTarget: Any = when {
+            !player.photoUrl.isNullOrEmpty() -> player.photoUrl
+            !player.photoUri.isNullOrEmpty() -> player.photoUri
+            !player.photoBase64.isNullOrEmpty() -> player.photoBase64!!
+            else -> ""
+        }
+        if (photoTarget == "") return
 
         val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
         dialog.setContentView(R.layout.dialog_full_screen_photo)
@@ -200,24 +211,22 @@ class PlayerDetailsActivity : BaseActivity() {
         var currentRotationDegrees = 0f
         var loadedBitmap: android.graphics.Bitmap? = null
 
-        java.util.concurrent.Executors.newSingleThreadExecutor().execute {
-            val file = File(player.photoUri)
-            val bitmap = if (file.exists() && file.isFile) {
-                android.graphics.BitmapFactory.decodeFile(file.absolutePath)
-            } else if (!player.photoBase64.isNullOrEmpty()) {
-                val bytes = android.util.Base64.decode(player.photoBase64, android.util.Base64.DEFAULT)
-                android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            } else null
-
-            loadedBitmap = bitmap
-            runOnUiThread {
-                if (bitmap != null) {
-                    ivFullScreen.setImageBitmap(bitmap)
-                } else {
-                    Glide.with(this@PlayerDetailsActivity).load(player.photoUri).into(ivFullScreen)
+        Glide.with(this@PlayerDetailsActivity)
+            .asBitmap()
+            .load(photoTarget)
+            .signature(ObjectKey("${player.id}_${player.lastSyncedAt}"))
+            .into(object : CustomTarget<Bitmap>() {
+                override fun onResourceReady(
+                    resource: Bitmap,
+                    transition: Transition<in Bitmap>?
+                ) {
+                    loadedBitmap = resource
+                    ivFullScreen.setImageBitmap(resource)
                 }
-            }
-        }
+                override fun onLoadCleared(placeholder: Drawable?) {
+                    ivFullScreen.setImageDrawable(placeholder)
+                }
+            })
 
         btnRotate?.setOnClickListener {
             val base = loadedBitmap ?: return@setOnClickListener

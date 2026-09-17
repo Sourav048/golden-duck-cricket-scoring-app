@@ -874,22 +874,25 @@ class LeagueChatActivity : BaseActivity() {
             "replyToMediaType" to replyMediaType
         )
 
-        db.collection("gullies")
+        val docRef = db.collection("gullies")
             .document(leagueId)
             .collection("messages")
-            .add(newMsg)
-            .addOnSuccessListener { docRef ->
-                LeagueNotificationManager.sendLeagueChatNotification(
-                    leagueId = leagueId,
-                    senderName = senderName,
-                    messageText = text,
-                    senderId = senderId,
-                    targetRecipientId = targetRecipientId,
-                    recipientSenderLabel = customNotificationSender,
-                    senderProfilePic = senderProfilePic,
-                    msgId = docRef.id
-                )
-            }
+            .document()
+        val msgId = docRef.id
+
+        // Dispatch notification IMMEDIATELY (Blink-of-an-eye speed, no Firestore network delay)
+        LeagueNotificationManager.sendLeagueChatNotification(
+            leagueId = leagueId,
+            senderName = senderName,
+            messageText = text,
+            senderId = senderId,
+            targetRecipientId = targetRecipientId,
+            recipientSenderLabel = customNotificationSender,
+            senderProfilePic = senderProfilePic,
+            msgId = msgId
+        )
+
+        docRef.set(newMsg)
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Failed to send: ${e.message}", Toast.LENGTH_SHORT).show()
             }
@@ -1271,6 +1274,27 @@ class LeagueChatActivity : BaseActivity() {
     }
 
     private fun uploadAndSendDocument(uri: Uri, fileName: String, fileSize: Long, mimeType: String, captionText: String) {
+        val replyId = activeReplyMessage?.id
+        val replySender = if (activeReplyMessage?.senderId == senderId) "You" else activeReplyMessage?.senderName
+        val replyRecipientId = activeReplyMessage?.senderId
+        val mentionedRecipientId = extractMentionedUserId(captionText)
+
+        val (targetRecipientId, customNotificationSender) = when {
+            !replyRecipientId.isNullOrEmpty() && replyRecipientId != senderId -> {
+                Pair(replyRecipientId, "$senderName(Replied to you)")
+            }
+            !mentionedRecipientId.isNullOrEmpty() && mentionedRecipientId != senderId -> {
+                Pair(mentionedRecipientId, "$senderName(Mentioned You🗣️🗣️)")
+            }
+            else -> Pair(null, senderName)
+        }
+
+        val replyText = activeReplyMessage?.let { buildReplyTextSnippet(it) }
+        val replyMediaUrl = activeReplyMessage?.mediaUrl ?: activeReplyMessage?.thumbnailUrl
+        val replyMediaType = activeReplyMessage?.type
+
+        clearReplyMode()
+
         val progressDialog = AlertDialog.Builder(this)
             .setTitle("Uploading Document...")
             .setMessage("Uploading $fileName to cloud storage...")
@@ -1318,6 +1342,13 @@ class LeagueChatActivity : BaseActivity() {
                             mediaUrl = publicMediaUrl,
                             mediaType = "DOCUMENT",
                             captionText = captionText,
+                            replyId = replyId,
+                            replySender = replySender,
+                            replyText = replyText,
+                            replyMediaUrl = replyMediaUrl,
+                            replyMediaType = replyMediaType,
+                            targetRecipientId = targetRecipientId,
+                            customNotificationSender = customNotificationSender,
                             fileName = fileName,
                             fileSize = fileSize
                         )
@@ -1333,6 +1364,13 @@ class LeagueChatActivity : BaseActivity() {
                                 mediaUrl = dataUrl,
                                 mediaType = "DOCUMENT",
                                 captionText = captionText,
+                                replyId = replyId,
+                                replySender = replySender,
+                                replyText = replyText,
+                                replyMediaUrl = replyMediaUrl,
+                                replyMediaType = replyMediaType,
+                                targetRecipientId = targetRecipientId,
+                                customNotificationSender = customNotificationSender,
                                 fileName = fileName,
                                 fileSize = fileSize
                             )
@@ -1356,6 +1394,23 @@ class LeagueChatActivity : BaseActivity() {
     }
 
     private fun uploadAndSendAudioNote(uri: Uri, fileName: String, fileSize: Long, durationMs: Long) {
+        val replyId = activeReplyMessage?.id
+        val replySender = if (activeReplyMessage?.senderId == senderId) "You" else activeReplyMessage?.senderName
+        val replyRecipientId = activeReplyMessage?.senderId
+
+        val (targetRecipientId, customNotificationSender) = when {
+            !replyRecipientId.isNullOrEmpty() && replyRecipientId != senderId -> {
+                Pair(replyRecipientId, "$senderName(Replied to you)")
+            }
+            else -> Pair(null, senderName)
+        }
+
+        val replyText = activeReplyMessage?.let { buildReplyTextSnippet(it) }
+        val replyMediaUrl = activeReplyMessage?.mediaUrl ?: activeReplyMessage?.thumbnailUrl
+        val replyMediaType = activeReplyMessage?.type
+
+        clearReplyMode()
+
         val progressDialog = AlertDialog.Builder(this)
             .setTitle("Sending Voice Note...")
             .setMessage("Uploading audio...")
@@ -1403,6 +1458,13 @@ class LeagueChatActivity : BaseActivity() {
                             mediaUrl = publicMediaUrl,
                             mediaType = "AUDIO",
                             captionText = "",
+                            replyId = replyId,
+                            replySender = replySender,
+                            replyText = replyText,
+                            replyMediaUrl = replyMediaUrl,
+                            replyMediaType = replyMediaType,
+                            targetRecipientId = targetRecipientId,
+                            customNotificationSender = customNotificationSender,
                             fileName = fileName,
                             fileSize = fileSize,
                             durationMs = durationMs
@@ -1419,6 +1481,13 @@ class LeagueChatActivity : BaseActivity() {
                                 mediaUrl = dataUrl,
                                 mediaType = "AUDIO",
                                 captionText = "",
+                                replyId = replyId,
+                                replySender = replySender,
+                                replyText = replyText,
+                                replyMediaUrl = replyMediaUrl,
+                                replyMediaType = replyMediaType,
+                                targetRecipientId = targetRecipientId,
+                                customNotificationSender = customNotificationSender,
                                 fileName = fileName,
                                 fileSize = fileSize,
                                 durationMs = durationMs

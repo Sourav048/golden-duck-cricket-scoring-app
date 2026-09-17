@@ -139,6 +139,12 @@ object ChatNotificationHelper {
 
         val notifPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+        // Do NOT notify for messages that were ALREADY swiped away / dismissed by user
+        if (isMessageDismissed(notifPrefs, msgId, senderName, messageContent)) {
+            Log.d("ChatNotif", "Message $msgId / $messageContent was already swiped away by user, skipping.")
+            return
+        }
+
         val effectiveSenderName = if (!replyRecipientId.isNullOrEmpty() && senderName.contains("(")) {
             senderName
         } else {
@@ -178,6 +184,19 @@ object ChatNotificationHelper {
 
         // Retrieve queue for this league
         val currentQueue = getQueue(notifPrefs, keyQueue)
+
+        // Deduplication: Block duplicate payloads for the exact same Firestore message ID
+        val isDuplicateInQueue = currentQueue.any { qMsg ->
+            if (!msgId.isNullOrEmpty()) {
+                qMsg.msgId == msgId
+            } else {
+                qMsg.text == messageContent && qMsg.senderName == finalSenderName && abs(now - qMsg.timestamp) < 15000
+            }
+        }
+        if (isDuplicateInQueue) {
+            Log.d("ChatNotif", "Prevented duplicate payload entry in queue for msgId=$msgId")
+            return
+        }
 
         // Add new message
         currentQueue.add(QueueMessage(finalSenderName, messageContent, now, senderProfilePic, msgId ?: ""))
@@ -367,6 +386,16 @@ object ChatNotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
         )
 
+        val summaryDeleteIntent = Intent(context, NotificationDismissReceiver::class.java).apply {
+            putExtra("ACTION_CLEAR_ALL", true)
+        }
+        val summaryDeletePendingIntent = PendingIntent.getBroadcast(
+            context,
+            SUMMARY_NOTIFICATION_ID,
+            summaryDeleteIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+        )
+
         // Fix 2: Use CHANNEL_ID_ALERT for group summary on Android 14/15/16 so children aren't silenced
         val summaryBuilder = NotificationCompat.Builder(context, CHANNEL_ID_ALERT)
             .setSmallIcon(R.drawable.ic_stat_onesignal_default)
@@ -379,12 +408,39 @@ object ChatNotificationHelper {
             .setGroupSummary(true)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            .setDeleteIntent(summaryDeletePendingIntent)
 
         try {
             notificationManager.notify(SUMMARY_NOTIFICATION_ID, summaryBuilder.build())
         } catch (e: Exception) {
             Log.e("ChatNotif", "Failed to post summary notification: ${e.message}")
         }
+    }
+
+    fun clearAllNotifications(context: Context) {
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val activeLeagues = getActiveLeagues(prefs).toSet()
+
+        for (leagueId in activeLeagues) {
+            val notifId = getNotificationId(leagueId)
+            notificationManager.cancel(notifId)
+
+            val currentQueue = getQueue(prefs, "queue_$leagueId")
+            if (currentQueue.isNotEmpty()) {
+                markMessagesAsDismissed(prefs, currentQueue)
+                prefs.edit().remove("queue_$leagueId").apply()
+            }
+            untrackActiveLeague(prefs, leagueId)
+        }
+
+        notificationManager.cancel(SUMMARY_NOTIFICATION_ID)
+
+        try {
+            val intent = Intent(ACTION_UPDATE_CHAT_BADGE).setPackage(context.packageName)
+            context.sendBroadcast(intent)
+        } catch (_: Exception) {}
     }
 
     fun clearNotificationForLeague(context: Context, leagueId: String) {

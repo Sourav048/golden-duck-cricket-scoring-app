@@ -114,6 +114,8 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity android:name=".NotificationCenterActivity" android:exported="false" />
+
         <receiver
             android:name=".NotificationReplyReceiver"
             android:exported="false" />

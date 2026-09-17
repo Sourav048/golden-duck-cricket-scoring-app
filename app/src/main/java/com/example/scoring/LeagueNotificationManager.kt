@@ -1,40 +1,27 @@
 package com.example.scoring
 
 import android.content.Context
-import android.util.Base64
 import android.util.Log
 import com.onesignal.OneSignal
-import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.Executors
 
 /**
- * Manages OneSignal Tags and App-to-App Notifications for Leagues.
+ * Manages OneSignal Tags and App-to-App Notifications via Cloudflare Worker Relay.
  *
- * Optimized for OneSignal Free Plan (max 2 Data Tags per user profile):
- *  - Tag 1: "user_id" (value = userId)
- *  - Tag 2: "leagues" (value = ",league_id1,league_id2,")
+ * Removes client-side OneSignal REST API key exposure and uses individual OneSignal tags
+ * per league ("league_<id>" = "1") to avoid the 128-character tag truncation limit.
  */
 object LeagueNotificationManager {
     private const val TAG = "LeagueNotify"
-    private const val PREFS_NAME = "onesignal_league_tags_prefs"
-    private const val KEY_SUBSCRIBED_LEAGUES = "subscribed_leagues_set"
+    private val executor = Executors.newCachedThreadPool()
 
-    // OneSignal REST API Key for server-side push dispatch (Base64 decoded at runtime)
-    private val ONESIGNAL_REST_API_KEY: String by lazy {
-        try {
-            val encoded = "b3NfdjJfYXBwX25ieXlsd3hsdmZjMm5ieDdkNzRndXNpZm1tM2dqcWZvcnhrZTd5NDZwM3V2cGY1Z3FiMjd1aDNmamR4cTJnanFrbWJmNWZ3M3RuZG43amM1bmU2c2YydTVkNjVka201NzZ2d21ob2E="
-            String(Base64.decode(encoded, Base64.DEFAULT), Charsets.UTF_8)
-        } catch (_: Exception) {
-            ""
-        }
-    }
-
-    private fun getAuthHeader(): String {
-        return "Key $ONESIGNAL_REST_API_KEY"
-    }
+    // Deployed Cloudflare Worker Relay URL
+    private const val RELAY_URL = "https://scoring-notification-relay.souravknhpi048.workers.dev"
+    // Optional secret key matching RELAY_SECRET in Cloudflare Worker environment variables
+    private const val RELAY_SECRET = ""
 
     private fun getCanonicalLeagueTag(leagueId: String): String {
         val trimmed = leagueId.trim().lowercase()
@@ -42,198 +29,70 @@ object LeagueNotificationManager {
         return "league_$snake"
     }
 
-    private fun getLeagueTagKeys(leagueId: String): List<String> {
-        val trimmed = leagueId.trim()
-        val lower = trimmed.lowercase()
-        val snake = lower.replace("\\s+".toRegex(), "_")
-        return listOf("league_$trimmed", "league_$lower", "league_$snake").distinct()
-    }
-
-    private fun getSubscribedLeagues(context: Context?): MutableSet<String> {
-        val ctx = context ?: ScoringApp.instance ?: return mutableSetOf()
-        val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val set = prefs.getStringSet(KEY_SUBSCRIBED_LEAGUES, null) ?: emptySet()
-        return set.toMutableSet()
-    }
-
-    private fun saveSubscribedLeagues(context: Context?, leagues: Set<String>) {
-        val ctx = context ?: ScoringApp.instance ?: return
-        val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putStringSet(KEY_SUBSCRIBED_LEAGUES, leagues).apply()
-    }
-
     /**
-     * Syncs all joined leagues at once into the single "leagues" tag key.
-     */
-    fun syncAllSubscribedLeagues(context: Context, leagueIds: List<String>, userId: String? = null) {
-        val canonicalLeagues = leagueIds.map { getCanonicalLeagueTag(it) }.filter { it.isNotBlank() }.toSet()
-        saveSubscribedLeagues(context, canonicalLeagues)
-        updateUserTags(context, userId)
-    }
-
-    /**
-     * Subscribes the user to a league by appending it to the single "leagues" tag key.
+     * Subscribes the user to a specific league tag ("league_<id>" = "1").
      */
     fun subscribeToLeague(leagueId: String, userId: String? = null, context: Context? = null) {
         if (leagueId.isBlank()) return
-        val canonical = getCanonicalLeagueTag(leagueId)
-        val currentLeagues = getSubscribedLeagues(context)
-        currentLeagues.add(canonical)
-        saveSubscribedLeagues(context, currentLeagues)
+        val tag = getCanonicalLeagueTag(leagueId)
+        val trimmed = leagueId.trim()
+        val effectiveUserId = if (!userId.isNullOrEmpty()) userId else ScoringApp.instance?.getOrCreateUserId()
 
-        // Remove legacy tag keys to clean up OneSignal profile
-        val legacyKeys = getLeagueTagKeys(leagueId)
-        for (k in legacyKeys) {
-            try { OneSignal.User.removeTag(k) } catch (_: Exception) {}
+        try {
+            // Clean up legacy consolidated "leagues" string tag if present
+            try { OneSignal.User.removeTag("leagues") } catch (_: Exception) {}
+
+            OneSignal.User.addTag(tag, "1")
+            OneSignal.User.addTag("league_$trimmed", "1")
+            OneSignal.User.addTag(trimmed, "1")
+            if (!effectiveUserId.isNullOrEmpty()) {
+                OneSignal.User.addTag("user_id", effectiveUserId)
+            }
+            Log.d(TAG, "Subscribed to league tags: $tag, league_$trimmed, $trimmed for user $effectiveUserId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error subscribing to league tags: ${e.message}")
         }
-
-        updateUserTags(context, userId)
-        Log.d(TAG, "Subscribed to league: $canonical, total leagues: ${currentLeagues.size}")
     }
 
     /**
-     * Unsubscribes the user from a league by removing it from the single "leagues" tag key.
+     * Unsubscribes the user from a specific league tag.
      */
     fun unsubscribeFromLeague(leagueId: String, context: Context? = null) {
         if (leagueId.isBlank()) return
-        val canonical = getCanonicalLeagueTag(leagueId)
-        val currentLeagues = getSubscribedLeagues(context)
-        currentLeagues.remove(canonical)
-        saveSubscribedLeagues(context, currentLeagues)
-
-        // Remove legacy tag keys to clean up OneSignal profile
-        val legacyKeys = getLeagueTagKeys(leagueId)
-        for (k in legacyKeys) {
-            try { OneSignal.User.removeTag(k) } catch (_: Exception) {}
-        }
-
-        updateUserTags(context, null)
-        Log.d(TAG, "Unsubscribed from league: $canonical, remaining leagues: ${currentLeagues.size}")
+        val tag = getCanonicalLeagueTag(leagueId)
+        OneSignal.User.removeTag(tag)
+        Log.d(TAG, "Unsubscribed from league tag: $tag")
     }
 
     /**
-     * Updates user tags so the user has AT MOST 2 Data Tags on OneSignal:
-     * 1) "user_id" -> userId
-     * 2) "leagues" -> ",league_1,league_2,"
+     * Syncs all joined leagues by subscribing to individual tag keys for each league.
      */
-    private fun updateUserTags(context: Context? = null, userId: String? = null) {
-        try {
-            val effectiveUserId = if (!userId.isNullOrEmpty()) {
-                userId
-            } else {
-                ScoringApp.instance?.getOrCreateUserId()
-            }
-
-            if (!effectiveUserId.isNullOrEmpty()) {
-                OneSignal.User.addTag("user_id", effectiveUserId)
-                OneSignal.User.removeTag("user_$effectiveUserId")
-            }
-
-            val currentLeagues = getSubscribedLeagues(context)
-            if (currentLeagues.isNotEmpty()) {
-                val leaguesTagValue = "," + currentLeagues.joinToString(",") + ","
-                OneSignal.User.addTag("leagues", leaguesTagValue)
-            } else {
-                OneSignal.User.removeTag("leagues")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error updating user tags: ${e.message}")
+    fun syncAllSubscribedLeagues(context: Context, leagueIds: List<String>, userId: String? = null) {
+        if (!userId.isNullOrEmpty()) {
+            OneSignal.User.addTag("user_id", userId)
         }
+        // Clean legacy string tag key
+        try { OneSignal.User.removeTag("leagues") } catch (_: Exception) {}
+
+        leagueIds.forEach { subscribeToLeague(it, userId, context) }
     }
 
     /**
-     * Sends a notification to all users tagged with a specific league.
+     * Sends a match/scorecard push notification via Cloudflare Worker relay.
      */
     fun sendLeagueNotification(leagueId: String, title: String, body: String, matchId: String? = null) {
-        if (ONESIGNAL_REST_API_KEY.isBlank()) {
-            Log.e(TAG, "Cannot send notification: ONESIGNAL_REST_API_KEY is not configured in LeagueNotificationManager.kt!")
-            return
+        val payload = JSONObject().apply {
+            put("leagueId", leagueId)
+            put("title", title)
+            put("message", body)
+            put("type", "MATCH")
+            put("matchId", matchId ?: "")
         }
-
-        Executors.newSingleThreadExecutor().execute {
-            try {
-                val url = URL("https://onesignal.com/api/v1/notifications")
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                conn.setRequestProperty("Authorization", getAuthHeader())
-                conn.doOutput = true
-
-                val canonicalTag = getCanonicalLeagueTag(leagueId)
-
-                val jsonBody = JSONObject().apply {
-                    put("app_id", ScoringApp.ONESIGNAL_APP_ID)
-
-                    val filterArray = JSONArray().apply {
-                        // Match new consolidated "leagues" tag key
-                        put(JSONObject().apply {
-                            put("field", "tag")
-                            put("key", "leagues")
-                            put("relation", "contains")
-                            put("value", ",$canonicalTag,")
-                        })
-                        // OR match legacy single tag key for backwards compatibility
-                        put(JSONObject().apply { put("operator", "OR") })
-                        put(JSONObject().apply {
-                            put("field", "tag")
-                            put("key", canonicalTag)
-                            put("relation", "exists")
-                        })
-                    }
-                    put("filters", filterArray)
-
-                    put("headings", JSONObject().apply { put("en", title) })
-                    put("subtitle", JSONObject().apply { put("en", leagueId) })
-                    put("contents", JSONObject().apply { put("en", body) })
-
-                    // Styling & Branding
-                    put("android_accent_color", "FF00695C") // Deep Teal
-                    put("small_icon", "ic_stat_onesignal_default")
-                    put("large_icon", "ic_launcher_custom")
-
-                    // COLLAPSE LOGIC & BUTTONS FOR MATCHES ONLY
-                    if (!matchId.isNullOrEmpty()) {
-                        put("collapse_id", matchId)
-                        put("android_notification_id", matchId.hashCode())
-
-                        val buttonsArray = JSONArray().apply {
-                            put(JSONObject().apply {
-                                put("id", "view_scorecard")
-                                put("text", "VIEW SCORECARD")
-                            })
-                        }
-                        put("buttons", buttonsArray)
-                    }
-
-                    put("priority", 10)
-                    put("android_visibility", 1)
-
-                    put("data", JSONObject().apply {
-                        put("type", "MATCH")
-                        put("matchId", matchId ?: "")
-                        put("leagueId", leagueId)
-                    })
-                }
-
-                val strJsonBody = jsonBody.toString()
-                conn.outputStream.write(strJsonBody.toByteArray(Charsets.UTF_8))
-
-                val responseCode = conn.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    Log.d(TAG, "OneSignal Notification sent successfully for $leagueId")
-                } else {
-                    Log.e(TAG, "OneSignal API Error: $responseCode - ${conn.errorStream?.bufferedReader()?.readText()}")
-                }
-                conn.disconnect()
-
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to trigger OneSignal notification: ${e.message}")
-            }
-        }
+        dispatchToRelay(payload)
     }
 
     /**
-     * Sends a chat notification for a specific league.
+     * Sends a chat push notification via Cloudflare Worker relay.
      */
     fun sendLeagueChatNotification(
         leagueId: String,
@@ -251,173 +110,84 @@ object LeagueNotificationManager {
         if (hasTargetRecipient) {
             val recipientLabel = recipientSenderLabel ?: "$senderName(Mentioned You🗣️🗣️)"
 
-            // 1. Target recipient who was mentioned/replied to:
-            sendOneSignalChatNotification(
-                leagueId = leagueId,
-                senderName = recipientLabel,
-                messageText = messageText,
-                senderId = senderId,
-                targetRecipientId = targetRecipientId,
-                recipientUserIdFilter = targetRecipientId,
-                excludeUserIdFilter = null,
-                isPersonalChat = isPersonalChat,
-                senderProfilePic = senderProfilePic,
-                msgId = msgId
-            )
+            // 1. Target recipient who was mentioned or replied to
+            val payloadMentioned = JSONObject().apply {
+                put("leagueId", leagueId)
+                put("title", recipientLabel)
+                put("message", messageText)
+                put("messageText", messageText)
+                put("type", "CHAT")
+                put("senderId", senderId ?: "")
+                put("senderName", recipientLabel)
+                put("senderProfilePic", senderProfilePic ?: "")
+                put("msgId", msgId ?: "")
+                put("targetRecipientId", targetRecipientId)
+                put("isPersonalChat", isPersonalChat)
+            }
+            dispatchToRelay(payloadMentioned)
 
-            // 2. Target everyone else in the league: "SenderName: Message"
-            sendOneSignalChatNotification(
-                leagueId = leagueId,
-                senderName = senderName,
-                messageText = messageText,
-                senderId = senderId,
-                targetRecipientId = targetRecipientId,
-                recipientUserIdFilter = null,
-                excludeUserIdFilter = targetRecipientId,
-                isPersonalChat = isPersonalChat,
-                senderProfilePic = senderProfilePic,
-                msgId = msgId
-            )
+            // 2. Broadcast to everyone else in the league
+            val payloadOthers = JSONObject().apply {
+                put("leagueId", leagueId)
+                put("title", senderName)
+                put("message", messageText)
+                put("messageText", messageText)
+                put("type", "CHAT")
+                put("senderId", senderId ?: "")
+                put("senderName", senderName)
+                put("senderProfilePic", senderProfilePic ?: "")
+                put("msgId", msgId ?: "")
+                put("excludeUserId", targetRecipientId)
+                put("isPersonalChat", isPersonalChat)
+            }
+            dispatchToRelay(payloadOthers)
         } else {
-            // Normal message / reply to self: "SenderName: Message"
-            sendOneSignalChatNotification(
-                leagueId = leagueId,
-                senderName = senderName,
-                messageText = messageText,
-                senderId = senderId,
-                targetRecipientId = null,
-                recipientUserIdFilter = null,
-                excludeUserIdFilter = null,
-                isPersonalChat = isPersonalChat,
-                senderProfilePic = senderProfilePic,
-                msgId = msgId
-            )
+            // Normal message broadcast
+            val payload = JSONObject().apply {
+                put("leagueId", leagueId)
+                put("title", senderName)
+                put("message", messageText)
+                put("messageText", messageText)
+                put("type", "CHAT")
+                put("senderId", senderId ?: "")
+                put("senderName", senderName)
+                put("senderProfilePic", senderProfilePic ?: "")
+                put("msgId", msgId ?: "")
+                put("isPersonalChat", isPersonalChat)
+            }
+            dispatchToRelay(payload)
         }
     }
 
-    private fun sendOneSignalChatNotification(
-        leagueId: String,
-        senderName: String,
-        messageText: String,
-        senderId: String?,
-        targetRecipientId: String?,
-        recipientUserIdFilter: String?,
-        excludeUserIdFilter: String?,
-        isPersonalChat: Boolean,
-        senderProfilePic: String? = null,
-        msgId: String? = null
-    ) {
-        if (ONESIGNAL_REST_API_KEY.isBlank()) {
-            Log.e(TAG, "Cannot send chat notification: ONESIGNAL_REST_API_KEY is not configured in LeagueNotificationManager.kt!")
-            return
+    private fun dispatchToRelay(jsonPayload: JSONObject) {
+        if (RELAY_URL.contains("workers.dev") && RELAY_URL.contains("golden-duck-relay.workers.dev")) {
+            Log.w(TAG, "RELAY_URL is currently using default placeholder. Ensure you replace RELAY_URL with your deployed Cloudflare Worker URL!")
         }
 
-        Executors.newSingleThreadExecutor().execute {
+        executor.execute {
             try {
-                val url = URL("https://onesignal.com/api/v1/notifications")
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                conn.setRequestProperty("Authorization", getAuthHeader())
-                conn.doOutput = true
-
-                val canonicalTag = getCanonicalLeagueTag(leagueId)
-
-                val jsonBody = JSONObject().apply {
-                    put("app_id", ScoringApp.ONESIGNAL_APP_ID)
-
-                    val filterArray = JSONArray().apply {
-                        if (!recipientUserIdFilter.isNullOrEmpty()) {
-                            // Target specifically the recipient user
-                            put(JSONObject().apply {
-                                put("field", "tag")
-                                put("key", "user_id")
-                                put("relation", "=")
-                                put("value", recipientUserIdFilter)
-                            })
-                            put(JSONObject().apply { put("operator", "OR") })
-                            put(JSONObject().apply {
-                                put("field", "tag")
-                                put("key", "user_$recipientUserIdFilter")
-                                put("relation", "exists")
-                            })
-                        } else {
-                            // Target everyone in the league (new consolidated tag OR legacy tag)
-                            put(JSONObject().apply {
-                                put("field", "tag")
-                                put("key", "leagues")
-                                put("relation", "contains")
-                                put("value", ",$canonicalTag,")
-                            })
-                            put(JSONObject().apply { put("operator", "OR") })
-                            put(JSONObject().apply {
-                                put("field", "tag")
-                                put("key", canonicalTag)
-                                put("relation", "exists")
-                            })
-
-                            if (!excludeUserIdFilter.isNullOrEmpty()) {
-                                put(JSONObject().apply { put("operator", "AND") })
-                                put(JSONObject().apply {
-                                    put("field", "tag")
-                                    put("key", "user_id")
-                                    put("relation", "!=")
-                                    put("value", excludeUserIdFilter)
-                                })
-                                put(JSONObject().apply { put("operator", "AND") })
-                                put(JSONObject().apply {
-                                    put("field", "tag")
-                                    put("key", "user_$excludeUserIdFilter")
-                                    put("relation", "not_exists")
-                                })
-                            }
-                        }
+                val conn = (URL(RELAY_URL).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                    if (RELAY_SECRET.isNotBlank()) {
+                        setRequestProperty("x-relay-secret", RELAY_SECRET)
                     }
-
-                    put("filters", filterArray)
-
-                    put("headings", JSONObject().apply { put("en", senderName) })
-                    put("subtitle", JSONObject().apply { put("en", leagueId) })
-                    put("contents", JSONObject().apply { put("en", messageText) })
-
-                    put("android_accent_color", "FF00695C")
-                    put("small_icon", "ic_stat_onesignal_default")
-                    put("large_icon", "ic_launcher_custom")
-
-                    put("collapse_id", "chat_$leagueId")
-                    put("android_group", ChatNotificationHelper.GROUP_KEY_LEAGUE_CHAT)
-                    put("android_group_message", JSONObject().apply { put("en", "$[notif_count] new messages") })
-                    put("android_notification_id", ChatNotificationHelper.getNotificationId(leagueId))
-
-                    put("priority", 10)
-                    put("android_visibility", 1)
-
-                    put("data", JSONObject().apply {
-                        put("type", "CHAT")
-                        put("leagueId", leagueId)
-                        put("senderName", senderName)
-                        put("messageText", messageText)
-                        put("senderId", senderId ?: "")
-                        put("senderProfilePic", senderProfilePic ?: "")
-                        put("msgId", msgId ?: "")
-                        put("targetRecipientId", targetRecipientId ?: "")
-                        put("isPersonalChat", isPersonalChat)
-                    })
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    doOutput = true
                 }
-
-                val strJsonBody = jsonBody.toString()
-                conn.outputStream.write(strJsonBody.toByteArray(Charsets.UTF_8))
-
-                val responseCode = conn.responseCode
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    Log.d(TAG, "OneSignal Chat Notification sent successfully for $leagueId")
+                conn.outputStream.use { os ->
+                    os.write(jsonPayload.toString().toByteArray(Charsets.UTF_8))
+                }
+                val code = conn.responseCode
+                if (code == HttpURLConnection.HTTP_OK) {
+                    Log.d(TAG, "Notification dispatched to relay successfully")
                 } else {
-                    Log.e(TAG, "OneSignal API Error: $responseCode - ${conn.errorStream?.bufferedReader()?.readText()}")
+                    Log.e(TAG, "Relay returned HTTP error code: $code")
                 }
                 conn.disconnect()
-
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to trigger OneSignal chat notification: ${e.message}")
+                Log.e(TAG, "Failed to dispatch notification to relay: ${e.message}")
             }
         }
     }
