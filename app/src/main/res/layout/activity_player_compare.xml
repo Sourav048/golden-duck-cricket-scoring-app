@@ -73,7 +73,7 @@
                         android:layout_height="45dp"
                         android:tag="custom_color"
                         android:scaleType="centerCrop"
-                        android:background="?attr/colorSurfaceVariant"
+                        android:background="?attr/colorSurface"
                         android:src="@android:drawable/ic_menu_gallery"
                         app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.LargeComponent" />
                     <TextView
@@ -131,7 +131,7 @@
                         android:layout_height="45dp"
                         android:tag="custom_color"
                         android:scaleType="centerCrop"
-                        android:background="?attr/colorSurfaceVariant"
+                        android:background="?attr/colorSurface"
                         android:src="@android:drawable/ic_menu_gallery"
                         app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.LargeComponent" />
                     <TextView

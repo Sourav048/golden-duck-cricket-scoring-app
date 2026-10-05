@@ -30,6 +30,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.signature.ObjectKey
 import com.example.scoring.RankingRegistry.applyPrestige
 import com.google.android.material.imageview.ShapeableImageView
 import java.io.File
@@ -169,8 +170,8 @@ class SquadFragment : Fragment() {
         v.findViewById<TextView>(R.id.tvSquadTitleB).text = displayB
 
         // Ensure we are passing the latest lists from the activity
-        val namesA = act.teamANames ?: ArrayList<String?>()
-        val namesB = act.teamBNames ?: ArrayList<String?>()
+        val namesA = ArrayList(act.teamANames?.filterNotNull()?.map { it.trim() }?.distinct() ?: emptyList())
+        val namesB = ArrayList(act.teamBNames?.filterNotNull()?.map { it.trim() }?.distinct() ?: emptyList())
 
         rvA?.adapter = SimpleSquadAdapter(
             namesA,
@@ -255,12 +256,17 @@ class SquadFragment : Fragment() {
 
                 if (finalId != null) {
                     val pe = db.playerDao().getPlayerById(finalId)
-                    if (pe != null) actualPhotoUri = pe.photoUri
+                    if (pe != null) actualPhotoUri = pe.photoUri.takeIf { !it.isNullOrBlank() } ?: pe.photoUrl
                 }
 
-                if (actualPhotoUri == null) {
+                if (actualPhotoUri.isNullOrEmpty()) {
                     val pe = db.playerDao().getPlayerByNameByGully(finalName.trim(), gId)
-                    if (pe != null) actualPhotoUri = pe.photoUri
+                    if (pe != null) actualPhotoUri = pe.photoUri.takeIf { !it.isNullOrBlank() } ?: pe.photoUrl
+                }
+
+                if (actualPhotoUri.isNullOrEmpty()) {
+                    val provider = context as? ScoringProvider
+                    actualPhotoUri = provider?.photoMap?.get(finalName.trim())
                 }
 
                 val uriToLoad = actualPhotoUri
@@ -268,16 +274,25 @@ class SquadFragment : Fragment() {
                     val photoView = holder.photo
                     if (!uriToLoad.isNullOrEmpty() && photoView != null) {
                         try {
+                            val sig = if (uriToLoad.startsWith("/")) {
+                                val f = File(uriToLoad)
+                                if (f.exists()) "${f.lastModified()}_${f.length()}" else System.currentTimeMillis().toString()
+                            } else {
+                                System.currentTimeMillis().toString()
+                            }
                             Glide.with(context)
                                 .load(uriToLoad)
+                                .signature(ObjectKey(sig))
                                 .placeholder(android.R.drawable.ic_menu_gallery)
                                 .error(android.R.drawable.ic_menu_gallery)
                                 .into(photoView)
                         } catch (e: Exception) {
+                            Glide.with(context).clear(photoView)
                             photoView.setImageResource(android.R.drawable.ic_menu_gallery)
                         }
-                    } else {
-                        photoView?.setImageResource(android.R.drawable.ic_menu_gallery)
+                    } else if (photoView != null) {
+                        Glide.with(context).clear(photoView)
+                        photoView.setImageResource(android.R.drawable.ic_menu_gallery)
                     }
                 }
             }

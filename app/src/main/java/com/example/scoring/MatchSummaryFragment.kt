@@ -13,11 +13,13 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
+import com.bumptech.glide.signature.ObjectKey
 import com.example.scoring.AppDatabase.Companion.getInstance
 import com.example.scoring.RankingRegistry.applyPrestige
 import com.example.scoring.RankingRegistry.getColorForPlayer
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.imageview.ShapeableImageView
+import java.io.File
 import java.util.Locale
 
 class MatchSummaryFragment : Fragment() {
@@ -121,15 +123,30 @@ class MatchSummaryFragment : Fragment() {
                     try {
                         val db = getInstance(v.context.applicationContext)
                         val gId = GullySyncManager.getCurrentGullyId(v.context.applicationContext) ?: "local"
-                        val pe = potmStat.playerId?.let { db.playerDao().getPlayerById(it) }
+                        var pe = potmStat.playerId?.let { db.playerDao().getPlayerById(it) }
                                  ?: potmStat.playerName?.let { db.playerDao().getPlayerByNameByGully(it.trim(), gId) }
 
-                        val photoUri = pe?.photoUri
+                        if (pe == null && !potmName.isNullOrBlank()) {
+                            pe = db.playerDao().getPlayerByNameByGully(potmName.trim(), gId)
+                        }
+
+                        val photoUri = pe?.photoUri?.takeIf { it.isNotBlank() }
+                            ?: pe?.photoUrl?.takeIf { it.isNotBlank() }
+                            ?: m.photoMap?.get(potmStat.playerName?.trim())
+                            ?: m.photoMap?.get(potmName?.trim())
+
                         v.post {
                             if (!isAdded || view == null || activity == null) return@post
                             try {
                                 if (!photoUri.isNullOrEmpty()) {
+                                    val sig = if (photoUri.startsWith("/")) {
+                                        val f = File(photoUri)
+                                        if (f.exists()) "${f.lastModified()}_${f.length()}" else System.currentTimeMillis().toString()
+                                    } else {
+                                        System.currentTimeMillis().toString()
+                                    }
                                     Glide.with(requireContext()).load(photoUri)
+                                        .signature(ObjectKey(sig))
                                         .placeholder(android.R.drawable.ic_menu_gallery)
                                         .error(android.R.drawable.ic_menu_gallery)
                                         .into(ivPhoto)

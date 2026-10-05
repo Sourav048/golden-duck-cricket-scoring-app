@@ -35,10 +35,10 @@ object ChatNotificationHelper {
     private const val CHANNEL_ID_ALERT = "league_chat_channel_alert"
     private const val CHANNEL_ID_SILENT = "league_chat_channel_silent"
 
-    const val GROUP_KEY_LEAGUE_CHAT = "com.example.scoring.LEAGUE_CHAT_GROUP"
+    const val GROUP_KEY_LEAGUE_CHAT = "com.goldenduck.scoring.LEAGUE_CHAT_GROUP"
     const val SUMMARY_NOTIFICATION_ID = 99991
     const val KEY_TEXT_REPLY = "key_text_reply"
-    const val ACTION_UPDATE_CHAT_BADGE = "com.example.scoring.UPDATE_CHAT_BADGE"
+    const val ACTION_UPDATE_CHAT_BADGE = "com.goldenduck.scoring.ACTION_UPDATE_CHAT_BADGE"
 
     fun getUnreadMessageCount(context: Context): Int {
         val notifPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

@@ -3,6 +3,7 @@ package com.example.scoring
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
+import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -29,6 +30,23 @@ object GullySyncManager {
     /**
      * Registers a brand-new Gully in the Cloud.
      */
+    fun syncLeagueMemberCount(gullyId: String) {
+        if (gullyId.isBlank() || gullyId.equals("local", ignoreCase = true)) return
+        db.collection("gullies").document(gullyId)
+            .collection("chat_users")
+            .count()
+            .get(AggregateSource.SERVER)
+            .addOnSuccessListener { snapshot ->
+                val count = snapshot.count
+                val effectiveCount = maxOf(1L, count)
+                db.collection("gullies").document(gullyId)
+                    .set(mapOf("memberCount" to effectiveCount), SetOptions.merge())
+            }
+    }
+
+    /**
+     * Registers a brand-new Gully in the Cloud.
+     */
     fun createGully(id: String, pass: String, adminPin: String, callback: SyncCallback) {
         val gullyRef = db.collection("gullies").document(id)
         
@@ -45,7 +63,17 @@ object GullySyncManager {
                 )
                 gullyRef.set(data).addOnSuccessListener {
                     val gullyPrefs = db.app.applicationContext.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
-                    val myUserId = gullyPrefs.getString("chat_sender_id", null)
+                    val myUserId = gullyPrefs.getString("chat_sender_id", null) ?: ScoringApp.instance?.getOrCreateUserId()
+                    val myName = gullyPrefs.getString("chat_sender_name", "Admin") ?: "Admin"
+                    if (!myUserId.isNullOrEmpty()) {
+                        val userMap = hashMapOf(
+                            "userId" to myUserId,
+                            "displayName" to myName,
+                            "lastActive" to System.currentTimeMillis()
+                        )
+                        gullyRef.collection("chat_users").document(myUserId).set(userMap, SetOptions.merge())
+                    }
+                    syncLeagueMemberCount(id)
                     LeagueNotificationManager.subscribeToLeague(id, myUserId)
                     callback.onSuccess("League '$id' created successfully!")
                 }.addOnFailureListener { e ->
@@ -67,7 +95,23 @@ object GullySyncManager {
                 val cloudPass = doc.getString("passcode")
                 if (cloudPass == pass) {
                     val gullyPrefs = db.app.applicationContext.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
-                    val myUserId = gullyPrefs.getString("chat_sender_id", null)
+                    val myUserId = gullyPrefs.getString("chat_sender_id", null) ?: ScoringApp.instance?.getOrCreateUserId()
+                    val myName = gullyPrefs.getString("chat_sender_name", "Member") ?: "Member"
+                    if (!myUserId.isNullOrEmpty()) {
+                        val userMap = hashMapOf(
+                            "userId" to myUserId,
+                            "displayName" to myName,
+                            "lastActive" to System.currentTimeMillis()
+                        )
+                        db.collection("gullies").document(id)
+                            .collection("chat_users").document(myUserId)
+                            .set(userMap, SetOptions.merge())
+                            .addOnCompleteListener {
+                                syncLeagueMemberCount(id)
+                            }
+                    } else {
+                        syncLeagueMemberCount(id)
+                    }
                     LeagueNotificationManager.subscribeToLeague(id, myUserId)
                     callback.onSuccess("Joined League '$id'")
                 } else {
@@ -90,8 +134,9 @@ object GullySyncManager {
         
         // Ensure user is subscribed to this league's notifications
         val gullyPrefs = appContext.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
-        val myUserId = gullyPrefs.getString("chat_sender_id", null)
+        val myUserId = gullyPrefs.getString("chat_sender_id", null) ?: ScoringApp.instance?.getOrCreateUserId()
         LeagueNotificationManager.subscribeToLeague(gullyId, myUserId)
+        syncLeagueMemberCount(gullyId)
         
         AppDatabase.ioExecutor.execute {
             val localDb = AppDatabase.getInstance(appContext)
@@ -111,7 +156,10 @@ object GullySyncManager {
                                 val localPlayers = localDb.playerDao().getAllPlayersByGully(gullyId) ?: emptyList()
                                 localPlayers.forEach { localP ->
                                     if (localP != null && !cloudPlayerIds.contains(localP.id)) {
-                                        localDb.playerDao().deletePlayer(localP)
+                                        // SAFEGUARD: Do NOT delete local players that haven't been synced to cloud yet (lastSyncedAt == 0)
+                                        if (localP.lastSyncedAt > 0L) {
+                                            localDb.playerDao().deletePlayer(localP)
+                                        }
                                     }
                                 }
 
@@ -181,8 +229,34 @@ object GullySyncManager {
                                     if (cloudMatch != null) {
                                         val local = localDb.matchDao().getMatchById(cloudMatch.id)
                                         
-                                        // Only decompress and update if the cloud version is newer
-                                        if (local == null || cloudMatch.lastSyncedAt > local.lastSyncedAt) {
+                                        var shouldUpdate = false
+                                        if (local == null) {
+                                            shouldUpdate = true
+                                        } else if (cloudMatch.lastSyncedAt > local.lastSyncedAt) {
+                                            // GUARD 1: Prevent downgrading a locally completed match to unfinished
+                                            val isDowngrade = local.isFinished && !cloudMatch.isFinished
+                                            
+                                            // GUARD 2: Prevent data loss if local match has more scored ball progress than cloud match
+                                            val localBalls = (local.ballsJson1?.size ?: 0) + (local.ballsJson2?.size ?: 0)
+                                            val cloudPayloadBalls = try {
+                                                cloudMatch.compressedPayload?.let { payloadStr ->
+                                                    MatchCompressor.decompressMatchData(payloadStr, MatchPayload::class.java)?.let {
+                                                        (it.b1?.size ?: 0) + (it.b2?.size ?: 0)
+                                                    }
+                                                } ?: 0
+                                            } catch (_: Exception) { 0 }
+                                            val cloudDirectBalls = (cloudMatch.ballsJson1?.size ?: 0) + (cloudMatch.ballsJson2?.size ?: 0)
+                                            val cloudBalls = maxOf(cloudPayloadBalls, cloudDirectBalls)
+                                            val isDataLoss = !cloudMatch.isFinished && (localBalls > cloudBalls)
+
+                                            if (!isDowngrade && !isDataLoss) {
+                                                shouldUpdate = true
+                                            } else {
+                                                Log.w(TAG, "Rejected stale/downgraded cloud update for match ${cloudMatch.id} (isDowngrade=$isDowngrade, isDataLoss=$isDataLoss, localBalls=$localBalls, cloudBalls=$cloudBalls)")
+                                            }
+                                        }
+
+                                        if (shouldUpdate) {
                                             try {
                                                 cloudMatch.compressedPayload?.let { payloadStr ->
                                                     val payload = MatchCompressor.decompressMatchData(payloadStr, MatchPayload::class.java)
@@ -215,7 +289,7 @@ object GullySyncManager {
             draftListener = db.collection("gullies").document(gullyId).collection("drafts")
                 .addSnapshotListener { snapshots, e ->
                     if (e != null) return@addSnapshotListener
-                    
+
                     try {
                         val docs = snapshots?.documents ?: emptyList()
                         val cloudDraftIds = docs.filter { it.exists() }.map { it.id }.toSet()
@@ -252,7 +326,7 @@ object GullySyncManager {
                         }
                     } catch (ex: Exception) { Log.e(TAG, "Fatal Draft sync error: ${ex.message}") }
                 }
-                
+
             Log.d(TAG, "Sync Engine Started for: $gullyId")
 
             // 4. Watch for Gully Document Deletion (The "Death Watcher")
@@ -273,23 +347,27 @@ object GullySyncManager {
         }
     }
 
+    fun purgeLocalGullyData(context: Context, gullyId: String) {
+        AppDatabase.ioExecutor.execute {
+            try {
+                val localDb = AppDatabase.getInstance(context)
+                localDb.playerDao().deleteAllPlayersByGully(gullyId)
+                localDb.matchDao().deleteAllMatchesByGully(gullyId)
+                localDb.statsDao().deleteAllStatsByGully(gullyId)
+                localDb.draftDao().deleteAllDraftsByGully(gullyId)
+            } catch (ex: Exception) {
+                Log.e(TAG, "Error purging local gully data for $gullyId: ${ex.message}")
+            }
+        }
+    }
+
     private fun handleGullyLost(context: Context, lostId: String? = null) {
         val currentId = lostId ?: getCurrentGullyId(context) ?: return
         
         stopSync()
 
         // 1. Wipe all local DB data for this gully so ghost records never re-upload
-        AppDatabase.ioExecutor.execute {
-            try {
-                val localDb = AppDatabase.getInstance(context)
-                localDb.playerDao().deleteAllPlayersByGully(currentId)
-                localDb.matchDao().deleteAllMatchesByGully(currentId)
-                localDb.statsDao().deleteAllStatsByGully(currentId)
-                localDb.draftDao().deleteAllDraftsByGully(currentId)
-            } catch (ex: Exception) {
-                Log.e(TAG, "Error purging local gully data: ${ex.message}")
-            }
-        }
+        purgeLocalGullyData(context, currentId)
 
         // 2. Remove from Recent Switchboard automatically
         LeagueNotificationManager.unsubscribeFromLeague(currentId)
@@ -388,7 +466,13 @@ object GullySyncManager {
                 player.photoUrl = player.photoUri
             }
 
-            // --- STEP 1: UPDATE GLOBAL DIRECTORY ---
+            // --- STEP 1: SAVE TO SPECIFIC GULLY DIRECTLY & IMMEDIATELY ---
+            db.collection("gullies").document(gullyId)
+                .collection("players").document(player.id)
+                .set(player, SetOptions.merge())
+                .addOnFailureListener { Log.e(TAG, "Player sync failed: ${it.message}") }
+
+            // --- STEP 2: UPDATE GLOBAL DIRECTORY INDEPENDENTLY ---
             val docId = player.globalId ?: player.id
             val globalRef = db.collection("global_players").document(docId)
 
@@ -415,24 +499,14 @@ object GullySyncManager {
                         statsAndOrigin["originGully"] = player.originGully ?: gullyId
                     }
                     
-                    val cloudRuns = (doc.get("totalRuns") as? Number)?.toLong() ?: 0L
-                    if (localRuns > cloudRuns || !doc.exists()) {
-                        statsAndOrigin["totalRuns"] = localRuns.toLong()
-                        statsAndOrigin["totalWickets"] = localWickets.toLong()
-                        statsAndOrigin["totalMatches"] = localMatches.toLong()
-                    }
+                    statsAndOrigin["totalRuns"] = localRuns.toLong()
+                    statsAndOrigin["totalWickets"] = localWickets.toLong()
+                    statsAndOrigin["totalMatches"] = localMatches.toLong()
                     
                     if (statsAndOrigin.isNotEmpty()) {
                         globalRef.set(statsAndOrigin, SetOptions.merge())
                     }
                 }
-
-                // --- STEP 2: SAVE TO SPECIFIC GULLY ---
-                db.collection("gullies").document(gullyId)
-                    .collection("players").document(player.id)
-                    .set(player, SetOptions.merge())
-                    .addOnFailureListener { Log.e(TAG, "Player sync failed: ${it.message}") }
-                
             }.addOnFailureListener { e ->
                 Log.e(TAG, "Global profile set failed: ${e.message}")
             }
@@ -625,18 +699,18 @@ object GullySyncManager {
      * Performs a lightweight update of just the heartbeat fields.
      * Prevents re-compressing the entire match payload for every 20s pulse.
      */
-    fun syncMatchPulseToCloud(gullyId: String, matchId: String, lastPulse: Long) {
+    fun syncMatchPulseToCloud(gullyId: String, matchId: String, lastPulse: Long, isLive: Boolean = true) {
         if (gullyId == "local" || gullyId.isEmpty()) return
         
         val pulseUpdate = hashMapOf(
             "lastScorerPulse" to lastPulse,
-            "isLive" to true,
+            "isLive" to isLive,
             "lastSyncedAt" to System.currentTimeMillis()
         )
 
         db.collection("gullies").document(gullyId)
             .collection("matches").document(matchId)
-            .update(pulseUpdate as Map<String, Any>)
+            .set(pulseUpdate, SetOptions.merge())
             .addOnFailureListener { Log.e(TAG, "Pulse sync failed for $matchId: ${it.message}") }
     }
 
@@ -733,6 +807,68 @@ object GullySyncManager {
         val body = "$playerName $milestone!"
 
         LeagueNotificationManager.sendLeagueNotification(gullyId, title, body, matchId)
+    }
+
+    /**
+     * Registers viewer presence in Firestore for a match.
+     */
+    fun registerViewerPresence(gullyId: String?, matchId: String?, deviceId: String) {
+        if (gullyId.isNullOrBlank() || gullyId.equals("local", ignoreCase = true) || matchId.isNullOrBlank()) return
+        val data = hashMapOf<String, Any>(
+            "deviceId" to deviceId,
+            "timestamp" to System.currentTimeMillis(),
+            "lastSeen" to FieldValue.serverTimestamp()
+        )
+        db.collection("gullies").document(gullyId)
+            .collection("matches").document(matchId)
+            .collection("viewers").document(deviceId)
+            .set(data, SetOptions.merge())
+            .addOnFailureListener { Log.e(TAG, "Failed to register viewer presence: ${it.message}") }
+    }
+
+    /**
+     * Unregisters viewer presence in Firestore when leaving a match.
+     */
+    fun unregisterViewerPresence(gullyId: String?, matchId: String?, deviceId: String) {
+        if (gullyId.isNullOrBlank() || gullyId.equals("local", ignoreCase = true) || matchId.isNullOrBlank()) return
+        db.collection("gullies").document(gullyId)
+            .collection("matches").document(matchId)
+            .collection("viewers").document(deviceId)
+            .delete()
+            .addOnFailureListener { Log.e(TAG, "Failed to unregister viewer presence: ${it.message}") }
+    }
+
+    /**
+     * Listens to active viewer count for a live match in Firestore.
+     */
+    fun observeViewerCount(
+        gullyId: String?,
+        matchId: String?,
+        onCountChanged: (Int) -> Unit
+    ): ListenerRegistration? {
+        if (gullyId.isNullOrBlank() || gullyId.equals("local", ignoreCase = true) || matchId.isNullOrBlank()) {
+            onCountChanged(0)
+            return null
+        }
+
+        return db.collection("gullies").document(gullyId)
+            .collection("matches").document(matchId)
+            .collection("viewers")
+            .addSnapshotListener { snapshots, e ->
+                if (e != null) {
+                    Log.e(TAG, "Error observing viewer count: ${e.message}")
+                    onCountChanged(0)
+                    return@addSnapshotListener
+                }
+                val now = System.currentTimeMillis()
+                val cutoff = now - 45_000L
+                val activeCount = snapshots?.documents?.count { doc ->
+                    val ts = doc.getLong("timestamp")
+                    ts == null || ts >= cutoff
+                } ?: 0
+                
+                onCountChanged(maxOf(1, activeCount))
+            }
     }
 
     fun getCurrentGullyId(context: Context?): String? {

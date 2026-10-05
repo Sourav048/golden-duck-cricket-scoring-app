@@ -20,7 +20,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.scoring"
+        applicationId = "com.goldenduck.scoring"
         minSdk = 24
         targetSdk = 35
         versionCode = 11
@@ -28,6 +28,12 @@ android {
 
         val onesignalRestApiKey = localProperties.getProperty("onesignal.rest.api.key") ?: ""
         buildConfigField("String", "ONESIGNAL_REST_API_KEY", "\"$onesignalRestApiKey\"")
+
+        val geminiApiKey = localProperties.getProperty("gemini.api.key") ?: ""
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
+
+        val groqApiKey = localProperties.getProperty("groq.api.key") ?: ""
+        buildConfigField("String", "GROQ_API_KEY", "\"$groqApiKey\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -128,6 +134,9 @@ dependencies {
     // OneSignal
     implementation(libs.onesignal)
 
+    // Google AI Gemini SDK
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
     // Room Database
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")
@@ -157,6 +166,11 @@ dependencies {
     implementation("com.airbnb.android:lottie:6.3.0")
     implementation("com.facebook.shimmer:shimmer:0.5.0")
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+    // Markwon Markdown & Table Rendering
+    val markwonVersion = "4.6.2"
+    implementation("io.noties.markwon:core:$markwonVersion")
+    implementation("io.noties.markwon:ext-tables:$markwonVersion")
 
     // Testing
     testImplementation(libs.junit)

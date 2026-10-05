@@ -69,47 +69,14 @@ object PhotoUtils {
     }
 
     /**
-     * Scans and auto-fixes all existing saved player photos that are in landscape mode (width > height),
-     * rotating them 90° clockwise into upright portrait mode automatically.
+     * Scans existing player photos (no-op retained for backwards compatibility).
      */
     fun fixAllExistingPhotos(context: Context) {
-        Executors.newSingleThreadExecutor().execute {
-            try {
-                val dir = File(context.filesDir, PHOTO_DIR)
-                if (!dir.exists() || !dir.isDirectory) return@execute
-
-                val files = dir.listFiles() ?: return@execute
-                var count = 0
-                for (file in files) {
-                    if (file.isFile && (file.name.endsWith(".jpg") || file.name.endsWith(".jpeg"))) {
-                        val bitmap = BitmapFactory.decodeFile(file.absolutePath) ?: continue
-                        if (bitmap.width > bitmap.height) {
-                            Log.d("PHOTO_UTILS", "Auto-fixing sideways photo: ${file.name}")
-                            val matrix = Matrix()
-                            matrix.postRotate(90f)
-                            val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-
-                            FileOutputStream(file).use { out ->
-                                rotated.compress(Bitmap.CompressFormat.JPEG, QUALITY, out)
-                            }
-                            bitmap.recycle()
-                            if (rotated != bitmap) rotated.recycle()
-                            count++
-                        } else {
-                            bitmap.recycle()
-                        }
-                    }
-                }
-                Log.d("PHOTO_UTILS", "Finished auto-fixing existing player photos. Fixed $count photos.")
-            } catch (e: Exception) {
-                Log.e("PHOTO_UTILS", "Failed to fix existing photos: ${e.message}")
-            }
-        }
+        // No-op: do not force auto-rotation on saved photos to avoid corrupting landscape images.
     }
 
     /**
      * Saves a photo with "Image Guard" (Auto-Resize, EXIF Orientation Correction & Compression).
-     * Automatically fixes landscape rotation issue on photos taken in portrait mode.
      */
     fun savePhoto(context: Context, sourceUri: Uri): String? {
         try {
@@ -123,28 +90,26 @@ object PhotoUtils {
             val originalBitmap = BitmapFactory.decodeStream(inputStream) ?: return null
             inputStream?.close()
 
-            // 1. Correct EXIF Rotation (fixes sideways/landscape photos)
-            var orientedBitmap = rotateBitmapIfRequired(context, originalBitmap, sourceUri)
+            // 1. Correct EXIF Rotation
+            val orientedBitmap = rotateBitmapIfRequired(context, originalBitmap, sourceUri)
 
-            // 2. Fallback check: If width > height, force 90° rotation to portrait
-            if (orientedBitmap.width > orientedBitmap.height) {
-                val matrix = Matrix()
-                matrix.postRotate(90f)
-                val upright = Bitmap.createBitmap(orientedBitmap, 0, 0, orientedBitmap.width, orientedBitmap.height, matrix, true)
-                if (upright != orientedBitmap) orientedBitmap.recycle()
-                orientedBitmap = upright
-            }
-
-            // 3. Resize for "Image Guard"
+            // 2. Resize for "Image Guard"
             val processedBitmap = resizeBitmap(orientedBitmap, MAX_SIZE)
 
-            // 4. Compress and Save
+            // 3. Compress and Save
             FileOutputStream(destFile).use { output ->
                 processedBitmap.compress(Bitmap.CompressFormat.JPEG, QUALITY, output)
             }
             
-            if (originalBitmap != orientedBitmap) originalBitmap.recycle()
-            if (processedBitmap != orientedBitmap) orientedBitmap.recycle()
+            if (originalBitmap != orientedBitmap && !originalBitmap.isRecycled) {
+                originalBitmap.recycle()
+            }
+            if (orientedBitmap != processedBitmap && !orientedBitmap.isRecycled) {
+                orientedBitmap.recycle()
+            }
+            if (!processedBitmap.isRecycled) {
+                processedBitmap.recycle()
+            }
 
             return destFile.absolutePath
         } catch (e: Exception) {
@@ -261,17 +226,10 @@ object PhotoUtils {
                 return null
             }
 
-            // Fallback check: if width > height, force 90° rotation to portrait
-            if (bitmap!!.width > bitmap!!.height) {
-                val matrix = Matrix()
-                matrix.postRotate(90f)
-                val upright = Bitmap.createBitmap(bitmap!!, 0, 0, bitmap!!.width, bitmap!!.height, matrix, true)
-                if (upright != bitmap) bitmap!!.recycle()
-                bitmap = upright
-            }
+            val targetBitmap = bitmap!!
 
             // 3. Resize for Base64 Fallback (Max 500px for Firestore 1MB safety)
-            val processedBitmap = resizeBitmap(bitmap!!, 500)
+            val processedBitmap = resizeBitmap(targetBitmap, 500)
             
             val outputStream = ByteArrayOutputStream()
             processedBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
@@ -280,15 +238,19 @@ object PhotoUtils {
             val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
             
             // Cleanup
-            if (processedBitmap != bitmap) processedBitmap.recycle()
-            bitmap!!.recycle()
+            if (processedBitmap != targetBitmap && !processedBitmap.isRecycled) {
+                processedBitmap.recycle()
+            }
+            if (!targetBitmap.isRecycled) {
+                targetBitmap.recycle()
+            }
             
             Log.d("PHOTO_UTILS", "Successfully converted to Base64 (Size: ${bytes.size} bytes)")
             return base64
 
         } catch (e: Exception) {
             Log.e("PHOTO_UTILS", "Critical failure in pathToBase64: ${e.message}")
-            bitmap?.recycle()
+            if (bitmap != null && !bitmap.isRecycled) bitmap.recycle()
             return null
         }
     }
@@ -307,14 +269,7 @@ object PhotoUtils {
             val destFile = File(dir, fileName)
 
             val bytes = Base64.decode(base64, Base64.DEFAULT)
-            var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            if (bitmap != null && bitmap.width > bitmap.height) {
-                val matrix = Matrix()
-                matrix.postRotate(90f)
-                val upright = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-                if (upright != bitmap) bitmap.recycle()
-                bitmap = upright
-            }
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 
             FileOutputStream(destFile).use { out ->
                 if (bitmap != null) {
@@ -323,7 +278,7 @@ object PhotoUtils {
                     out.write(bytes)
                 }
             }
-            bitmap?.recycle()
+            if (bitmap != null && !bitmap.isRecycled) bitmap.recycle()
             return destFile.absolutePath
         } catch (e: Exception) {
             Log.e("PHOTO_UTILS", "Failed to save Base64 to file: ${e.message}")

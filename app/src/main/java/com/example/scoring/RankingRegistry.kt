@@ -7,7 +7,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.util.TypedValue
-import android.view.View
 import android.widget.TextView
 import com.google.android.material.imageview.ShapeableImageView
 import java.util.concurrent.CopyOnWriteArrayList
@@ -54,17 +53,6 @@ object RankingRegistry {
         val appContext = context.applicationContext
         AppDatabase.ioExecutor.execute {
             try {
-                // Clear current rankings first
-                topOverallId = null
-                topBattingId = null
-                topBowlingId = null
-                topOverallName = null
-                topBattingName = null
-                topBowlingName = null
-                top3OverallIds.clear()
-                top3BattingIds.clear()
-                top3BowlingIds.clear()
-
                 // Clear color cache to force re-fetch from theme
                 cachedGold = 0
                 lastThemeConfig = -1
@@ -78,20 +66,18 @@ object RankingRegistry {
                     val batting = db.statsDao().getBattingRankings(gId) ?: emptyList()
                     val bowling = db.statsDao().getBowlingRankings(gId) ?: emptyList()
 
-                    overall.firstOrNull()?.let {
-                        topOverallId = it.playerId
-                        topOverallName = it.playerName
-                    }
-                    
-                    batting.firstOrNull()?.let {
-                        topBattingId = it.playerId
-                        topBattingName = it.playerName
-                    }
-                    
-                    bowling.firstOrNull()?.let {
-                        topBowlingId = it.playerId
-                        topBowlingName = it.playerName
-                    }
+                    top3OverallIds.clear()
+                    top3BattingIds.clear()
+                    top3BowlingIds.clear()
+
+                    topOverallId = overall.firstOrNull()?.playerId
+                    topOverallName = overall.firstOrNull()?.playerName
+
+                    topBattingId = batting.firstOrNull()?.playerId
+                    topBattingName = batting.firstOrNull()?.playerName
+
+                    topBowlingId = bowling.firstOrNull()?.playerId
+                    topBowlingName = bowling.firstOrNull()?.playerName
 
                     overall.take(3).forEach { it?.playerId?.let { id -> top3OverallIds.add(id) } }
                     batting.take(3).forEach { it?.playerId?.let { id -> top3BattingIds.add(id) } }

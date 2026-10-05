@@ -90,7 +90,7 @@ class PlayerMatchStatEntity {
     companion object {
         fun fromPlayer(p: Player, matchId: String, teamName: String?): PlayerMatchStatEntity {
             val s = PlayerMatchStatEntity()
-            s.id = "${matchId}_${p.name}" 
+            s.id = if (!p.id.isNullOrEmpty()) "${matchId}_${p.id}" else "${matchId}_${p.name}" 
             s.gullyId = p.gullyId
             s.playerId = p.id
             s.matchId = matchId

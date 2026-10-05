@@ -14,6 +14,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
+import com.bumptech.glide.Glide
+import com.bumptech.glide.signature.ObjectKey
 import com.example.scoring.AppDatabase.Companion.getInstance
 import com.example.scoring.ComparePageFragment.Companion.newInstance
 import com.example.scoring.RankingRegistry.applyPrestige
@@ -21,6 +23,7 @@ import com.example.scoring.RankingRegistry.refresh
 import com.google.android.material.imageview.ShapeableImageView
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
+import java.io.File
 import java.util.Locale
 import kotlin.math.abs
 
@@ -129,7 +132,10 @@ class PlayerCompareActivity : BaseActivity() {
         if (player == null) {
             name?.text = "Select Player"
             name?.setTextColor(contrastColor)
-            photo?.setImageResource(android.R.drawable.ic_menu_gallery)
+            photo?.let { iv ->
+                Glide.with(this).clear(iv)
+                iv.setImageResource(android.R.drawable.ic_menu_gallery)
+            }
             return
         }
 
@@ -141,14 +147,39 @@ class PlayerCompareActivity : BaseActivity() {
             name?.setTextColor(contrastColor)
         }
 
-        if (!player.photoUri.isNullOrEmpty()) {
+        val photoTarget: Any = when {
+            !player.photoUrl.isNullOrEmpty() -> player.photoUrl
+            !player.photoUri.isNullOrEmpty() -> player.photoUri
+            !player.photoBase64.isNullOrEmpty() -> PhotoUtils.base64ToPath(this, player.photoBase64, player.id) ?: ""
+            else -> ""
+        }
+
+        if (photoTarget != "" && !isFinishing && !isDestroyed) {
             try {
-                photo?.setImageURI(Uri.parse(player.photoUri))
-            } catch (e: Exception) {
+                val sigKey = if (photoTarget is String && photoTarget.startsWith("/")) {
+                    val f = File(photoTarget)
+                    if (f.exists()) "${f.lastModified()}_${f.length()}" else "${player.id}_${player.lastSyncedAt}"
+                } else {
+                    "${player.id}_${player.lastSyncedAt}"
+                }
+
+                photo?.let { iv ->
+                    Glide.with(this)
+                        .load(photoTarget)
+                        .signature(ObjectKey(sigKey))
+                        .dontAnimate()
+                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .error(android.R.drawable.ic_menu_gallery)
+                        .into(iv)
+                }
+            } catch (_: Exception) {
                 photo?.setImageResource(android.R.drawable.ic_menu_gallery)
             }
         } else {
-            photo?.setImageResource(android.R.drawable.ic_menu_gallery)
+            photo?.let { iv ->
+                Glide.with(this).clear(iv)
+                iv.setImageResource(android.R.drawable.ic_menu_gallery)
+            }
         }
         fetchData()
     }

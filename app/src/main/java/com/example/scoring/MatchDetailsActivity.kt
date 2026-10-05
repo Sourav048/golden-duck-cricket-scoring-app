@@ -5,7 +5,10 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.graphics.Typeface
+import android.provider.Settings
+import android.util.Log
 import android.util.TypedValue
+import com.google.firebase.firestore.ListenerRegistration
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -35,8 +38,27 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
     private var tvAnalysisLabel: TextView? = null
     private var tvRateValue: TextView? = null
     private var tvRateLabel: TextView? = null
+    private var tvLiveCount: TextView? = null
+    private var layoutLiveCount: View? = null
     private var layoutLiveHeader: View? = null
     private var currentMatchId: String? = null
+    private var viewerCountListener: ListenerRegistration? = null
+    private val viewerPresenceHandler = Handler(Looper.getMainLooper())
+    private val viewerPresenceRunnable = object : Runnable {
+        override fun run() {
+            try {
+                val mId = currentMatchId
+                val gId = matchEntity?.gullyId ?: GullySyncManager.getCurrentGullyId(applicationContext)
+                val myDeviceId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "device_me"
+                if (!mId.isNullOrEmpty() && !gId.isNullOrEmpty()) {
+                    GullySyncManager.registerViewerPresence(gId, mId, myDeviceId)
+                }
+                viewerPresenceHandler.postDelayed(this, 15000)
+            } catch (e: Exception) {
+                Log.e("MatchDetailsActivity", "Error in viewerPresenceRunnable: ${e.message}")
+            }
+        }
+    }
 
     // CELEBRATION COLORS — mirrored from MainActivity
     private var colorsWicket: IntArray = intArrayOf()
@@ -96,6 +118,8 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
         tvAnalysisLabel = findViewById(R.id.tvAnalysisLabel)
         tvRateValue = findViewById(R.id.tvRateValue)
         tvRateLabel = findViewById(R.id.tvRateLabel)
+        tvLiveCount = findViewById(R.id.tvLiveCount)
+        layoutLiveCount = findViewById(R.id.layoutLiveCount)
         layoutLiveHeader = findViewById(R.id.layoutLiveHeader)
 
         // Init confetti colors (same palette as scorer)
@@ -129,6 +153,54 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
         }
     }
 
+    private fun startViewerCountObserver() {
+        val mId = currentMatchId
+        val gId = matchEntity?.gullyId ?: GullySyncManager.getCurrentGullyId(applicationContext)
+        viewerCountListener?.remove()
+        viewerCountListener = null
+
+        if (mId.isNullOrEmpty() || gId.isNullOrEmpty() || gId.equals("local", ignoreCase = true)) {
+            layoutLiveCount?.visibility = View.GONE
+            return
+        }
+
+        viewerCountListener = GullySyncManager.observeViewerCount(gId, mId) { count ->
+            runOnUiThread {
+                if (count > 1) {
+                    tvLiveCount?.text = "Live Count: $count"
+                    layoutLiveCount?.visibility = View.VISIBLE
+                } else {
+                    layoutLiveCount?.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewerPresenceHandler.removeCallbacks(viewerPresenceRunnable)
+        viewerPresenceHandler.post(viewerPresenceRunnable)
+        startViewerCountObserver()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        viewerPresenceHandler.removeCallbacks(viewerPresenceRunnable)
+        val mId = currentMatchId
+        val gId = matchEntity?.gullyId ?: GullySyncManager.getCurrentGullyId(applicationContext)
+        val myDeviceId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "device_me"
+        if (!mId.isNullOrEmpty() && !gId.isNullOrEmpty()) {
+            GullySyncManager.unregisterViewerPresence(gId, mId, myDeviceId)
+        }
+    }
+
+    override fun onDestroy() {
+        viewerPresenceHandler.removeCallbacks(viewerPresenceRunnable)
+        viewerCountListener?.remove()
+        viewerCountListener = null
+        super.onDestroy()
+    }
+
     private fun loadMatch(id: String) {
         AppDatabase.ioExecutor.execute {
             val entity = db?.matchDao()?.getMatchById(id)
@@ -151,14 +223,13 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
             runOnUiThread {
                 this.matchEntity = entity
                 this.statsEntities = stats
+                startViewerCountObserver()
                 
                 val currentA = ArrayList<String?>()
-                entity.teamANames?.forEach { it?.let { name -> currentA.add(name.trim()) } }
+                entity.teamANames?.forEach { it?.let { name -> if (!currentA.contains(name.trim())) currentA.add(name.trim()) } }
+
                 val currentB = ArrayList<String?>()
-                entity.teamBNames?.forEach { it?.let { name -> currentB.add(name.trim()) } }
-                
-                teamANames = currentA
-                teamBNames = currentB
+                entity.teamBNames?.forEach { it?.let { name -> if (!currentB.contains(name.trim())) currentB.add(name.trim()) } }
                 
                 photoMap.putAll(entity.photoMap?.filterKeys { it != null }?.mapKeys { it.key!!.trim() } ?: emptyMap())
                 nameToIdMap.putAll(entity.nameToIdMap?.filterKeys { it != null }?.mapKeys { it.key!!.trim() } ?: emptyMap())
@@ -185,7 +256,9 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                                 list[index] = trimmed // UNIVERSAL NAME SWAP
                             }
                         } else {
-                            list.add(trimmed)
+                            if (!list.contains(trimmed)) {
+                                list.add(trimmed)
+                            }
                         }
                     }
 
@@ -203,11 +276,17 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                     }
                 }
 
+                val cleanA = ArrayList(currentA.filterNotNull().map { it.trim() }.distinct())
+                val cleanB = ArrayList(currentB.filterNotNull().map { it.trim() }.distinct())
+
+                teamANames = cleanA
+                teamBNames = cleanB
+                entity.teamANames = cleanA
+                entity.teamBNames = cleanB
+
                 // Update header
                 val now = System.currentTimeMillis()
-                val diff = now - entity.lastScorerPulse
-                val isPulseActive = diff in -60000..120000
-                val isLiveMatch = entity.isLive && isPulseActive && !entity.isFinished && !entity.isAbandoned
+                val isLiveMatch = entity.isMatchLive(now)
                 
                 if (isLiveMatch) {
                     layoutLiveHeader?.visibility = View.VISIBLE
@@ -238,7 +317,7 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                             setTextColor(ThemeManager.getThemeColor(context, com.google.android.material.R.attr.colorOnPrimary))
                             calculateMatchResult()?.uppercase() ?: baseResult
                         } else if (!entity.isFinished && !entity.isAbandoned) {
-                            if (entity.isLive && isPulseActive) {
+                            if (entity.isMatchLive(now)) {
                                 setTextColor(context.getColor(R.color.card_red))
                                 "LIVE"
                             } else {
@@ -311,9 +390,10 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                     startLiveObserver(id)
                 }
                 
-                // AUTO-REPAIR: If this is an old match missing cloud stats, sync it now
+                // AUTO-REPAIR: If this is an old finished match missing cloud stats, sync it now
+                // CRITICAL: Only allow the official scorer to run auto-repair. Viewers must NEVER push local data to cloud.
                 val gId = GullySyncManager.getCurrentGullyId(this)
-                if (gId != null && entity.compressedPayload == null) {
+                if (isScorer && gId != null && entity.compressedPayload == null && entity.isFinished) {
                     GullySyncManager.syncMatchToCloud(gId, entity)
                 }
             }
@@ -335,9 +415,7 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
             if ((entity.isFinished || entity.isAbandoned) && isMatchFinishedDialogShown) return@observe
             
             val now = System.currentTimeMillis()
-            val diff = now - entity.lastScorerPulse
-            val isPulseActive = diff in -60000..120000
-            val isActuallyLive = entity.isLive && isPulseActive
+            val isActuallyLive = entity.isMatchLive(now)
             
             // If it's not live, show the banner instead of an empty space
             if (!isActuallyLive) {
@@ -594,9 +672,7 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
         val currentStats = statsEntities?.toMutableList()
         
         val now = System.currentTimeMillis()
-        val diff = now - (currentMatch?.lastScorerPulse ?: 0L)
-        val isPulseActive = diff in -60000..120000
-        val isLive = currentMatch?.isLive == true && isPulseActive && !currentMatch.isFinished && !currentMatch.isAbandoned
+        val isLive = currentMatch?.isMatchLive(now) == true
 
         viewPager?.adapter = object : FragmentStateAdapter(this) {
             override fun createFragment(position: Int): Fragment {

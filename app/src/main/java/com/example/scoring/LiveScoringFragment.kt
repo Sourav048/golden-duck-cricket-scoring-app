@@ -266,6 +266,12 @@ class LiveScoringFragment : Fragment() {
         v.findViewById<View>(R.id.btnOverthrow).setOnClickListener { act.handleOverthrow() }
         v.findViewById<View>(R.id.btnMatchMore).setOnClickListener { view -> showMatchMoreMenu(view) }
 
+        v.findViewById<View>(R.id.cardStriker).setOnClickListener {
+            if (act.isScorer) act.showBatsmanSelectionDialog(true)
+        }
+        v.findViewById<View>(R.id.cardNonStriker).setOnClickListener {
+            if (act.isScorer) act.showBatsmanSelectionDialog(false)
+        }
         v.findViewById<View>(R.id.cardBowler).setOnClickListener {
             if (act.isScorer) act.handleBowlerChangeMidOver()
         }

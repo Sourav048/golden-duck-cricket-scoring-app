@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 
@@ -67,6 +68,31 @@ class GullyManagementActivity : BaseActivity() {
         com.google.android.material.tabs.TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = if (position == 0) "Join" else "Create"
         }.attach()
+
+        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                updateViewPagerHeight(position)
+            }
+        })
+    }
+
+    private fun updateViewPagerHeight(position: Int) {
+        viewPager.post {
+            val recyclerView = viewPager.getChildAt(0) as? RecyclerView ?: return@post
+            val viewHolder = recyclerView.findViewHolderForAdapterPosition(position) ?: return@post
+            val view = viewHolder.itemView
+            view.measure(
+                View.MeasureSpec.makeMeasureSpec(viewPager.width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            val params = viewPager.layoutParams
+            if (params.height != view.measuredHeight && view.measuredHeight > 0) {
+                params.height = view.measuredHeight
+                viewPager.layoutParams = params
+                viewPager.requestLayout()
+            }
+        }
     }
 
     private fun setupRecentList() {
@@ -209,14 +235,25 @@ class GullyManagementActivity : BaseActivity() {
         }
 
         private fun showRemoveDialog(id: String) {
+            val activeGully = GullySyncManager.getCurrentGullyId(this@GullyManagementActivity)
+            val isActive = id.equals(activeGully, ignoreCase = true)
+
             ThemeManager.createDynamicBuilder(this@GullyManagementActivity)
                 .setTitle("Remove from Switchboard?")
-                .setMessage("Remove '$id' from your recent list? This won't delete the league data from the cloud.")
+                .setMessage(
+                    if (isActive) "Remove '$id' from your recent list? This will disconnect you from '$id' and switch to Local Mode."
+                    else "Remove '$id' from your recent list? This won't delete the league data from the cloud."
+                )
                 .setPositiveButton("REMOVE") { _, _ ->
+                    if (isActive) {
+                        leaveGully()
+                    }
                     LeagueNotificationManager.unsubscribeFromLeague(id)
                     GullyHistoryManager.removeGully(this@GullyManagementActivity, id)
+                    GullySyncManager.purgeLocalGullyData(this@GullyManagementActivity, id)
                     setupRecentList()
                     updateCurrentGullyUI()
+                    Toast.makeText(this@GullyManagementActivity, "Removed '$id' from Switchboard", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("CANCEL", null)
                 .show()

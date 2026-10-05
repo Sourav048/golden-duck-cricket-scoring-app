@@ -1,5 +1,6 @@
 package com.example.scoring
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.ContentValues
 import android.content.Context
@@ -48,6 +49,7 @@ import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
+import kotlin.math.abs
 
 class HomeActivity : BaseActivity() {
 
@@ -121,6 +123,11 @@ class HomeActivity : BaseActivity() {
 
         // Check for app updates via Firestore
         UpdateManager.checkForUpdates(this)
+
+        // Setup Draggable Floating AI Assistant Button
+        findViewById<View>(R.id.fabAiAssistant)?.let { aiFab ->
+            setupDraggableAiButton(aiFab)
+        }
     }
 
     private lateinit var gestureDetector: GestureDetector
@@ -819,5 +826,109 @@ class HomeActivity : BaseActivity() {
                 refresh(this, null)
             }
         }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupDraggableAiButton(aiButton: View) {
+        // Restore saved position on this device if available
+        aiButton.post {
+            val prefs = getSharedPreferences("ai_duck_prefs", MODE_PRIVATE)
+            if (prefs.contains("duck_pos_x") && prefs.contains("duck_pos_y")) {
+                val parent = aiButton.parent as? View
+                val savedX = prefs.getFloat("duck_pos_x", aiButton.x)
+                val savedY = prefs.getFloat("duck_pos_y", aiButton.y)
+                if (parent != null && parent.width > 0 && parent.height > 0) {
+                    val maxX = (parent.width - aiButton.width).toFloat()
+                    val maxY = (parent.height - aiButton.height).toFloat()
+                    aiButton.x = savedX.coerceIn(0f, maxX)
+                    aiButton.y = savedY.coerceIn(0f, maxY)
+                } else {
+                    aiButton.x = savedX
+                    aiButton.y = savedY
+                }
+            }
+        }
+
+        var initialX = 0f
+        var initialY = 0f
+        var initialTouchX = 0f
+        var initialTouchY = 0f
+        val clickThreshold = 10f
+
+        aiButton.setOnTouchListener { view, event ->
+            val parent = view.parent as? View ?: return@setOnTouchListener false
+
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = view.x
+                    initialY = view.y
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    true
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    val dX = event.rawX - initialTouchX
+                    val dY = event.rawY - initialTouchY
+
+                    var newX = initialX + dX
+                    var newY = initialY + dY
+
+                    val maxX = (parent.width - view.width).toFloat()
+                    val maxY = (parent.height - view.height).toFloat()
+
+                    newX = newX.coerceIn(0f, maxX)
+                    newY = newY.coerceIn(0f, maxY)
+
+                    view.x = newX
+                    view.y = newY
+                    true
+                }
+
+                MotionEvent.ACTION_UP -> {
+                    val diffX = abs(event.rawX - initialTouchX)
+                    val diffY = abs(event.rawY - initialTouchY)
+
+                    if (diffX < clickThreshold && diffY < clickThreshold) {
+                        view.performClick()
+                    } else {
+                        snapToNearestEdge(view, parent.width)
+                    }
+                    true
+                }
+
+                else -> false
+            }
+        }
+
+        aiButton.setOnClickListener {
+            startActivity(Intent(this, AiChatActivity::class.java))
+        }
+    }
+
+    private fun snapToNearestEdge(view: View, parentWidth: Int) {
+        val middleX = parentWidth / 2f
+        val marginPx = 16f * resources.displayMetrics.density
+        val targetX = if (view.x + (view.width / 2f) < middleX) {
+            marginPx
+        } else {
+            (parentWidth - view.width - marginPx)
+        }
+        val targetY = view.y
+
+        view.animate()
+            .x(targetX)
+            .setDuration(200)
+            .withEndAction {
+                saveAiButtonPosition(targetX, targetY)
+            }
+            .start()
+    }
+
+    private fun saveAiButtonPosition(x: Float, y: Float) {
+        getSharedPreferences("ai_duck_prefs", MODE_PRIVATE).edit()
+            .putFloat("duck_pos_x", x)
+            .putFloat("duck_pos_y", y)
+            .apply()
     }
 }

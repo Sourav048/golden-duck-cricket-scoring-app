@@ -194,11 +194,7 @@ class MatchListFragment : Fragment() {
         try {
             if (finalMatches == null) return
             val v = view ?: return
-            val sortedMatches = finalMatches.sortedWith { m1, m2 ->
-                val t1 = getMatchTime(m1)
-                val t2 = getMatchTime(m2)
-                t2.compareTo(t1)
-            }
+            val sortedMatches = finalMatches
 
             val shimmer = v.findViewById<ShimmerFrameLayout>(R.id.shimmerMatchList)
             shimmer?.let {
@@ -346,9 +342,7 @@ class MatchListFragment : Fragment() {
 
             // --- LIVE STATUS WITH HEARTBEAT CHECK ---
             val now = System.currentTimeMillis()
-            val diff = now - m.lastScorerPulse
-            val isPulseActive = diff in -60000..120000 // Allow 1 min future skew
-            val isActuallyLive = m.isLive && isPulseActive && !m.isFinished && !m.isAbandoned
+            val isActuallyLive = m.isMatchLive(now)
 
             if (isActuallyLive) {
                 holder.layoutLive?.visibility = View.VISIBLE
@@ -627,6 +621,7 @@ class MatchListFragment : Fragment() {
 
                 activity?.runOnUiThread {
                     val intent = Intent(ctx, SetupActivity::class.java).apply {
+                        putExtra("cloneMatch", true)
                         putExtra("teamA", m.teamAName)
                         putExtra("teamB", m.teamBName)
                         putExtra("overs", m.totalOvers)

@@ -42,8 +42,8 @@ object PlayerRenameManager {
                     if (match.secondInningsTeam?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.secondInningsTeam = newName
 
                     // B. Squad Lists
-                    match.teamANames = match.teamANames?.map { if (it?.trim().equals(oldNameTrimmed, ignoreCase = true)) newName else it }
-                    match.teamBNames = match.teamBNames?.map { if (it?.trim().equals(oldNameTrimmed, ignoreCase = true)) newName else it }
+                    match.teamANames = match.teamANames?.map { if (it?.trim().equals(oldNameTrimmed, ignoreCase = true)) newName else it }?.distinct()
+                    match.teamBNames = match.teamBNames?.map { if (it?.trim().equals(oldNameTrimmed, ignoreCase = true)) newName else it }?.distinct()
                     
                     // C. Mappings
                     val newPhotoMap = HashMap<String?, String?>()

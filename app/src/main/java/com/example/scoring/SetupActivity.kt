@@ -112,10 +112,13 @@ class SetupActivity : BaseActivity() {
                 } else false
             }
 
-            if (intent.getBooleanExtra("cloneMatch", false)) {
+            val isClone = intent.getBooleanExtra("cloneMatch", false) || intent.hasExtra("teamANames")
+            if (isClone) {
                 venueInput?.setText(intent.getStringExtra("venue"))
-                teamAInput?.setText(intent.getStringExtra("teamAName"))
-                teamBInput?.setText(intent.getStringExtra("teamBName"))
+                val nameA = intent.getStringExtra("teamA") ?: intent.getStringExtra("teamAName")
+                val nameB = intent.getStringExtra("teamB") ?: intent.getStringExtra("teamBName")
+                teamAInput?.setText(nameA)
+                teamBInput?.setText(nameB)
                 oversInput?.setText(intent.getIntExtra("overs", 10).toString())
 
                 switchRunsOnWide?.isChecked = intent.getBooleanExtra("ruleRunsOnWide", true)
@@ -183,7 +186,8 @@ class SetupActivity : BaseActivity() {
             putExtra("ruleOverthrow", switchOverthrow?.isChecked ?: true)
             putExtra("ruleEveryPlayerBats", switchEveryPlayerBats?.isChecked ?: true)
 
-            if (intent.getBooleanExtra("cloneMatch", false)) {
+            val isClone = intent.getBooleanExtra("cloneMatch", false) || intent.hasExtra("teamANames")
+            if (isClone) {
                 putExtra("cloneMatch", true)
                 putStringArrayListExtra("teamANames", intent.getStringArrayListExtra("teamANames"))
                 putStringArrayListExtra("teamBNames", intent.getStringArrayListExtra("teamBNames"))

@@ -115,6 +115,10 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity android:name=".NotificationCenterActivity" android:exported="false" />
+        <activity
+            android:name=".AiChatActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <receiver
             android:name=".NotificationReplyReceiver"

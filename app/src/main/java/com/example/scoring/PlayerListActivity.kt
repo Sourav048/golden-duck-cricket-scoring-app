@@ -568,24 +568,41 @@ class PlayerListActivity : BaseActivity() {
             val df = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
             holder.joined.text = "Joined: ${df.format(Date(p.createdAt))}"
 
-            val photoTarget: Any = when {
+            val rawPhotoTarget: String = when {
                 !p.photoUrl.isNullOrEmpty() -> p.photoUrl
                 !p.photoUri.isNullOrEmpty() -> p.photoUri
                 else -> ""
             }
 
-            if (photoTarget != "" && !isFinishing && !isDestroyed) {
+            val photoTarget: String = if (rawPhotoTarget.isNotEmpty()) {
+                if (rawPhotoTarget.startsWith("/") || rawPhotoTarget.startsWith("file://")) {
+                    val cleanPath = rawPhotoTarget.removePrefix("file://")
+                    if (File(cleanPath).exists()) rawPhotoTarget else (p.photoUrl.takeIf { !it.isNullOrEmpty() } ?: "")
+                } else {
+                    rawPhotoTarget
+                }
+            } else {
+                ""
+            }
+
+            if (photoTarget.isNotEmpty() && !isFinishing && !isDestroyed) {
                 try {
-                    Glide.with(holder.itemView.context)
+                    var req = Glide.with(holder.itemView.context)
                         .load(photoTarget)
-                        .signature(ObjectKey("${p.id}_${p.lastSyncedAt}"))
-                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .signature(ObjectKey("${p.id}_${p.lastSyncedAt}_${photoTarget.hashCode()}"))
                         .error(android.R.drawable.ic_menu_gallery)
-                        .into(holder.photo)
+
+                    if (holder.photo.drawable == null) {
+                        req = req.placeholder(android.R.drawable.ic_menu_gallery)
+                    }
+
+                    req.into(holder.photo)
                 } catch (_: Exception) {
+                    Glide.with(holder.itemView.context).clear(holder.photo)
                     holder.photo.setImageResource(android.R.drawable.ic_menu_gallery)
                 }
             } else {
+                Glide.with(holder.itemView.context).clear(holder.photo)
                 holder.photo.setImageResource(android.R.drawable.ic_menu_gallery)
             }
 

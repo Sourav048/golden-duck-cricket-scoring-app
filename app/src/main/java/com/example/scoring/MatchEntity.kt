@@ -135,7 +135,7 @@ class MatchEntity {
     
     // Heartbeat for Live Status (ensures match goes to "In-Progress" if scorer leaves abruptly)
     var lastScorerPulse: Long = 0
-    
+
     // Gully Sync Fields
     var gullyId: String = "local"
     var cloudId: String? = null
@@ -179,7 +179,9 @@ class MatchEntity {
         val i1: Innings? = if (firstInningsTeam != null) {
             val battingTeamName = firstInningsTeam!!
             val bowlingTeamName = if (battingTeamName == teamAName) teamBName else teamAName
-            val playerCnt = if (battingTeamName == teamAName) teamAPlayerCount else teamBPlayerCount
+            val rawCnt = if (battingTeamName == teamAName) teamAPlayerCount else teamBPlayerCount
+            val squadCnt = if (battingTeamName == teamAName) teamANames?.filterNotNull()?.distinct()?.size ?: 0 else teamBNames?.filterNotNull()?.distinct()?.size ?: 0
+            val playerCnt = maxOf(rawCnt, squadCnt)
             var maxW = if (ruleEveryPlayerBats) playerCnt else playerCnt - 1
             if (maxW <= 0) maxW = 1
 
@@ -202,7 +204,9 @@ class MatchEntity {
         val i2: Innings? = if ((secondInningsTeam != null) && (i1 != null)) {
             val battingTeamName = secondInningsTeam!!
             val bowlingTeamName = if (battingTeamName == teamAName) teamBName else teamAName
-            val playerCnt = if (battingTeamName == teamAName) teamAPlayerCount else teamBPlayerCount
+            val rawCnt = if (battingTeamName == teamAName) teamAPlayerCount else teamBPlayerCount
+            val squadCnt = if (battingTeamName == teamAName) teamANames?.filterNotNull()?.distinct()?.size ?: 0 else teamBNames?.filterNotNull()?.distinct()?.size ?: 0
+            val playerCnt = maxOf(rawCnt, squadCnt)
             var maxW = if (ruleEveryPlayerBats) playerCnt else playerCnt - 1
             if (maxW <= 0) maxW = 1
 
@@ -227,7 +231,105 @@ class MatchEntity {
         return m
     }
 
+    fun isPulseActive(now: Long = System.currentTimeMillis()): Boolean {
+        val diff = now - lastScorerPulse
+        return diff in -PULSE_FUTURE_TOLERANCE_MS..PULSE_TIMEOUT_MS
+    }
+
+    fun isMatchLive(now: Long = System.currentTimeMillis()): Boolean {
+        return isLive && !isFinished && !isAbandoned && isPulseActive(now)
+    }
+
+    fun cloneForDisplay(isLiveOverride: Boolean? = null): MatchEntity {
+        val copy = MatchEntity()
+        copy.id = this.id
+        copy.teamAName = this.teamAName
+        copy.teamBName = this.teamBName
+        copy.venue = this.venue
+        copy.totalOvers = this.totalOvers
+        copy.ballType = this.ballType
+        copy.teamAPlayerCount = this.teamAPlayerCount
+        copy.teamBPlayerCount = this.teamBPlayerCount
+        copy.playedAt = this.playedAt
+        copy.result = this.result
+
+        copy.firstInningsTeam = this.firstInningsTeam
+        copy.firstInningsRuns = this.firstInningsRuns
+        copy.firstInningsWickets = this.firstInningsWickets
+        copy.firstInningsRetiredHurtCount = this.firstInningsRetiredHurtCount
+
+        copy.secondInningsTeam = this.secondInningsTeam
+        copy.secondInningsRuns = this.secondInningsRuns
+        copy.secondInningsWickets = this.secondInningsWickets
+        copy.secondInningsRetiredHurtCount = this.secondInningsRetiredHurtCount
+
+        copy.playerOfTheMatchName = this.playerOfTheMatchName
+        copy.matchMargin = this.matchMargin
+        copy.tossWinner = this.tossWinner
+        copy.tossDecision = this.tossDecision
+        copy.firstInningsStartTime = this.firstInningsStartTime
+        copy.firstInningsEndTime = this.firstInningsEndTime
+        copy.secondInningsStartTime = this.secondInningsStartTime
+        copy.secondInningsEndTime = this.secondInningsEndTime
+
+        copy.fowJson1 = this.fowJson1
+        copy.fowJson2 = this.fowJson2
+        copy.pshipJson1 = this.pshipJson1
+        copy.pshipJson2 = this.pshipJson2
+        copy.commentaryJson1 = this.commentaryJson1
+        copy.commentaryJson2 = this.commentaryJson2
+        copy.commentaryJson = this.commentaryJson
+
+        copy.isFinished = this.isFinished
+        copy.isAbandoned = this.isAbandoned
+
+        copy.ruleRunsOnWide = this.ruleRunsOnWide
+        copy.ruleFreeHit = this.ruleFreeHit
+        copy.ruleRunsOnBye = this.ruleRunsOnBye
+        copy.ruleOverthrow = this.ruleOverthrow
+        copy.ruleEveryPlayerBats = this.ruleEveryPlayerBats
+
+        copy.isFreeHitActive = this.isFreeHitActive
+        copy.currentBowlerInSpell = this.currentBowlerInSpell
+
+        copy.currentStrikerName = this.currentStrikerName
+        copy.currentNonStrikerName = this.currentNonStrikerName
+        copy.currentBowlerName = this.currentBowlerName
+        copy.nextBatsmanIdx = this.nextBatsmanIdx
+        copy.isTeamABatting = this.isTeamABatting
+
+        copy.strikerEntryTime = this.strikerEntryTime
+        copy.nonStrikerEntryTime = this.nonStrikerEntryTime
+
+        copy.ballsJson1 = this.ballsJson1
+        copy.ballsJson2 = this.ballsJson2
+
+        copy.revisedTarget = this.revisedTarget
+        copy.revisedOvers = this.revisedOvers
+
+        copy.isLive = isLiveOverride ?: this.isLive
+        copy.startNotificationSent = this.startNotificationSent
+        copy.isSharedOver = this.isSharedOver
+
+        copy.lastScorerPulse = this.lastScorerPulse
+
+        copy.gullyId = this.gullyId
+        copy.cloudId = this.cloudId
+        copy.lastSyncedAt = this.lastSyncedAt
+        copy.compressedPayload = this.compressedPayload
+
+        copy.teamANames = this.teamANames
+        copy.teamBNames = this.teamBNames
+        copy.photoMap = this.photoMap
+        copy.nameToIdMap = this.nameToIdMap
+
+        return copy
+    }
+
     companion object {
+        const val PULSE_TIMEOUT_MS = 45_000L // 45 seconds (2 missed heartbeats)
+        const val PULSE_FUTURE_TOLERANCE_MS = 60_000L // 1 min clock skew
+
         fun fromMatch(m: Match): MatchEntity {
             val entity = MatchEntity()
             entity.teamAName = m.teamA

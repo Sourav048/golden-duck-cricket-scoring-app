@@ -38,6 +38,8 @@
     <string name="ball_type_leather">Leather</string>
     <string name="ball_type_plastic">Plastic</string>
     <string name="ball_type_rubber">Rubber</string>
+    <string name="ai_assistant_badge">AI ✨</string>
+    <string name="ai_assistant_cd">Duckie AI Assistant</string>
 
     <string name="btn_0">0</string>
     <string name="btn_1">1</string>

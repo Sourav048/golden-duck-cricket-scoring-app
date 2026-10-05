@@ -112,25 +112,57 @@
                             android:alpha="0.8" />
                     </LinearLayout>
 
+                    <LinearLayout
+                        android:id="@+id/layoutLiveCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:paddingHorizontal="4dp"
+                        android:paddingVertical="2dp"
+                        android:layout_marginBottom="2dp"
+                        android:visibility="gone"
+                        app:layout_constraintStart_toStartOf="@id/cardProjected"
+                        app:layout_constraintEnd_toEndOf="@id/cardProjected"
+                        app:layout_constraintTop_toTopOf="parent">
+
+                        <View
+                            android:layout_width="8dp"
+                            android:layout_height="8dp"
+                            android:layout_marginEnd="5dp"
+                            android:background="@drawable/circle_bg_red" />
+
+                        <TextView
+                            android:id="@+id/tvLiveCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Live Count: 1"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorOnPrimary"
+                            android:alpha="0.9" />
+                    </LinearLayout>
+
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardProjected"
                         android:layout_width="160dp"
                         android:layout_height="wrap_content"
-                        app:cardCornerRadius="16dp"
+                        android:layout_marginTop="2dp"
+                        app:cardCornerRadius="14dp"
                         app:cardElevation="0dp"
                         app:cardBackgroundColor="?attr/colorSecondary"
                         app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/layoutLiveCount"
                         app:layout_constraintBottom_toBottomOf="parent">
 
                         <TextView
                             android:id="@+id/tvAnalysisLabel"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:paddingHorizontal="12dp"
-                            android:paddingVertical="12dp"
+                            android:paddingHorizontal="10dp"
+                            android:paddingVertical="10dp"
                             android:text="Projected: 0"
-                            android:textSize="14sp"
+                            android:textSize="13sp"
                             android:textStyle="bold"
                             android:textColor="?attr/colorOnSecondary"
                             android:gravity="center" />

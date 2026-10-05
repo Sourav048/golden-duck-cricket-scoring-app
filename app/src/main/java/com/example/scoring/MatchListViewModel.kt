@@ -1,6 +1,8 @@
 package com.example.scoring
 
 import android.app.Application
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.*
 
 class MatchListViewModel(application: Application) : AndroidViewModel(application) {
@@ -8,6 +10,25 @@ class MatchListViewModel(application: Application) : AndroidViewModel(applicatio
     private val gId = MutableLiveData<String>()
     private val filterType = MutableLiveData<Int>()
     
+    // 15-second heartbeat ticker to trigger pulse re-evaluations automatically
+    private val pulseTicker = MutableLiveData<Long>(System.currentTimeMillis())
+    private val pulseHandler = Handler(Looper.getMainLooper())
+    private val pulseRunnable = object : Runnable {
+        override fun run() {
+            pulseTicker.value = System.currentTimeMillis()
+            pulseHandler.postDelayed(this, 15_000)
+        }
+    }
+
+    init {
+        pulseHandler.postDelayed(pulseRunnable, 15_000)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        pulseHandler.removeCallbacks(pulseRunnable)
+    }
+
     private val combinedParams = MediatorLiveData<Pair<String, Int>>().apply {
         addSource(gId) { id -> value = Pair(id ?: "local", filterType.value ?: 0) }
         addSource(filterType) { type -> value = Pair(gId.value ?: "local", type ?: 0) }
@@ -18,26 +39,36 @@ class MatchListViewModel(application: Application) : AndroidViewModel(applicatio
         if (filterType.value != type) filterType.value = type
     }
 
+    private fun getMatchTime(m: MatchEntity): Long {
+        return if (m.firstInningsStartTime > 0) m.firstInningsStartTime else m.playedAt
+    }
+
     val matches: LiveData<List<MatchEntity>> = combinedParams.switchMap { p ->
         val currentGId = p.first
         val type = p.second
         
         when (type) {
-            0 -> db.matchDao().getMatchesByStatusByGullyLive(false, false, currentGId).map { list ->
-                val now = System.currentTimeMillis()
-                list?.filterNotNull()?.filter { 
-                    val diff = now - it.lastScorerPulse
-                    // Allow 1 min future skew to handle slight clock differences
-                    it.isLive && diff in -60000..120000 
-                } ?: emptyList()
+            0 -> {
+                val liveMatches = db.matchDao().getMatchesByStatusByGullyLive(false, false, currentGId)
+                MediatorLiveData<List<MatchEntity>>().apply {
+                    fun evaluate() {
+                        val list = liveMatches.value ?: emptyList()
+                        val now = System.currentTimeMillis()
+                        value = list.filterNotNull()
+                            .filter { it.isMatchLive(now) }
+                            .sortedByDescending { getMatchTime(it) }
+                    }
+                    addSource(liveMatches) { evaluate() }
+                    addSource(pulseTicker) { evaluate() }
+                }
             }
             1 -> db.matchDao().getMatchesByStatusByGullyLive(true, false, currentGId).map { list ->
-                list?.filterNotNull() ?: emptyList()
+                list?.filterNotNull()?.sortedByDescending { getMatchTime(it) } ?: emptyList()
             }
             2 -> {
                 val liveMatches = db.matchDao().getMatchesByStatusByGullyLive(false, false, currentGId)
                 val liveDrafts = db.draftDao().getAllDraftsLive(currentGId)
-                
+
                 MediatorLiveData<List<MatchEntity>>().apply {
                     fun combine() {
                         val activeMatches = liveMatches.value ?: emptyList()
@@ -46,43 +77,19 @@ class MatchListViewModel(application: Application) : AndroidViewModel(applicatio
                         val now = System.currentTimeMillis()
                         
                         // Add matches that are NOT live OR are STALE (pulse dead or from future)
+                        // Uses complete clone to preserve squad names, photos, IDs, and custom rules
                         activeMatches.filterNotNull().forEach { m ->
-                            val diff = now - m.lastScorerPulse
-                            val isPulseDead = diff !in -60000..120000 
-                            if (!m.isLive || isPulseDead) {
-                                // Create a shallow copy to modify the UI flag without affecting DB
-                                val displayMatch = MatchEntity().apply {
-                                    // Copy all relevant fields for the adapter
-                                    this.id = m.id
-                                    this.teamAName = m.teamAName
-                                    this.teamBName = m.teamBName
-                                    this.venue = m.venue
-                                    this.totalOvers = m.totalOvers
-                                    this.playedAt = m.playedAt
-                                    this.firstInningsStartTime = m.firstInningsStartTime
-                                    this.firstInningsTeam = m.firstInningsTeam
-                                    this.firstInningsRuns = m.firstInningsRuns
-                                    this.firstInningsWickets = m.firstInningsWickets
-                                    this.secondInningsTeam = m.secondInningsTeam
-                                    this.secondInningsRuns = m.secondInningsRuns
-                                    this.secondInningsWickets = m.secondInningsWickets
-                                    this.isFinished = m.isFinished
-                                    this.isAbandoned = m.isAbandoned
-                                    this.isLive = if (isPulseDead) false else m.isLive // FORCE FALSE IF PULSE DEAD
-                                    this.lastScorerPulse = m.lastScorerPulse
-                                    this.result = m.result
-                                    this.revisedOvers = m.revisedOvers
-                                    this.ballsJson1 = m.ballsJson1
-                                    this.ballsJson2 = m.ballsJson2
-                                    this.startNotificationSent = m.startNotificationSent
-                                }
-                                combined.add(displayMatch)
+                            if (!m.isMatchLive(now)) {
+                                combined.add(m.cloneForDisplay(isLiveOverride = false))
                             }
                         }
-                        
+
+                        // Pre-index active match IDs for O(N + M) deduplication
+                        val activeIds = activeMatches.mapNotNull { it?.id }.toSet()
+
                         // Add drafts that don't have an active match yet
                         drafts.filterNotNull().forEach { d ->
-                            if (activeMatches.none { it?.id == d.id }) {
+                            if (d.id !in activeIds) {
                                 combined.add(MatchEntity().apply {
                                     this.id = d.id
                                     this.teamAName = d.teamAName
@@ -93,19 +100,21 @@ class MatchListViewModel(application: Application) : AndroidViewModel(applicatio
                                     this.gullyId = d.gullyId
                                     this.teamANames = d.teamANames
                                     this.teamBNames = d.teamBNames
-                                    this.playedAt = System.currentTimeMillis()
+                                    this.playedAt = if (d.lastSyncedAt > 0) d.lastSyncedAt else System.currentTimeMillis()
                                     this.startNotificationSent = true // Drafts don't need notification yet
                                 })
                             }
                         }
-                        value = combined
+                        // Sort in background thread
+                        value = combined.sortedByDescending { getMatchTime(it) }
                     }
                     addSource(liveMatches) { combine() }
                     addSource(liveDrafts) { combine() }
+                    addSource(pulseTicker) { combine() }
                 }
             }
             3 -> db.matchDao().getAbandonedMatchesByGullyLive(currentGId).map { list ->
-                list?.filterNotNull() ?: emptyList()
+                list?.filterNotNull()?.sortedByDescending { getMatchTime(it) } ?: emptyList()
             }
             else -> MutableLiveData(emptyList())
         }

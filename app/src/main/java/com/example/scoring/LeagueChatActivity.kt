@@ -51,6 +51,16 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.firestore.SetOptions
 import java.util.concurrent.Executors
+import com.google.ai.client.generativeai.GenerativeModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
 
 class LeagueChatActivity : BaseActivity() {
 
@@ -415,6 +425,9 @@ class LeagueChatActivity : BaseActivity() {
             db.collection("gullies").document(leagueId)
                 .collection("chat_users").document(senderId)
                 .set(userMap, SetOptions.merge())
+                .addOnSuccessListener {
+                    GullySyncManager.syncLeagueMemberCount(leagueId)
+                }
         }
     }
 
@@ -588,7 +601,38 @@ class LeagueChatActivity : BaseActivity() {
             return
         }
 
+        val specialMentions = mutableListOf<MentionItem.Player>()
+        if ("all".contains(query, ignoreCase = true) || query.isEmpty()) {
+            specialMentions.add(
+                MentionItem.Player(
+                    name = "all",
+                    jersey = "",
+                    isActiveInChat = false,
+                    isSpecial = true,
+                    icon = "📢",
+                    description = "Notify Everyone in League"
+                )
+            )
+        }
+        if ("duckie ai".contains(query, ignoreCase = true) || "duckie".contains(query, ignoreCase = true) || "ai".contains(query, ignoreCase = true) || query.isEmpty()) {
+            specialMentions.add(
+                MentionItem.Player(
+                    name = "Duckie AI",
+                    jersey = "",
+                    isActiveInChat = false,
+                    isSpecial = true,
+                    icon = "🤖",
+                    description = "Ask Duckie AI in Group Chat"
+                )
+            )
+        }
+
         val displayItems = mutableListOf<MentionItem>()
+
+        if (specialMentions.isNotEmpty()) {
+            displayItems.add(MentionItem.Header("📌 QUICK MENTIONS"))
+            displayItems.addAll(specialMentions)
+        }
 
         if (activeChatPlayers.isNotEmpty()) {
             displayItems.add(MentionItem.Header("💬 PLAYERS IN LEAGUE CHAT"))
@@ -896,6 +940,8 @@ class LeagueChatActivity : BaseActivity() {
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Failed to send: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+
+        checkAndTriggerDuckieAiInLeagueChat(text)
     }
 
     private fun sendSystemMessage(systemText: String) {
@@ -2119,6 +2165,416 @@ class LeagueChatActivity : BaseActivity() {
 
         Toast.makeText(this, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
         dialog.dismiss()
+    }
+
+    private fun buildGroupChatHistoryContext(maxCount: Int = 10): String {
+        val historySb = StringBuilder()
+        val recentMsgs = messageList.filter { it.messageText.isNotBlank() && it.type == "TEXT" }.takeLast(maxCount)
+        if (recentMsgs.isNotEmpty()) {
+            historySb.append("\n=== RECENT LEAGUE GROUP CHAT MESSAGES ===\n")
+            for (msg in recentMsgs) {
+                historySb.append(msg.senderName).append(": ").append(msg.messageText).append("\n")
+            }
+        }
+        return historySb.toString()
+    }
+
+    private fun checkAndTriggerDuckieAiInLeagueChat(userMessageText: String) {
+        val lowerText = userMessageText.lowercase()
+        if (!lowerText.contains("@duckie")) return
+
+        val prompt = userMessageText.replace(Regex("(?i)@Duckie\\s*AI|@Duckie_AI|@Duckie"), "").trim()
+        val queryPrompt = if (prompt.isNotBlank()) prompt else "Hello Duckie AI!"
+        val groupChatHistory = buildGroupChatHistoryContext(10)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val statsContext = buildLeagueStatsContextSyncForGroupChat()
+
+                val groqKey = try {
+                    BuildConfig::class.java.getField("GROQ_API_KEY").get(null) as? String ?: ""
+                } catch (_: Throwable) {
+                    try { BuildConfig.GROQ_API_KEY } catch (_: Throwable) { "" }
+                }.trim()
+
+                val geminiKey = try {
+                    BuildConfig::class.java.getField("GEMINI_API_KEY").get(null) as? String ?: ""
+                } catch (_: Throwable) {
+                    try { BuildConfig.GEMINI_API_KEY } catch (_: Throwable) { "" }
+                }.trim()
+
+                val systemInstructionText = """
+                    You are 'Duckie AI 🤖', an energetic, 100% uncensored, brutally honest, witty, and hilarious AI Cricket Analyst participating directly inside a League Group Chat for Golden Duck Scoring app.
+                    Active League Name: $leagueId
+                    
+                    $groupChatHistory
+                    
+                    COMPLETE REAL DATABASE CONTEXT (ALL MATCHES, SCORECARDS, BALL-BY-BALL COMMENTARY & PLAYER STATS):
+                    $statsContext
+                    
+                    INSTRUCTIONS:
+                    - You are responding to a player's query inside the group chat!
+                    - ALWAYS REFER TO THE RECENT LEAGUE GROUP CHAT MESSAGES ABOVE when answering follow-up questions or settling debates!
+                    - BE BRUTALLY HONEST & UNFILTERED: Settle player arguments, compare players with exact database stats, and roast bad stats with witty cricket humor and raw profanity if deserved!
+                    - Keep group chat responses concise, impactful, witty, and formatted with clean markdown and cricket emojis! 🏏🔥
+                """.trimIndent()
+
+                var aiResponseText = ""
+                var lastErr = ""
+
+                if (groqKey.isNotBlank() && groqKey != "null") {
+                    val res = callGroqApiDirect(queryPrompt, groqKey, systemInstructionText) { err ->
+                        lastErr = "Groq: $err"
+                    }
+                    if (!res.isNullOrBlank()) aiResponseText = res
+                } else {
+                    lastErr = "GROQ_API_KEY missing"
+                }
+
+                if (aiResponseText.isBlank() && geminiKey.isNotBlank() && geminiKey != "null") {
+                    val combinedPrompt = "$systemInstructionText\n\nUSER QUESTION IN GROUP CHAT: $queryPrompt"
+                    val sdkRes = generateGeminiSdkResponse(combinedPrompt, geminiKey)
+                    if (!sdkRes.isNullOrBlank()) {
+                        aiResponseText = sdkRes
+                    } else {
+                        val restRes = callGeminiRestApiDirect(combinedPrompt, geminiKey) { err ->
+                            lastErr += " | Gemini REST: $err"
+                        }
+                        if (!restRes.isNullOrBlank()) aiResponseText = restRes
+                    }
+                } else if (aiResponseText.isBlank()) {
+                    lastErr += " | GEMINI_API_KEY missing"
+                }
+
+                if (aiResponseText.isBlank()) {
+                    aiResponseText = "🦆 Duckie AI Error: $lastErr"
+                }
+
+                val aiMsgDoc = hashMapOf(
+                    "senderId" to "DUCKIE_AI_BOT",
+                    "senderName" to "Duckie AI 🤖",
+                    "senderProfilePic" to "",
+                    "messageText" to aiResponseText,
+                    "timestamp" to System.currentTimeMillis(),
+                    "type" to "TEXT"
+                )
+
+                db.collection("gullies")
+                    .document(leagueId)
+                    .collection("messages")
+                    .add(aiMsgDoc)
+            } catch (e: Exception) {
+                Log.e("LeagueChat", "Duckie AI trigger error: ${e.message}", e)
+            }
+        }
+    }
+
+    private suspend fun generateGeminiSdkResponse(prompt: String, apiKey: String): String? {
+        val models = listOf(
+            "gemini-flash-latest",
+            "gemini-2.5-flash",
+            "gemini-3.6-flash",
+            "gemini-pro-latest",
+            "gemini-2.5-pro"
+        )
+        for (modelName in models) {
+            try {
+                val model = GenerativeModel(modelName = modelName, apiKey = apiKey)
+                val response = model.generateContent(prompt)
+                val txt = response.text
+                if (!txt.isNullOrBlank()) {
+                    Log.d("LeagueChat", "Gemini SDK Direct Success with model: $modelName")
+                    return txt
+                }
+            } catch (e: Exception) {
+                Log.d("LeagueChat", "Gemini SDK model $modelName error: ${e.message}")
+            }
+        }
+        return null
+    }
+
+    private fun callGroqApiDirect(prompt: String, apiKey: String, systemInstructionText: String, onError: (String) -> Unit): String? {
+        val models = listOf("llama-3.3-70b-versatile", "llama-3.1-8b-instant")
+        val urlString = "https://api.groq.com/openai/v1/chat/completions"
+
+        for (modelName in models) {
+            try {
+                val url = URL(urlString)
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setRequestProperty("Authorization", "Bearer $apiKey")
+                conn.doOutput = true
+                conn.connectTimeout = 3000
+                conn.readTimeout = 4000
+
+                val payload = JSONObject().apply {
+                    put("model", modelName)
+                    put("messages", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("role", "system")
+                            put("content", systemInstructionText)
+                        })
+                        put(JSONObject().apply {
+                            put("role", "user")
+                            put("content", prompt)
+                        })
+                    })
+                    put("temperature", 0.8)
+                    put("max_tokens", 400)
+                }
+
+                OutputStreamWriter(conn.outputStream).use { writer ->
+                    writer.write(payload.toString())
+                    writer.flush()
+                }
+
+                val respCode = conn.responseCode
+                if (respCode == 200) {
+                    val reader = BufferedReader(InputStreamReader(conn.inputStream))
+                    val responseStr = reader.use { it.readText() }
+                    val jsonResponse = JSONObject(responseStr)
+                    val choices = jsonResponse.optJSONArray("choices")
+                    if (choices != null && choices.length() > 0) {
+                        val messageObj = choices.getJSONObject(0).optJSONObject("message")
+                        val text = messageObj?.optString("content")
+                        if (!text.isNullOrBlank()) {
+                            Log.d("LeagueChat", "Groq Direct Success with model: $modelName")
+                            return text
+                        }
+                    }
+                } else {
+                    val errStream = conn.errorStream
+                    val errTxt = if (errStream != null) BufferedReader(InputStreamReader(errStream)).use { it.readText() } else ""
+                    Log.e("LeagueChat", "Groq API direct error ($respCode) for $modelName: $errTxt")
+                    onError("Groq $modelName HTTP $respCode: $errTxt")
+                }
+            } catch (e: Exception) {
+                Log.e("LeagueChat", "Groq API direct exception for $modelName: ${e.message}")
+                onError("Groq $modelName Exception: ${e.message}")
+            }
+        }
+        return null
+    }
+
+    private fun callGeminiRestApiDirect(combinedPrompt: String, apiKey: String, onError: (String) -> Unit): String? {
+        val models = listOf(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent"
+        )
+
+        val payload = JSONObject().apply {
+            put("contents", JSONArray().put(JSONObject().apply {
+                put("role", "user")
+                put("parts", JSONArray().put(JSONObject().put("text", combinedPrompt)))
+            }))
+            put("safetySettings", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("category", "HARM_CATEGORY_HARASSMENT")
+                    put("threshold", "BLOCK_NONE")
+                })
+                put(JSONObject().apply {
+                    put("category", "HARM_CATEGORY_HATE_SPEECH")
+                    put("threshold", "BLOCK_NONE")
+                })
+            })
+        }
+
+        for (baseUrl in models) {
+            try {
+                val urlString = "$baseUrl?key=$apiKey"
+                val url = URL(urlString)
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setRequestProperty("x-goog-api-key", apiKey)
+                conn.doOutput = true
+                conn.connectTimeout = 12000
+                conn.readTimeout = 12000
+
+                OutputStreamWriter(conn.outputStream).use { writer ->
+                    writer.write(payload.toString())
+                    writer.flush()
+                }
+
+                val respCode = conn.responseCode
+                if (respCode == 200) {
+                    val reader = BufferedReader(InputStreamReader(conn.inputStream))
+                    val responseStr = reader.use { it.readText() }
+                    val jsonResponse = JSONObject(responseStr)
+                    val candidates = jsonResponse.optJSONArray("candidates")
+                    if (candidates != null && candidates.length() > 0) {
+                        val content = candidates.getJSONObject(0).optJSONObject("content")
+                        val parts = content?.optJSONArray("parts")
+                        if (parts != null && parts.length() > 0) {
+                            val text = parts.getJSONObject(0).optString("text")
+                            if (!text.isNullOrBlank()) {
+                                Log.d("LeagueChat", "Gemini Direct Success with URL: $baseUrl")
+                                return text
+                            }
+                        }
+                    }
+                } else {
+                    val errStream = conn.errorStream
+                    val errTxt = if (errStream != null) BufferedReader(InputStreamReader(errStream)).use { it.readText() } else ""
+                    Log.e("LeagueChat", "Gemini API direct error ($respCode) for $baseUrl: $errTxt")
+                    onError("Gemini HTTP $respCode: $errTxt")
+                }
+            } catch (e: Exception) {
+                Log.e("LeagueChat", "Gemini REST direct exception for $baseUrl: ${e.message}")
+                onError("Gemini Exception: ${e.message}")
+            }
+        }
+        return null
+    }
+
+    private fun buildLeagueStatsContextSyncForGroupChat(): String {
+        return try {
+            val appDb = AppDatabase.getInstance(this@LeagueChatActivity)
+            val allStats = appDb.statsDao().getAllStats() ?: emptyList()
+
+            data class LocalPlayerStats(
+                val playerName: String,
+                var totalRuns: Int = 0,
+                var totalBalls: Int = 0,
+                var fours: Int = 0,
+                var sixes: Int = 0,
+                var wicketsTaken: Int = 0,
+                var runsConceded: Int = 0,
+                var ballsBowled: Int = 0,
+                var highestScore: Int = 0,
+                var bestWickets: Int = 0,
+                var bestRunsConceded: Int = 999,
+                var matchesPlayed: Int = 0
+            )
+
+            val playerMap = mutableMapOf<String, LocalPlayerStats>()
+
+            for (stat in allStats) {
+                if (stat == null) continue
+                val pName = stat.playerName?.trim() ?: continue
+                if (pName.uppercase(Locale.getDefault()) in listOf("FIELD", "PENALTY", "RETIRED")) continue
+
+                val gId = stat.gullyId
+                if (leagueId != "local" && !gId.equals(leagueId, ignoreCase = true) && gId != "local") {
+                    continue
+                }
+
+                val pStats = playerMap.getOrPut(pName.lowercase(Locale.getDefault())) {
+                    LocalPlayerStats(playerName = pName)
+                }
+
+                pStats.totalRuns += stat.runsScored
+                pStats.totalBalls += stat.ballsFaced
+                pStats.fours += stat.fours
+                pStats.sixes += stat.sixes
+                pStats.wicketsTaken += stat.wicketsTaken
+                pStats.runsConceded += stat.runsConceded
+                pStats.ballsBowled += stat.ballsBowled
+                pStats.matchesPlayed += 1
+
+                if (stat.runsScored > pStats.highestScore) {
+                    pStats.highestScore = stat.runsScored
+                }
+                if (stat.wicketsTaken > pStats.bestWickets) {
+                    pStats.bestWickets = stat.wicketsTaken
+                    pStats.bestRunsConceded = stat.runsConceded
+                }
+            }
+
+            val allPlayers = appDb.playerDao().getAllPlayersByGully(leagueId) ?: appDb.playerDao().getAllPlayers() ?: emptyList()
+            for (p in allPlayers) {
+                if (p == null) continue
+                val pName = p.name.trim()
+                if (pName.isNotEmpty() && !playerMap.containsKey(pName.lowercase(Locale.getDefault()))) {
+                    playerMap[pName.lowercase(Locale.getDefault())] = LocalPlayerStats(playerName = pName)
+                }
+            }
+
+            val sb = StringBuilder()
+            sb.append("ACTIVE LEAGUE NAME: ").append(leagueId).append("\n\n")
+
+            sb.append("=== ALL PLAYER CAREER STATS ===\n")
+            for ((_, p) in playerMap) {
+                val sr = if (p.totalBalls > 0) String.format(Locale.getDefault(), "%.1f", (p.totalRuns * 100.0) / p.totalBalls) else "0.0"
+                val eco = if (p.ballsBowled > 0) String.format(Locale.getDefault(), "%.2f", (p.runsConceded * 6.0) / p.ballsBowled) else "0.00"
+                sb.append("- P: ").append(p.playerName)
+                    .append(" | R: ").append(p.totalRuns)
+                    .append(" | Inn: ").append(p.matchesPlayed)
+                    .append(" | High: ").append(p.highestScore)
+                    .append(" | SR: ").append(sr)
+                    .append(" | 6s: ").append(p.sixes)
+                    .append(" | 4s: ").append(p.fours)
+                    .append(" | Wkts: ").append(p.wicketsTaken)
+                    .append(" | Best: ").append(p.bestWickets).append("/").append(if (p.bestRunsConceded < 999) p.bestRunsConceded else 0)
+                    .append(" | Eco: ").append(eco)
+                    .append("\n")
+            }
+
+            sb.append("\n=== ALL LEAGUE MATCHES & BALL-BY-BALL COMMENTARY LOGS (LIVE, COMPLETED & ABANDONED) ===\n")
+            val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+            val rawMatches = appDb.matchDao().getAllMatchesByGully(leagueId) ?: appDb.matchDao().getAllMatches() ?: emptyList()
+            val allMatches = rawMatches.filterNotNull().sortedBy { it.playedAt }
+            val totalMatchesCount = allMatches.size
+
+            allMatches.forEachIndexed { idx, match ->
+                val dateStr = if (match.playedAt > 0) dateFormat.format(Date(match.playedAt)) else "Recorded Match"
+                val matchNumber = idx + 1 // Matches UI "Match #1", "Match #2", ..., "Match #N"
+
+                val statusTag = when {
+                    match.isAbandoned -> " [ABANDONED MATCH 🌧️]"
+                    !match.isFinished -> " [LIVE / IN-PROGRESS MATCH 🔴]"
+                    idx == totalMatchesCount - 1 -> " [MOST RECENT COMPLETED MATCH 🏁]"
+                    idx == 0 -> " [FIRST / EARLIEST MATCH RECORDED]"
+                    else -> " [COMPLETED MATCH 🏁]"
+                }
+
+                sb.append("MATCH #").append(matchNumber).append(statusTag)
+                    .append(" | Date: ").append(dateStr)
+                    .append(" | Teams: ").append(match.teamAName).append(" vs ").append(match.teamBName)
+                    .append(" | Venue: ").append(match.venue ?: "Local Ground")
+                    .append(" | Result/Status: ").append(match.result ?: if (match.isAbandoned) "Abandoned / No Result" else "In Progress")
+                    .append(" | POTM: ").append(match.playerOfTheMatchName ?: "N/A")
+                    .append("\n")
+
+                if (!match.isFinished && !match.isAbandoned) {
+                    val striker = match.currentStrikerName ?: "N/A"
+                    val nonStriker = match.currentNonStrikerName ?: "N/A"
+                    val bowler = match.currentBowlerName ?: "N/A"
+                    sb.append("  LIVE STATUS -> Striker: ").append(striker)
+                        .append(" | Non-Striker: ").append(nonStriker)
+                        .append(" | Bowler: ").append(bowler)
+                        .append("\n")
+                }
+
+                sb.append("  1st Innings (").append(match.firstInningsTeam ?: match.teamAName).append("): ")
+                    .append(match.firstInningsRuns).append("/").append(match.firstInningsWickets).append("\n")
+
+                val comm1 = match.commentaryJson1 ?: emptyList()
+                comm1.filterNotNull().forEach { c ->
+                    sb.append("    [1st Innings Over ").append(c.over ?: "0.0").append("]: ").append(c.text ?: "").append("\n")
+                }
+
+                if (match.secondInningsTeam != null || match.secondInningsRuns > 0) {
+                    sb.append("  2nd Innings (").append(match.secondInningsTeam ?: match.teamBName).append("): ")
+                        .append(match.secondInningsRuns).append("/").append(match.secondInningsWickets).append("\n")
+
+                    val comm2 = match.commentaryJson2 ?: emptyList()
+                    comm2.filterNotNull().forEach { c ->
+                        sb.append("    [2nd Innings Over ").append(c.over ?: "0.0").append("]: ").append(c.text ?: "").append("\n")
+                    }
+                }
+
+                sb.append("\n")
+            }
+
+            sb.toString()
+        } catch (e: Exception) {
+            Log.e("LeagueChat", "Error building stats context for group chat: ${e.message}")
+            "League: $leagueId"
+        }
     }
 
     override fun onDestroy() {

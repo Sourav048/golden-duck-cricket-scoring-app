@@ -136,9 +136,14 @@ class InningsScorecardFragment : Fragment() {
         val activeStriker = if (isViewingCurrentInnings) act.striker else null
         val activeNonStriker = if (isViewingCurrentInnings) act.nonStriker else null
 
+        val playedBatterNamesSet = mutableSetOf<String>()
+
         battingOrder?.let {
             for (name in it) {
                 if (name == null) continue
+                val trimmedLower = name.trim().lowercase(Locale.getDefault())
+                if (playedBatterNamesSet.contains(trimmedLower)) continue
+
                 val p = act.getPlayerFromCache(name) ?: continue
 
                 // Players who are currently at the crease should definitely show up
@@ -152,8 +157,12 @@ class InningsScorecardFragment : Fragment() {
                 // 4. Has dismissal info set (e.g. retired hurt)
                 val hasPlayed = (p.ballsFaced > 0) || p.isOut || isAtCrease || (p.dismissalInfo != "not out")
 
-                if (hasPlayed) playedBatters.add(p)
-                else yetToBat.add(name)
+                if (hasPlayed) {
+                    playedBatters.add(p)
+                    playedBatterNamesSet.add(trimmedLower)
+                } else if (!yetToBat.contains(name)) {
+                    yetToBat.add(name)
+                }
             }
         }
 

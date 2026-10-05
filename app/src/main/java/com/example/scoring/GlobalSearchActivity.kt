@@ -135,9 +135,11 @@ class GlobalSearchActivity : BaseActivity() {
 
                 } catch (e: Exception) {
                     Log.e("GlobalSearch", "Photo render failed: ${e.message}")
+                    Glide.with(holder.itemView.context).clear(holder.photo)
                     holder.photo.setImageResource(android.R.drawable.ic_menu_gallery)
                 }
             } else {
+                Glide.with(holder.itemView.context).clear(holder.photo)
                 holder.photo.setImageResource(android.R.drawable.ic_menu_gallery)
             }
 

@@ -11,7 +11,10 @@ sealed class MentionItem {
     data class Player(
         val name: String,
         val jersey: String = "",
-        val isActiveInChat: Boolean = false
+        val isActiveInChat: Boolean = false,
+        val isSpecial: Boolean = false,
+        val icon: String = "",
+        val description: String = ""
     ) : MentionItem()
 }
 
@@ -73,17 +76,23 @@ class MentionSuggestionsAdapter(
         private val tvBadge: TextView = itemView.findViewById(R.id.tvMentionBadge)
 
         fun bind(item: MentionItem.Player) {
-            tvName.text = item.name
-            tvSub.text = if (item.jersey.isNotBlank() && item.jersey != "0") "Jersey #${item.jersey}" else "League Member"
+            tvName.text = if (item.isSpecial) "@${item.name}" else item.name
+            tvSub.text = if (item.isSpecial) item.description else if (item.jersey.isNotBlank() && item.jersey != "0") "Jersey #${item.jersey}" else "League Member"
 
-            val firstChar = item.name.firstOrNull()?.uppercaseChar()?.toString() ?: "P"
-            tvAvatar.text = firstChar
-
-            if (item.isActiveInChat) {
+            if (item.isSpecial) {
+                tvAvatar.text = if (item.icon.isNotBlank()) item.icon else "📌"
                 tvBadge.visibility = View.VISIBLE
-                tvBadge.text = "💬 Active in Chat"
+                tvBadge.text = "PINNED"
             } else {
-                tvBadge.visibility = View.GONE
+                val firstChar = item.name.firstOrNull()?.uppercaseChar()?.toString() ?: "P"
+                tvAvatar.text = firstChar
+
+                if (item.isActiveInChat) {
+                    tvBadge.visibility = View.VISIBLE
+                    tvBadge.text = "💬 Active in Chat"
+                } else {
+                    tvBadge.visibility = View.GONE
+                }
             }
 
             itemView.setOnClickListener {

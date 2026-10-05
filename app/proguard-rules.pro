@@ -3,6 +3,10 @@
 -dontwarn android.hardware.biometrics.**
 
 # --- APP CODE, MODELS, & INNER CLASSES ---
+-keep class com.goldenduck.scoring.** { *; }
+-keepclassmembers class com.goldenduck.scoring.** { *; }
+-keepclassmembers class com.goldenduck.scoring.**$* { *; }
+-keepclassmembers enum com.goldenduck.scoring.** { *; }
 -keep class com.example.scoring.** { *; }
 -keepclassmembers class com.example.scoring.** { *; }
 -keepclassmembers class com.example.scoring.**$* { *; }

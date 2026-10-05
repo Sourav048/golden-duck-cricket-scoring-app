@@ -96,14 +96,23 @@ class PlayerDetailsActivity : BaseActivity() {
 
     private fun loadPlayerData() {
         AppDatabase.ioExecutor.execute {
+            db?.statsDao()?.fixOrphanMatchStats()
+
             val player = db?.playerDao()?.getPlayerById(playerId)
             currentPlayer = player
             
-            val stats = if (player?.globalId != null) {
-                db?.statsDao()?.getStatsByGlobalId(player.globalId!!)?.filterNotNull()
-            } else {
-                db?.statsDao()?.getStatsByPlayer(playerId)?.filterNotNull()
-            }
+            val statsByPid = if (playerId != null) db?.statsDao()?.getStatsByPlayer(playerId)?.filterNotNull() else null
+            val statsByGlobal = if (player?.globalId != null) db?.statsDao()?.getStatsByGlobalId(player.globalId!!)?.filterNotNull() else null
+            val statsByName = if (player != null) db?.statsDao()?.getAllStats()?.filterNotNull()?.filter {
+                it.playerName?.trim()?.equals(player.name.trim(), ignoreCase = true) == true
+            } else null
+
+            val combinedStatsMap = mutableMapOf<String, PlayerMatchStatEntity>()
+            statsByPid?.forEach { stat -> stat.matchId?.let { mId -> combinedStatsMap[mId] = stat } }
+            statsByGlobal?.forEach { stat -> stat.matchId?.let { mId -> combinedStatsMap[mId] = stat } }
+            statsByName?.forEach { stat -> stat.matchId?.let { mId -> combinedStatsMap[mId] = stat } }
+
+            val stats = combinedStatsMap.values.toList()
             
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
@@ -419,6 +428,14 @@ class PlayerDetailsActivity : BaseActivity() {
             if (n.isNotEmpty() && j.isNotEmpty()) {
                 val oldName = player.name // CAPTURE THE TRUTH HERE
                 val nameChanged = (n != oldName)
+
+                if (nameChanged) {
+                    val existingSameName = db?.playerDao()?.getPlayerByNameByGully(n, player.gullyId)
+                    if (existingSameName != null && existingSameName.id != player.id) {
+                        Toast.makeText(this, "A player named '$n' already exists in this league!", Toast.LENGTH_LONG).show()
+                        return@setOnClickListener
+                    }
+                }
                 
                 player.name = n
                 player.jerseyNumber = j
@@ -523,25 +540,18 @@ class PlayerDetailsActivity : BaseActivity() {
             val pName = currentPlayer?.name?.trim() ?: ""
             val pGlobalId = currentPlayer?.globalId
 
-            val finishedMatches = if (pGlobalId != null) {
-                db?.matchDao()?.getMatchesByStatus(true, false)
-            } else {
-                db?.matchDao()?.getMatchesByStatusByGully(true, false, gId)
-            } ?: emptyList()
+            val allMatches = db?.matchDao()?.getAllMatches()?.filterNotNull() ?: emptyList()
+            val finishedMatches = allMatches.filter { it.isFinished && !it.isAbandoned }
 
             var potmCount = 0
             for (m in finishedMatches) {
-                if (m == null) continue
-
-                // If POTM name is missing or TBD on an existing completed match, auto-compute it from match stats
-                if (m.playerOfTheMatchName.isNullOrEmpty() || m.playerOfTheMatchName == "TBD") {
+                if (m.playerOfTheMatchName.isNullOrEmpty() || m.playerOfTheMatchName.equals("TBD", ignoreCase = true)) {
                     val matchStats = db?.statsDao()?.getStatsByMatch(m.id)?.filterNotNull() ?: emptyList()
                     if (matchStats.isNotEmpty()) {
                         var bestP: String? = null
                         var maxPts = -1.0
                         for (st in matchStats) {
-                            val pts = st.runsScored + (st.wicketsTaken * 25.0) + (st.sixes * 2.0) + st.fours.toDouble() +
-                                    (st.catches * 8.0) + (st.stumpings * 12.0) + (st.runOuts * 12.0) + (st.maidens * 15.0)
+                            val pts = PointsCalculator.calculatePlayerStatPoints(st)
                             if (pts > maxPts && pts > 0) {
                                 maxPts = pts
                                 bestP = st.playerName
@@ -554,12 +564,36 @@ class PlayerDetailsActivity : BaseActivity() {
                     }
                 }
 
-                // Check if this player won POTM for this match
                 val potmWinner = m.playerOfTheMatchName?.trim()
                 if (!potmWinner.isNullOrEmpty() && !potmWinner.equals("TBD", ignoreCase = true)) {
-                    val isMatchByPlayerName = pName.isNotEmpty() && potmWinner.equals(pName, ignoreCase = true)
-                    val isMatchByPlayerId = playerId != null && m.nameToIdMap?.get(potmWinner) == playerId
-                    if (isMatchByPlayerName || isMatchByPlayerId) {
+                    val isMatchByName = pName.isNotEmpty() && (
+                        PlayerNameNormalizer.areNamesMatching(potmWinner, pName) ||
+                        PlayerNameNormalizer.isFuzzyMatch(potmWinner, pName)
+                    )
+
+                    var isMatchById = false
+                    m.nameToIdMap?.forEach { (nameKey, mappedId) ->
+                        if (!mappedId.isNullOrBlank()) {
+                            val idMatches = mappedId == playerId || (pGlobalId != null && mappedId == pGlobalId)
+                            if (idMatches && !nameKey.isNullOrBlank()) {
+                                if (PlayerNameNormalizer.areNamesMatching(nameKey, potmWinner) || nameKey.trim().equals(potmWinner, ignoreCase = true)) {
+                                    isMatchById = true
+                                }
+                            }
+                        }
+                    }
+
+                    val matchStats = db?.statsDao()?.getStatsByMatch(m.id)?.filterNotNull() ?: emptyList()
+                    val isMatchByStats = matchStats.any { st ->
+                        val isThisPlayer = (playerId != null && st.playerId == playerId) ||
+                                (pGlobalId != null && st.playerId == pGlobalId) ||
+                                PlayerNameNormalizer.areNamesMatching(st.playerName, pName)
+                        val isThisPotm = PlayerNameNormalizer.areNamesMatching(st.playerName, potmWinner) ||
+                                PlayerNameNormalizer.isFuzzyMatch(st.playerName, potmWinner)
+                        isThisPlayer && isThisPotm
+                    }
+
+                    if (isMatchByName || isMatchById || isMatchByStats) {
                         potmCount++
                     }
                 }

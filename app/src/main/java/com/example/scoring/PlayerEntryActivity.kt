@@ -418,10 +418,13 @@ class PlayerEntryActivity : BaseActivity() {
                 db.playerDao().insertPlayer(finalEntity)
                 GullySyncManager.syncPlayerToCloud(gId, finalEntity)
             } else {
-                // EXACT PLAYER EXISTS: Adopt them
+                // EXACT PLAYER EXISTS: Adopt them, and update photo if a new photo was provided
                 finalEntity = existing
-                // Only show toast if this was a manual entry (id is null)
-                // If id was provided, user intentionally selected this player from database/clone
+                if (!photo.isNullOrEmpty() && photo != existing.photoUri) {
+                    existing.photoUri = photo
+                    db.playerDao().updatePlayer(existing)
+                    GullySyncManager.syncPlayerToCloud(gId, existing)
+                }
                 if (id == null) {
                     runOnUiThread {
                         Toast.makeText(this@PlayerEntryActivity, "Player '$trimmedName #$j' already exists in this Gully!", Toast.LENGTH_SHORT).show()
@@ -449,13 +452,18 @@ class PlayerEntryActivity : BaseActivity() {
         val safeName = player.name ?: "Unknown"
         val safeJersey = player.jersey ?: "0"
         card.findViewById<TextView>(R.id.playerName).text = "$safeName\n#$safeJersey"
+        
+        val ivPhoto = card.findViewById<ImageView>(R.id.playerPhoto)
         if (!player.photoUri.isNullOrEmpty()) {
-            try {
-                card.findViewById<ImageView>(R.id.playerPhoto).setImageURI(Uri.parse(player.photoUri))
-            } catch (e: Exception) {
-                Log.e("PlayerEntry", "Failed to load photo: ${e.message}")
-            }
+            Glide.with(this)
+                .load(player.photoUri)
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .error(android.R.drawable.ic_menu_gallery)
+                .into(ivPhoto)
+        } else {
+            ivPhoto.setImageResource(android.R.drawable.ic_menu_gallery)
         }
+
         card.findViewById<View>(R.id.btnRemove).setOnClickListener {
             container.removeView(card)
             playerList.remove(player)
@@ -502,7 +510,7 @@ class PlayerEntryActivity : BaseActivity() {
             draft.teamBIds = ArrayList(teamBPlayers.map { it.id ?: UUID.randomUUID().toString() })
 
             getInstance(this).draftDao().insertDraft(draft)
-            
+
             // CLOUD SYNC: Draft Match (The Hand-off Feature)
             if (gId != "local") {
                 GullySyncManager.syncDraftToCloud(gId, draft)

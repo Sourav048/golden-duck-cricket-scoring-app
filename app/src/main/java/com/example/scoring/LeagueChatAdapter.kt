@@ -28,6 +28,8 @@ import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import io.noties.markwon.Markwon
+import io.noties.markwon.ext.tables.TablePlugin
 import android.view.Window
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -1027,7 +1029,14 @@ class LeagueChatAdapter(
                 val avatarUrl = item.senderProfilePic.takeIf { !it.isNullOrBlank() }
                     ?: userProfilePics[item.senderId]
 
-                if (!avatarUrl.isNullOrBlank()) {
+                if (item.senderId == "DUCKIE_AI_BOT") {
+                    ivReceivedAvatar?.visibility = View.VISIBLE
+                    tvReceivedAvatarPlaceholder?.visibility = View.GONE
+                    Glide.with(itemView.context)
+                        .load(R.drawable.ic_ai_assistant)
+                        .circleCrop()
+                        .into(ivReceivedAvatar!!)
+                } else if (!avatarUrl.isNullOrBlank()) {
                     ivReceivedAvatar?.visibility = View.VISIBLE
                     tvReceivedAvatarPlaceholder?.visibility = View.GONE
                     Glide.with(itemView.context)
@@ -1058,6 +1067,14 @@ class LeagueChatAdapter(
                     isSent = false
                 )
             }
+        }
+
+        private var markwon: Markwon? = null
+
+        private fun getMarkwon(context: Context): Markwon {
+            return markwon ?: Markwon.builder(context)
+                .usePlugin(TablePlugin.create(context))
+                .build().also { markwon = it }
         }
 
         private fun bindMessageContent(
@@ -1096,7 +1113,10 @@ class LeagueChatAdapter(
                 tvText.setTextColor(textColor)
                 tvText.setOnLongClickListener(onLongClick)
 
-                if (item.messageText.contains("@")) {
+                val isAiResponse = item.senderId == "DUCKIE_AI_BOT" || item.messageText.contains("**")
+                if (isAiResponse) {
+                    getMarkwon(context).setMarkdown(tvText, item.messageText)
+                } else if (item.messageText.contains("@")) {
                     tvText.text = applyMentionSpans(item.messageText, textColor)
                 } else {
                     tvText.text = item.messageText
@@ -1397,6 +1417,7 @@ class LeagueChatAdapter(
             val mentionColor = if (textColor == Color.WHITE) Color.parseColor("#80D8FF") else Color.parseColor("#0288D1")
 
             val allNames = mutableSetOf<String>()
+            allNames.addAll(listOf("Duckie AI", "Duckie_AI", "Duckie", "all"))
             allNames.addAll(knownPlayerNames)
             for (msg in messages) {
                 if (msg.senderName.isNotBlank()) {

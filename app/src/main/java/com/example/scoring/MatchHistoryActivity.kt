@@ -62,10 +62,7 @@ class MatchHistoryActivity : BaseActivity() {
             if (!initialTabSet) {
                 initialTabSet = true
                 val now = System.currentTimeMillis()
-                val hasLiveMatch = liveList?.filterNotNull()?.any { m ->
-                    val diff = now - m.lastScorerPulse
-                    m.isLive && diff in -60000..120000
-                } == true
+                val hasLiveMatch = liveList?.filterNotNull()?.any { m -> m.isMatchLive(now) } == true
 
                 val defaultTab = if (hasLiveMatch) 0 else 1
                 viewPager?.post {

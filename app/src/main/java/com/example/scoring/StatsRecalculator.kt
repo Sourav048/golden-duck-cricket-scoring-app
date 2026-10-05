@@ -111,8 +111,7 @@ object StatsRecalculator {
                     if (bestPlayerName.isNullOrEmpty() || bestPlayerName == "TBD") {
                         var maxPts = -1.0
                         for (p in playerMap.values) {
-                            val pts = p.runsScored + (p.wicketsTaken * 25.0) + (p.sixes * 2.0) + p.fours.toDouble() +
-                                    (p.catches * 8.0) + (p.stumpings * 12.0) + (p.runOuts * 12.0) + (p.maidens * 15.0)
+                            val pts = PointsCalculator.calculatePlayerPoints(p)
                             if (pts > maxPts && pts > 0) {
                                 maxPts = pts
                                 bestPlayerName = p.name

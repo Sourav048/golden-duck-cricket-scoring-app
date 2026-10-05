@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:818934023380:android:30e682c83dd7242ccea741",
         "android_client_info": {
-          "package_name": "com.example.scoring"
+          "package_name": "com.goldenduck.scoring"
         }
       },
       "oauth_client": [],
