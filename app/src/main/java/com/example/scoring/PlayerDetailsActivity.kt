@@ -95,11 +95,10 @@ class PlayerDetailsActivity : BaseActivity() {
     }
 
     private fun loadPlayerData() {
-        AppDatabase.ioExecutor.execute {
-            db?.statsDao()?.fixOrphanMatchStats()
-
-            val player = db?.playerDao()?.getPlayerById(playerId)
-            currentPlayer = player
+        StatsRecalculator.cleanDuplicateMatchStats(this) {
+            AppDatabase.ioExecutor.execute {
+                val player = db?.playerDao()?.getPlayerById(playerId)
+                currentPlayer = player
             
             val statsByPid = if (playerId != null) db?.statsDao()?.getStatsByPlayer(playerId)?.filterNotNull() else null
             val statsByGlobal = if (player?.globalId != null) db?.statsDao()?.getStatsByGlobalId(player.globalId!!)?.filterNotNull() else null
@@ -179,7 +178,7 @@ class PlayerDetailsActivity : BaseActivity() {
 
                 val card = findViewById<MaterialCardView>(R.id.cardPhotoFrame)
                 card.setCardBackgroundColor(Color.WHITE) // Ensure base is white
-                
+
                 // Only apply prestige stroke to frame if the player actually has one
                 if (iv.strokeWidth > 0) {
                     card.setStrokeColor(iv.strokeColor)
@@ -196,6 +195,7 @@ class PlayerDetailsActivity : BaseActivity() {
             }
         }
     }
+}
 
     private fun showFullScreenPhoto(player: PlayerEntity?) {
         if (player == null) return
@@ -429,47 +429,56 @@ class PlayerDetailsActivity : BaseActivity() {
                 val oldName = player.name // CAPTURE THE TRUTH HERE
                 val nameChanged = (n != oldName)
 
-                if (nameChanged) {
-                    val existingSameName = db?.playerDao()?.getPlayerByNameByGully(n, player.gullyId)
-                    if (existingSameName != null && existingSameName.id != player.id) {
-                        Toast.makeText(this, "A player named '$n' already exists in this league!", Toast.LENGTH_LONG).show()
-                        return@setOnClickListener
+                AppDatabase.ioExecutor.execute {
+                    if (nameChanged) {
+                        val existingSameName = db?.playerDao()?.getPlayerByNameByGully(n, player.gullyId)
+                        if (existingSameName != null && existingSameName.id != player.id) {
+                            runOnUiThread {
+                                if (!isFinishing && !isDestroyed) {
+                                    Toast.makeText(this@PlayerDetailsActivity, "A player named '$n' already exists in this league!", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                            return@execute
+                        }
                     }
-                }
-                
-                player.name = n
-                player.jerseyNumber = j
-                
-                // FIX: Ensure photo is saved to internal storage if it's a new URI
-                pendingPhotoUri?.let { uriStr ->
-                    player.lastSyncedAt = System.currentTimeMillis()
-                    if (uriStr.startsWith("content://") || uriStr.startsWith("file://")) {
-                        try {
-                            val savedPath = PhotoUtils.savePhoto(this, Uri.parse(uriStr))
-                            if (savedPath != null) player.photoUri = savedPath
-                        } catch (e: Exception) {
-                            Log.e("PlayerDetails", "Photo save failed: ${e.message}")
+                    
+                    player.name = n
+                    player.jerseyNumber = j
+                    
+                    // FIX: Ensure photo is saved to internal storage if it's a new URI
+                    pendingPhotoUri?.let { uriStr ->
+                        player.lastSyncedAt = System.currentTimeMillis()
+                        if (uriStr.startsWith("content://") || uriStr.startsWith("file://")) {
+                            try {
+                                val savedPath = PhotoUtils.savePhoto(this@PlayerDetailsActivity, Uri.parse(uriStr))
+                                if (savedPath != null) player.photoUri = savedPath
+                            } catch (e: Exception) {
+                                Log.e("PlayerDetails", "Photo save failed: ${e.message}")
+                                player.photoUri = uriStr
+                            }
+                        } else {
                             player.photoUri = uriStr
                         }
-                    } else {
-                        player.photoUri = uriStr
                     }
-                }
 
-                if (nameChanged) {
-                    Toast.makeText(this, "Renaming player in all matches...", Toast.LENGTH_LONG).show()
-                    PlayerRenameManager.renamePlayer(this, player, oldName, n) {
+                    db?.playerDao()?.updatePlayer(player)
+
+                    if (nameChanged) {
                         runOnUiThread {
                             if (!isFinishing && !isDestroyed) {
-                                resetEditState()
-                                loadPlayerData()
-                                Toast.makeText(this@PlayerDetailsActivity, "Universal Rename Complete!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@PlayerDetailsActivity, "Renaming player in all matches...", Toast.LENGTH_LONG).show()
                             }
                         }
-                    }
-                } else {
-                    AppDatabase.ioExecutor.execute {
-                        db?.playerDao()?.updatePlayer(player)
+                        PlayerRenameManager.renamePlayer(this@PlayerDetailsActivity, player, oldName, n) {
+                            runOnUiThread {
+                                if (!isFinishing && !isDestroyed) {
+                                    resetEditState()
+                                    loadPlayerData()
+                                    Toast.makeText(this@PlayerDetailsActivity, "Universal Rename Complete!", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    } else {
                         GullySyncManager.syncPlayerToCloud(player.gullyId, player)
                         runOnUiThread {
                             if (!isFinishing && !isDestroyed) {
@@ -478,8 +487,13 @@ class PlayerDetailsActivity : BaseActivity() {
                             }
                         }
                     }
+
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed) {
+                            dialog.dismiss()
+                        }
+                    }
                 }
-                dialog.dismiss()
             } else {
                 Toast.makeText(this, "Name and Jersey required", Toast.LENGTH_SHORT).show()
             }

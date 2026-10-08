@@ -4,7 +4,7 @@
     android:id="@+id/playerListRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface">
+    android:background="?attr/android:windowBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,8 +17,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingHorizontal="24dp"
-            android:paddingTop="6dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="18dp"
+            android:paddingBottom="12dp"
+            android:orientation="vertical"
             android:gravity="center">
 
             <TextView
@@ -28,57 +29,84 @@
                 android:text="@string/players"
                 android:textSize="44sp"
                 android:textStyle="bold"
-                android:textColor="?attr/colorPrimary" />
+                android:textColor="?attr/colorPrimary"
+                android:letterSpacing="0.02" />
         </LinearLayout>
 
-        <!-- Actions Section (Separate Container) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardPlayerActions"
+        <!-- Actions Row (Two Separate Cards) -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
             android:layout_marginHorizontal="16dp"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="0dp"
-            app:cardBackgroundColor="?attr/colorSurfaceVariant">
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <!-- Left Card: Import Player -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardImportPlayer"
+                style="@style/Widget.Material3.CardView.Elevated"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="8dp"
-                android:gravity="center">
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutline"
+                app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnImportPlayer"
                     style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Import Players"
+                    android:text="@string/btn_import_players"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
                     android:textColor="?attr/colorPrimary"
                     android:tag="custom_color"
-                    app:backgroundTint="@android:color/transparent"
                     app:icon="@android:drawable/ic_menu_search"
                     app:iconTint="?attr/colorPrimary"
-                    android:paddingVertical="12dp" />
+                    android:paddingVertical="10dp" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Right Card: Compare Players -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardComparePlayers"
+                style="@style/Widget.Material3.CardView.Elevated"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutline"
+                app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnComparePlayers"
                     style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Compare Players"
+                    android:text="@string/btn_compare_players"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
                     android:textColor="?attr/colorPrimary"
                     android:tag="custom_color"
-                    app:backgroundTint="@android:color/transparent"
                     app:icon="@android:drawable/ic_menu_sort_by_size"
                     app:iconTint="?attr/colorPrimary"
-                    android:paddingVertical="12dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                    android:paddingVertical="10dp" />
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -104,8 +132,11 @@
                 android:id="@+id/playerRecyclerView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="4dp"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="80dp"
                 android:clipToPadding="false"
+                android:scrollbars="none"
                 android:visibility="gone" />
 
             <LinearLayout
@@ -118,16 +149,17 @@
                 android:visibility="gone">
 
                 <ImageView
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
-                    android:src="@android:drawable/ic_menu_edit"
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:src="@drawable/ic_person_placeholder"
                     android:alpha="0.2"
+                    android:contentDescription="@null"
                     app:tint="?attr/colorOnSurface" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="No players found."
+                    android:text="@string/no_players_found"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="?attr/colorOnSurfaceVariant"
@@ -136,8 +168,8 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Tap + to build your squad."
-                    android:textSize="12sp"
+                    android:text="@string/tap_to_build_squad"
+                    android:textSize="13sp"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:alpha="0.6" />
             </LinearLayout>
@@ -150,7 +182,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="24dp"
-        android:contentDescription="Add New Player"
+        android:contentDescription="@string/add_new_player"
         app:srcCompat="@android:drawable/ic_input_add"
         app:fabSize="normal"
         app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.LargeComponent"

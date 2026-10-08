@@ -9,6 +9,7 @@
     <color name="colorPrimary">#00695C</color>
     <color name="colorPrimaryVariant">#004D40</color>
     <color name="colorOnPrimary">#FFFFFF</color>
+    <color name="send_btn_color">#00695C</color>
 
     <!-- Text (Light) -->
     <color name="text_primary">#1A1C1E</color>
@@ -28,7 +29,7 @@
     <color name="dot_ball_grey">#90A4AE</color>
     <color name="blue_medium">#00695C</color>
     <color name="card_red">#B71C1C</color>
-    <color name="accent_amber">#FFD700</color>
+    <color name="accent_amber">#D4AF37</color>
     <color name="prestige_gold_glow">#FFFFE0</color>
     <color name="accent_purple">#5a0080</color>
     <color name="prestige_orange">#EF6C00</color>

@@ -11,8 +11,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="League Name (ID)"
-        android:layout_marginBottom="16dp"
+        app:startIconDrawable="@drawable/ic_trophy"
+        app:startIconTint="?attr/colorPrimary"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        android:layout_marginBottom="14dp"
         app:helperText="Unique name for your league">
+
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etCreateId"
             android:layout_width="match_parent"
@@ -28,9 +35,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Set Member Passcode"
+        app:startIconDrawable="@drawable/ic_lock_key"
+        app:startIconTint="?attr/colorPrimary"
         app:passwordToggleEnabled="true"
-        android:layout_marginBottom="16dp"
-        app:helperText="Give this to your friends to join">
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        android:layout_marginBottom="14dp"
+        app:helperText="Share this with members to join">
+
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etCreatePass"
             android:layout_width="match_parent"
@@ -46,9 +60,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Set 4-Digit Admin PIN"
+        app:startIconDrawable="@drawable/ic_lock_key"
+        app:startIconTint="?attr/colorPrimary"
         app:passwordToggleEnabled="true"
-        android:layout_marginBottom="24dp"
-        app:helperText="Kept secret by Admin to protect and delete records">
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        android:layout_marginBottom="20dp"
+        app:helperText="Kept secret by Admin to manage &amp; protect records">
+
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etCreateAdminPin"
             android:layout_width="match_parent"
@@ -63,7 +84,9 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnCreate"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="52dp"
         android:text="CREATE LEAGUE"
+        android:textStyle="bold"
+        app:icon="@drawable/ic_trophy"
         app:cornerRadius="12dp" />
 </LinearLayout>

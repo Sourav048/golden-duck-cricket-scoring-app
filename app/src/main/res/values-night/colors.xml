@@ -9,6 +9,7 @@
     <color name="colorPrimary">#FFFFFF</color>
     <color name="colorPrimaryVariant">#E0E0E0</color>
     <color name="colorOnPrimary">#000000</color>
+    <color name="send_btn_color">#FFFFFF</color>
 
     <!-- Text (Dark Mode) -->
     <color name="text_primary">#E1E2E6</color>

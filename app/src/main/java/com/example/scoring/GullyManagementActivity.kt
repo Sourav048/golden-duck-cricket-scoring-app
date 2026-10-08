@@ -17,10 +17,13 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
+import com.google.firebase.firestore.FirebaseFirestore
 
 class GullyManagementActivity : BaseActivity() {
 
     private lateinit var tvGullyName: TextView
+    private lateinit var tvGullyHeaderLabel: TextView
+    private lateinit var tvStatusBadge: TextView
     private lateinit var btnLeave: MaterialButton
     private lateinit var btnMigrate: MaterialButton
     private lateinit var viewPager: androidx.viewpager2.widget.ViewPager2
@@ -39,27 +42,35 @@ class GullyManagementActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_gully_management)
+        try {
+            setContentView(R.layout.activity_gully_management)
 
-        // Pre-warm Firestore to speed up joining
-        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            // Pre-warm Firestore to speed up joining
+            FirebaseFirestore.getInstance()
 
-        tvGullyName = findViewById(R.id.tvGullyName)
-        btnLeave = findViewById(R.id.btnLeaveGully)
-        btnMigrate = findViewById(R.id.btnMigrateLocal)
-        viewPager = findViewById(R.id.viewPagerGully)
-        tabLayout = findViewById(R.id.tabLayoutGully)
-        rvRecent = findViewById(R.id.rvRecentGullies)
+            tvGullyName = findViewById(R.id.tvGullyName)
+            tvGullyHeaderLabel = findViewById(R.id.tvGullyHeaderLabel)
+            tvStatusBadge = findViewById(R.id.tvStatusBadge)
+            btnLeave = findViewById(R.id.btnLeaveGully)
+            btnMigrate = findViewById(R.id.btnMigrateLocal)
+            viewPager = findViewById(R.id.viewPagerGully)
+            tabLayout = findViewById(R.id.tabLayoutGully)
+            rvRecent = findViewById(R.id.rvRecentGullies)
 
-        findViewById<View>(R.id.btnBack).setOnClickListener { finish() }
+            findViewById<View>(R.id.btnBack).setOnClickListener { finish() }
 
-        setupViewPagerAndTabs()
-        setupRecentList()
-        updateCurrentGullyUI()
-        checkNotificationPermission()
+            setupViewPagerAndTabs()
+            setupRecentList()
+            updateCurrentGullyUI()
+            checkNotificationPermission()
 
-        btnLeave.setOnClickListener { leaveGully() }
-        btnMigrate.setOnClickListener { performMigration() }
+            btnLeave.setOnClickListener { leaveGully() }
+            btnMigrate.setOnClickListener { performMigration() }
+        } catch (e: Throwable) {
+            Log.e("GullyManagement", "Error in onCreate", e)
+            Toast.makeText(this, "Unable to load My Cricket: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            finish()
+        }
     }
 
     private fun setupViewPagerAndTabs() {
@@ -97,7 +108,7 @@ class GullyManagementActivity : BaseActivity() {
 
     private fun setupRecentList() {
         val gullies = GullyHistoryManager.getGullies(this)
-        findViewById<View>(R.id.tvRecentTitle).visibility = if (gullies.isEmpty()) View.GONE else View.VISIBLE
+        findViewById<View>(R.id.llRecentHeader)?.visibility = if (gullies.isEmpty()) View.GONE else View.VISIBLE
         
         rvRecent.layoutManager = LinearLayoutManager(this)
         rvRecent.adapter = RecentGullyAdapter(gullies)
@@ -108,6 +119,10 @@ class GullyManagementActivity : BaseActivity() {
 
         if (currentGully != null) {
             tvGullyName.text = currentGully
+            tvGullyHeaderLabel.text = "CONNECTED LEAGUE"
+            tvStatusBadge.text = "● ONLINE"
+            tvStatusBadge.setBackgroundResource(R.drawable.bg_status_connected)
+            tvStatusBadge.setTextColor(0xFF00695C.toInt())
             btnLeave.visibility = View.VISIBLE
             
             // Check for migration eligibility
@@ -118,6 +133,10 @@ class GullyManagementActivity : BaseActivity() {
             }
         } else {
             tvGullyName.text = "Local Mode (Offline)"
+            tvGullyHeaderLabel.text = "CURRENT MODE"
+            tvStatusBadge.text = "● LOCAL"
+            tvStatusBadge.setBackgroundResource(R.drawable.bg_status_offline)
+            tvStatusBadge.setTextColor(0xFF546E7A.toInt())
             btnLeave.visibility = View.GONE
             btnMigrate.visibility = View.GONE
         }

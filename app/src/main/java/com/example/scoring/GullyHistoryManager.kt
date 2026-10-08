@@ -30,7 +30,11 @@ object GullyHistoryManager {
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         val json = prefs.getString(KEY_GULLIES, null) ?: return emptyList()
         val type = object : TypeToken<List<GullyRecord>>() {}.type
-        return gson.fromJson(json, type)
+        return try {
+            gson.fromJson<List<GullyRecord>>(json, type) ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     fun removeGully(context: Context, id: String) {

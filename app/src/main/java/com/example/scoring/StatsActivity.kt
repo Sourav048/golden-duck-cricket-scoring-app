@@ -1,7 +1,6 @@
 package com.example.scoring
 
 import android.os.Bundle
-import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -33,8 +32,16 @@ class StatsActivity : BaseActivity() {
             }
 
             val tabs = arrayOf("Batting", "Bowling", "Fielding", "Ranking")
+            val tabIcons = intArrayOf(
+                R.drawable.ic_stat_bat,
+                R.drawable.ic_stat_ball,
+                R.drawable.ic_stat_fielding,
+                R.drawable.ic_trophy
+            )
+
             TabLayoutMediator(tabLayout, viewPager) { tab, position ->
                 tab.text = tabs[position]
+                tab.setIcon(tabIcons[position])
             }.attach()
 
             viewPager.setPageTransformer { page, position ->
@@ -51,7 +58,7 @@ class StatsActivity : BaseActivity() {
                         page.alpha = 1f - position
                         page.translationX = page.width * -position
                         page.translationZ = -1f
-                        val scaleFactor = 0.75f + (1 - 0.75f) * (1 - abs(position))
+                        val scaleFactor = 0.85f + (1 - 0.85f) * (1 - abs(position))
                         page.scaleX = scaleFactor
                         page.scaleY = scaleFactor
                     }

@@ -3632,11 +3632,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     db?.draftDao()?.getDraftById(matchId)?.let { d ->
                         db?.draftDao()?.deleteDraft(d)
                     }
+                    db?.statsDao()?.deleteStatsByMatch(matchId)
                     for (p in finalStatsList) {
                         val teamName = if (teamANames?.contains(p.name) == true) teamAName else teamBName
                         if (p.id.isNullOrBlank()) {
                             val trimmedPName = p.name?.trim()
-                            p.id = nameToIdMap[trimmedPName] ?: nameToIdMap[p.name]
+                            p.id = nameToIdMap[trimmedPName] ?: nameToIdMap[p.name] ?: db?.playerDao()?.getPlayerByName(trimmedPName)?.id
                         }
                         val s = PlayerMatchStatEntity.fromPlayer(p, matchId, teamName)
                         db?.statsDao()?.insertStat(s)
@@ -3670,7 +3671,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                             // To prevent hitting API limits, we only update every 3 balls or on a wicket
                             val totalBalls = (match?.currentInnings?.balls?.size ?: 0)
                             val isWicket = match?.currentInnings?.balls?.lastOrNull()?.isWicket ?: false
-                            
+
                             if (totalBalls % 3 == 0 || isWicket || isFinished) {
                                 GullySyncManager.sendLiveScoreUpdate(applicationContext, entity)
                             }

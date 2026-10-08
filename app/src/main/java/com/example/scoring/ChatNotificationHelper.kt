@@ -32,8 +32,8 @@ import kotlin.math.abs
  */
 object ChatNotificationHelper {
     private const val PREFS_NAME = "chat_notif_prefs"
-    private const val CHANNEL_ID_ALERT = "league_chat_channel_alert"
-    private const val CHANNEL_ID_SILENT = "league_chat_channel_silent"
+    const val CHANNEL_ID_ALERT = "league_chat_channel_alert"
+    const val CHANNEL_ID_SILENT = "league_chat_channel_silent"
 
     const val GROUP_KEY_LEAGUE_CHAT = "com.goldenduck.scoring.LEAGUE_CHAT_GROUP"
     const val SUMMARY_NOTIFICATION_ID = 99991

@@ -244,7 +244,7 @@ class InningsScorecardFragment : Fragment() {
                     arrayOf(
                         event!!.playerName,
                         (event.scoreAtWicket.toString() + "-" + event.wicketNumber),
-                        ("(" + event.over + ")"),
+                        event.over.toString(),
                     ),
                 )
             }

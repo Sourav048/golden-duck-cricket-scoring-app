@@ -148,9 +148,12 @@
                 android:layout_height="wrap_content"
                 android:background="?attr/colorSurfaceVariant"
                 android:paddingHorizontal="16dp"
-                android:paddingVertical="10dp">
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.3" android:text="FALL OF WICKETS" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant"/>
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.3" android:text="SCORE (OVER)" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="end"/>
+                android:paddingVertical="10dp"
+                android:alpha="0.8"
+                android:weightSum="1.0">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.5" android:text="FALL OF WICKETS" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant"/>
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.25" android:text="SCORE" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="center"/>
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="0.25" android:text="OVER" android:textSize="12sp" android:textStyle="bold" android:textColor="?attr/colorOnSurfaceVariant" android:gravity="end"/>
             </LinearLayout>
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvFow"

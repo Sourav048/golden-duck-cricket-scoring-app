@@ -11,7 +11,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="League ID"
+        app:startIconDrawable="@drawable/ic_trophy"
+        app:startIconTint="?attr/colorPrimary"
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
         android:layout_marginBottom="16dp">
+
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etJoinId"
             android:layout_width="match_parent"
@@ -27,8 +34,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Passcode"
+        app:startIconDrawable="@drawable/ic_lock_key"
+        app:startIconTint="?attr/colorPrimary"
         app:passwordToggleEnabled="true"
-        android:layout_marginBottom="24dp">
+        app:boxCornerRadiusTopStart="12dp"
+        app:boxCornerRadiusTopEnd="12dp"
+        app:boxCornerRadiusBottomStart="12dp"
+        app:boxCornerRadiusBottomEnd="12dp"
+        android:layout_marginBottom="20dp">
+
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etJoinPass"
             android:layout_width="match_parent"
@@ -42,7 +56,9 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnJoin"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="52dp"
         android:text="JOIN LEAGUE"
+        android:textStyle="bold"
+        app:icon="@drawable/ic_cloud_done"
         app:cornerRadius="12dp" />
 </LinearLayout>

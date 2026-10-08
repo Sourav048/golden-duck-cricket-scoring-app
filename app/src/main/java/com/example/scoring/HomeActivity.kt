@@ -118,6 +118,9 @@ class HomeActivity : BaseActivity() {
             Log.e("GULLY_SYNC", "Failed to start sync: ${e.message}")
         }
 
+        // Clean up duplicate match stat records from DB if any exist
+        StatsRecalculator.cleanDuplicateMatchStats(this)
+
         handleIncomingFileIntent(intent)
         setupSwipeGesture()
 

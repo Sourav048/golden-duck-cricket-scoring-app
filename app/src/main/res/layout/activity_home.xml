@@ -320,7 +320,7 @@
         app:cardMaxElevation="16dp"
         app:cardBackgroundColor="@android:color/transparent"
         app:strokeWidth="2dp"
-        app:strokeColor="#FFD700"
+        app:strokeColor="#D4AF37"
         android:clickable="true"
         android:focusable="true">
 

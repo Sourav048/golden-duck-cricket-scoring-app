@@ -24,7 +24,10 @@ object StatsRecalculator {
                     val n = name?.trim() ?: "Unknown"
                     return playerMap.getOrPut(n) { 
                         Player(n).apply { 
-                            this.id = nameToId[n]
+                            val resolvedId = nameToId[n]
+                                ?: db.playerDao().getPlayerByNameByGully(n, gId)?.id
+                                ?: db.playerDao().getPlayerByName(n)?.id
+                            this.id = resolvedId
                             this.gullyId = gId
                             // Restore time data from existing record if available
                             existingStatsMap[n]?.let { old ->
@@ -124,8 +127,9 @@ object StatsRecalculator {
                     }
                 }
 
-                // Save back to DB
+                // Save back to DB (Delete old stats for this match first to avoid duplicate records)
                 db.runInTransaction {
+                    db.statsDao().deleteStatsByMatch(matchId)
                     for (p in playerMap.values) {
                         val teamName = if (entity.teamANames?.contains(p.name) == true) entity.teamAName else entity.teamBName
                         val s = PlayerMatchStatEntity.fromPlayer(p, matchId, teamName)
@@ -189,6 +193,68 @@ object StatsRecalculator {
             } else {
                 // Any delivery that is not a bowler's wicket breaks the streak
                 bowlerStreaks[bowler] = 0
+            }
+        }
+    }
+
+    /**
+     * Finds and removes duplicate match stat entries for the same player and match.
+     * Restores Leaderboards and League Stats back to exact numbers.
+     */
+    fun cleanDuplicateMatchStats(context: Context, onComplete: (() -> Unit)? = null) {
+        AppDatabase.ioExecutor.execute {
+            try {
+                val db = AppDatabase.getInstance(context)
+                db.statsDao().fixOrphanMatchStats()
+
+                val allStats = db.statsDao().getAllStats()?.filterNotNull() ?: run {
+                    onComplete?.invoke()
+                    return@execute
+                }
+
+                // Group stats by matchId + effective player identifier
+                val grouped = allStats.groupBy { stat ->
+                    val pKey = if (!stat.playerId.isNullOrBlank()) {
+                        stat.playerId!!
+                    } else {
+                        stat.playerName?.trim()?.lowercase(java.util.Locale.getDefault()) ?: ""
+                    }
+                    "${stat.matchId}_${pKey}"
+                }
+
+                val idsToDelete = mutableListOf<String>()
+                for ((_, statList) in grouped) {
+                    if (statList.size > 1) {
+                        // Sort so that the best record stays first:
+                        // 1. Has non-blank playerId
+                        // 2. Highest runsScored / wicketsTaken / ballsFaced
+                        // 3. Most recent/stable ID
+                        val sorted = statList.sortedWith(
+                            compareByDescending<PlayerMatchStatEntity> { !it.playerId.isNullOrBlank() }
+                                .thenByDescending { it.runsScored }
+                                .thenByDescending { it.wicketsTaken }
+                                .thenByDescending { it.ballsFaced }
+                                .thenByDescending { it.ballsBowled }
+                                .thenByDescending { it.id }
+                        )
+                        for (i in 1 until sorted.size) {
+                            idsToDelete.add(sorted[i].id)
+                        }
+                    }
+                }
+
+                if (idsToDelete.isNotEmpty()) {
+                    db.runInTransaction {
+                        for (id in idsToDelete) {
+                            db.statsDao().deleteStatById(id)
+                        }
+                    }
+                    Log.d("DeduplicateStats", "Cleaned up ${idsToDelete.size} duplicate player match stat records.")
+                }
+                onComplete?.invoke()
+            } catch (e: Exception) {
+                Log.e("DeduplicateStats", "Error cleaning duplicate stats: ${e.message}")
+                onComplete?.invoke()
             }
         }
     }

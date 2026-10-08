@@ -7,5 +7,6 @@ data class ChatMessage(
     var text: String,
     val isUser: Boolean,
     val timestamp: Long = System.currentTimeMillis(),
-    var generationTimeSecs: Int? = null
+    var generationTimeSecs: Int? = null,
+    var imageUri: String? = null
 )

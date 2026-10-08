@@ -179,6 +179,35 @@
             android:textColor="?attr/colorPrimary" />
     </LinearLayout>
 
+    <!-- Attached Image Preview Container -->
+    <RelativeLayout
+        android:id="@+id/layoutImagePreview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
+        android:background="?attr/colorSurfaceContainer"
+        android:visibility="gone">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivAttachedPreview"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:scaleType="centerCrop"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Small" />
+
+        <ImageButton
+            android:id="@+id/ibRemoveImage"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_alignTop="@id/ivAttachedPreview"
+            android:layout_alignEnd="@id/ivAttachedPreview"
+            android:background="@android:color/black"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="@android:color/white"
+            android:contentDescription="Remove Image" />
+    </RelativeLayout>
+
     <!-- Bottom Chat Input Bar -->
     <LinearLayout
         android:layout_width="match_parent"
@@ -204,10 +233,20 @@
             android:textColorHint="?attr/colorOnSurfaceVariant" />
 
         <ImageButton
+            android:id="@+id/ibAiPhoto"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_camera"
+            app:tint="?attr/colorPrimary"
+            android:contentDescription="Attach Photo" />
+
+        <ImageButton
             android:id="@+id/ibAiMic"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="6dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_btn_speak_now"
             app:tint="?attr/colorPrimary"
@@ -215,12 +254,12 @@
 
         <ImageButton
             android:id="@+id/btnAiSend"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="4dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_play"
-            app:tint="?attr/colorPrimary"
+            android:src="@android:drawable/ic_menu_send"
+            app:tint="@color/send_btn_color"
             android:contentDescription="Send Message" />
     </LinearLayout>
 

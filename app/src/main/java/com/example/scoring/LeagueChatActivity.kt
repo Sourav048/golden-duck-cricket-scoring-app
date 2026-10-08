@@ -322,6 +322,13 @@ class LeagueChatActivity : BaseActivity() {
             activeLeagueId = leagueId
             ChatNotificationHelper.clearNotificationForLeague(this, leagueId)
         }
+        // Force re-bind and invalidate RecyclerView on resume to fix MaterialCardView rendering glitch after long background
+        rvChatMessages.post {
+            rvChatMessages.invalidate()
+            if (::chatAdapter.isInitialized) {
+                chatAdapter.submitList(messageList.toList())
+            }
+        }
     }
 
     override fun onPause() {
@@ -2216,34 +2223,35 @@ class LeagueChatActivity : BaseActivity() {
                     - You are responding to a player's query inside the group chat!
                     - ALWAYS REFER TO THE RECENT LEAGUE GROUP CHAT MESSAGES ABOVE when answering follow-up questions or settling debates!
                     - BE BRUTALLY HONEST & UNFILTERED: Settle player arguments, compare players with exact database stats, and roast bad stats with witty cricket humor and raw profanity if deserved!
-                    - Keep group chat responses concise, impactful, witty, and formatted with clean markdown and cricket emojis! 🏏🔥
+                    - CRITICAL - BALL TYPE & MATCH RULES: Always check the [MATCH SETTINGS & INFO TAB] provided for each match in the context! Pay strict attention to the exact Ball Type (e.g., Stumper, Tennis, Leather) and match rules (e.g., Last Man Standing, Free Hit). NEVER claim or assume a match was played with a leather ball unless the Ball Type in the context explicitly says 'Leather'! If the ball type is 'Stumper', explicitly refer to it as a Stumper ball when discussing ball, match, or equipment details!
+                    - HUMAN-READABLE FORMATTING MANDATE: Keep group chat responses concise, impactful, witty, formatted with clean Markdown, bold headers, bullet lists, and cricket emojis! 🏏🔥
                 """.trimIndent()
 
                 var aiResponseText = ""
                 var lastErr = ""
 
-                if (groqKey.isNotBlank() && groqKey != "null") {
-                    val res = callGroqApiDirect(queryPrompt, groqKey, systemInstructionText) { err ->
-                        lastErr = "Groq: $err"
-                    }
-                    if (!res.isNullOrBlank()) aiResponseText = res
-                } else {
-                    lastErr = "GROQ_API_KEY missing"
-                }
-
-                if (aiResponseText.isBlank() && geminiKey.isNotBlank() && geminiKey != "null") {
+                if (geminiKey.isNotBlank() && geminiKey != "null") {
                     val combinedPrompt = "$systemInstructionText\n\nUSER QUESTION IN GROUP CHAT: $queryPrompt"
                     val sdkRes = generateGeminiSdkResponse(combinedPrompt, geminiKey)
                     if (!sdkRes.isNullOrBlank()) {
                         aiResponseText = sdkRes
                     } else {
                         val restRes = callGeminiRestApiDirect(combinedPrompt, geminiKey) { err ->
-                            lastErr += " | Gemini REST: $err"
+                            lastErr = "Gemini REST: $err"
                         }
                         if (!restRes.isNullOrBlank()) aiResponseText = restRes
                     }
+                } else {
+                    lastErr = "GEMINI_API_KEY missing"
+                }
+
+                if (aiResponseText.isBlank() && groqKey.isNotBlank() && groqKey != "null") {
+                    val res = callGroqApiDirect(queryPrompt, groqKey, systemInstructionText) { err ->
+                        lastErr += " | Groq: $err"
+                    }
+                    if (!res.isNullOrBlank()) aiResponseText = res
                 } else if (aiResponseText.isBlank()) {
-                    lastErr += " | GEMINI_API_KEY missing"
+                    lastErr += " | GROQ_API_KEY missing"
                 }
 
                 if (aiResponseText.isBlank()) {
@@ -2271,11 +2279,8 @@ class LeagueChatActivity : BaseActivity() {
 
     private suspend fun generateGeminiSdkResponse(prompt: String, apiKey: String): String? {
         val models = listOf(
-            "gemini-flash-latest",
             "gemini-2.5-flash",
-            "gemini-3.6-flash",
-            "gemini-pro-latest",
-            "gemini-2.5-pro"
+            "gemini-flash-latest"
         )
         for (modelName in models) {
             try {
@@ -2294,7 +2299,14 @@ class LeagueChatActivity : BaseActivity() {
     }
 
     private fun callGroqApiDirect(prompt: String, apiKey: String, systemInstructionText: String, onError: (String) -> Unit): String? {
-        val models = listOf("llama-3.3-70b-versatile", "llama-3.1-8b-instant")
+        val models = listOf(
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+            "qwen-2.5-coder-32b",
+            "mixtral-8x7b-32768",
+            "qwen/qwen3.8-27b",
+            "openai/gpt-oss-20b"
+        )
         val urlString = "https://api.groq.com/openai/v1/chat/completions"
 
         for (modelName in models) {
@@ -2321,7 +2333,7 @@ class LeagueChatActivity : BaseActivity() {
                         })
                     })
                     put("temperature", 0.8)
-                    put("max_tokens", 400)
+                    put("max_tokens", 2048)
                 }
 
                 OutputStreamWriter(conn.outputStream).use { writer ->
@@ -2359,10 +2371,8 @@ class LeagueChatActivity : BaseActivity() {
 
     private fun callGeminiRestApiDirect(combinedPrompt: String, apiKey: String, onError: (String) -> Unit): String? {
         val models = listOf(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent"
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
         )
 
         val payload = JSONObject().apply {
@@ -2370,6 +2380,10 @@ class LeagueChatActivity : BaseActivity() {
                 put("role", "user")
                 put("parts", JSONArray().put(JSONObject().put("text", combinedPrompt)))
             }))
+            put("generationConfig", JSONObject().apply {
+                put("maxOutputTokens", 2048)
+                put("temperature", 0.8)
+            })
             put("safetySettings", JSONArray().apply {
                 put(JSONObject().apply {
                     put("category", "HARM_CATEGORY_HARASSMENT")
@@ -2384,12 +2398,16 @@ class LeagueChatActivity : BaseActivity() {
 
         for (baseUrl in models) {
             try {
-                val urlString = "$baseUrl?key=$apiKey"
+                val encodedKey = java.net.URLEncoder.encode(apiKey, "UTF-8")
+                val urlString = "$baseUrl?key=$encodedKey"
                 val url = URL(urlString)
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "POST"
                 conn.setRequestProperty("Content-Type", "application/json")
                 conn.setRequestProperty("x-goog-api-key", apiKey)
+                if (apiKey.startsWith("AQ.")) {
+                    conn.setRequestProperty("Authorization", "Bearer $apiKey")
+                }
                 conn.doOutput = true
                 conn.connectTimeout = 12000
                 conn.readTimeout = 12000
@@ -2515,6 +2533,7 @@ class LeagueChatActivity : BaseActivity() {
 
             sb.append("\n=== ALL LEAGUE MATCHES & BALL-BY-BALL COMMENTARY LOGS (LIVE, COMPLETED & ABANDONED) ===\n")
             val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+            val timeFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
             val rawMatches = appDb.matchDao().getAllMatchesByGully(leagueId) ?: appDb.matchDao().getAllMatches() ?: emptyList()
             val allMatches = rawMatches.filterNotNull().sortedBy { it.playedAt }
             val totalMatchesCount = allMatches.size
@@ -2531,12 +2550,40 @@ class LeagueChatActivity : BaseActivity() {
                     else -> " [COMPLETED MATCH 🏁]"
                 }
 
+                val ballTypeStr = if (!match.ballType.isNullOrBlank() && !match.ballType.equals("Not Specified", ignoreCase = true)) {
+                    match.ballType
+                } else {
+                    "Stumper"
+                }
+
+                val tossW = if (!match.tossWinner.isNullOrBlank()) match.tossWinner else "N/A"
+                val tossD = if (!match.tossDecision.isNullOrBlank()) match.tossDecision else "N/A"
+                val tossStr = if (tossW != "N/A") "$tossW won & opted to $tossD" else "N/A"
+
+                val s1Str = if (match.firstInningsStartTime > 0) timeFormat.format(Date(match.firstInningsStartTime)) else "-"
+                val e1Str = if (match.firstInningsEndTime > 0) timeFormat.format(Date(match.firstInningsEndTime)) else "-"
+                val s2Str = if (match.secondInningsStartTime > 0) timeFormat.format(Date(match.secondInningsStartTime)) else "-"
+                val e2Str = if (match.secondInningsEndTime > 0) timeFormat.format(Date(match.secondInningsEndTime)) else "-"
+
+                val matchRulesStr = "Runs on Wides/NB: ${if (match.ruleRunsOnWide) "YES" else "NO"} | " +
+                        "Free Hit: ${if (match.ruleFreeHit) "YES" else "NO"} | " +
+                        "Byes/LegByes: ${if (match.ruleRunsOnBye) "YES" else "NO"} | " +
+                        "Overthrows: ${if (match.ruleOverthrow) "YES" else "NO"} | " +
+                        "Last Man Standing / Every Player Bats: ${if (match.ruleEveryPlayerBats) "YES" else "NO"}"
+
                 sb.append("MATCH #").append(matchNumber).append(statusTag)
                     .append(" | Date: ").append(dateStr)
                     .append(" | Teams: ").append(match.teamAName).append(" vs ").append(match.teamBName)
+                    .append(" | Format: ").append(match.totalOvers).append(" Overs")
+                    .append(" | Squads: ").append(match.teamAPlayerCount).append("v").append(match.teamBPlayerCount)
                     .append(" | Venue: ").append(match.venue ?: "Local Ground")
                     .append(" | Result/Status: ").append(match.result ?: if (match.isAbandoned) "Abandoned / No Result" else "In Progress")
                     .append(" | POTM: ").append(match.playerOfTheMatchName ?: "N/A")
+                    .append("\n  [MATCH SETTINGS & INFO TAB]")
+                    .append(" -> Ball Type: ").append(ballTypeStr)
+                    .append(" | Toss Result: ").append(tossStr)
+                    .append(" | Conditions/Rules: ").append(matchRulesStr)
+                    .append(" | Timings: 1st Inn (").append(s1Str).append(" to ").append(e1Str).append("), 2nd Inn (").append(s2Str).append(" to ").append(e2Str).append(")")
                     .append("\n")
 
                 if (!match.isFinished && !match.isAbandoned) {

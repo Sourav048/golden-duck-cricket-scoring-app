@@ -3,7 +3,12 @@ package com.example.scoring
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.util.Log
@@ -11,6 +16,7 @@ import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -19,10 +25,16 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import android.content.pm.PackageManager
+import android.content.res.ColorStateList
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.content
 import android.widget.ArrayAdapter
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputLayout
@@ -61,10 +73,10 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
     private var leagueDisplayName: String = "Local"
     private var appStatsSummaryContext: String = ""
 
-    // Options: "English", "Hindi", "Hinglish"
-    private var selectedLanguage: String = "English"
-    private val languageDisplayNames = arrayOf("🌐 English", "🇮🇳 हिन्दी (Hindi)", "🇮🇳 Hinglish")
-    private val languageValues = arrayOf("English", "Hindi", "Hinglish")
+    // Options: "Auto", "English", "Hindi", "Hinglish"
+    private var selectedLanguage: String = "Auto"
+    private val languageDisplayNames = arrayOf("✨ Auto (Match Prompt)", "🌐 English", "🇮🇳 हिन्दी (Hindi)", "🇮🇳 Hinglish")
+    private val languageValues = arrayOf("Auto", "English", "Hindi", "Hinglish")
     private var actvLanguage: MaterialAutoCompleteTextView? = null
 
     // Active Player Selection ("I am")
@@ -83,25 +95,88 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    data class PlayerLeagueStats(
-        val playerName: String,
-        var totalRuns: Int = 0,
-        var totalBalls: Int = 0,
-        var fours: Int = 0,
-        var sixes: Int = 0,
-        var wicketsTaken: Int = 0,
-        var runsConceded: Int = 0,
-        var ballsBowled: Int = 0,
-        var highestScore: Int = 0,
-        var bestWickets: Int = 0,
-        var bestRunsConceded: Int = 999,
-        var matchesPlayed: Int = 0,
-        var fifties: Int = 0,
-        var thirties: Int = 0
-    )
-
     private val leaguePlayerMap = mutableMapOf<String, PlayerLeagueStats>()
     private var typingJob: Job? = null
+    private var lastGroqRestError: String = ""
+    private var lastGeminiRestError: String = ""
+
+    private var selectedImageUri: Uri? = null
+    private var selectedImageBitmap: Bitmap? = null
+
+    private lateinit var layoutImagePreview: View
+    private lateinit var ivAttachedPreview: ImageView
+    private lateinit var ibRemoveImage: ImageButton
+    private lateinit var ibAiPhoto: ImageButton
+
+    private val galleryLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            onImageSelected(uri, null)
+        }
+    }
+
+    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            val softwareBitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && bitmap.config == Bitmap.Config.HARDWARE) {
+                bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: bitmap
+            } else bitmap
+            onImageSelected(null, softwareBitmap)
+        }
+    }
+
+    private fun onImageSelected(uri: Uri?, bitmap: Bitmap?) {
+        selectedImageUri = uri
+        selectedImageBitmap = bitmap
+        layoutImagePreview.visibility = View.VISIBLE
+        if (bitmap != null) {
+            ivAttachedPreview.setImageBitmap(bitmap)
+        } else if (uri != null) {
+            ivAttachedPreview.setImageURI(uri)
+        }
+    }
+
+    private fun clearSelectedImage() {
+        selectedImageUri = null
+        selectedImageBitmap = null
+        if (::layoutImagePreview.isInitialized) {
+            layoutImagePreview.visibility = View.GONE
+        }
+    }
+
+    private fun setupPhotoButton() {
+        layoutImagePreview = findViewById(R.id.layoutImagePreview)
+        ivAttachedPreview = findViewById(R.id.ivAttachedPreview)
+        ibRemoveImage = findViewById(R.id.ibRemoveImage)
+        ibAiPhoto = findViewById(R.id.ibAiPhoto)
+
+        ibAiPhoto.setOnClickListener {
+            val options = arrayOf("📷 Take Photo", "🖼️ Choose from Gallery")
+            AlertDialog.Builder(this)
+                .setTitle("Attach Photo for Duckie AI")
+                .setItems(options) { _, which ->
+                    when (which) {
+                        0 -> {
+                            try {
+                                cameraLauncher.launch(null)
+                            } catch (e: Exception) {
+                                Toast.makeText(this, "Camera not available", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        1 -> {
+                            try {
+                                galleryLauncher.launch("image/*")
+                            } catch (e: Exception) {
+                                Toast.makeText(this, "Gallery picker error", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+                .show()
+        }
+
+        ibRemoveImage.setOnClickListener {
+            clearSelectedImage()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -132,7 +207,9 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
 
         setupKeyboardInsets()
         setupLanguageDropdown()
+        setupPhotoButton()
         setupSendButton()
+        observeGenerationService()
         setupMicButton()
         setupSpeakerButton()
         setupClearChatButton()
@@ -144,6 +221,34 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
 
         // Load stats & match commentary context from Room DB in background
         loadLeagueStatsContext()
+    }
+
+    private fun scrollToBottom() {
+        rvMessages.post {
+            if (::adapter.isInitialized && adapter.itemCount > 0) {
+                val lastPos = adapter.itemCount - 1
+                rvMessages.scrollToPosition(lastPos)
+                rvMessages.post {
+                    (rvMessages.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(lastPos, -10000)
+                }
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        AiChatService.isActivityInForeground = true
+    }
+
+    override fun onResume() {
+        super.onResume()
+        AiChatService.isActivityInForeground = true
+        // Force redraw, layout request, and scroll to the absolute bottom of the last response on resume
+        rvMessages.post {
+            rvMessages.invalidate()
+            rvMessages.requestLayout()
+            scrollToBottom()
+        }
     }
 
     private fun setupMessageLongClick() {
@@ -206,6 +311,9 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
                     if (msg.generationTimeSecs != null) {
                         put("generationTimeSecs", msg.generationTimeSecs)
                     }
+                    if (!msg.imageUri.isNullOrBlank()) {
+                        put("imageUri", msg.imageUri)
+                    }
                 })
             }
             prefs.edit().putString(getPrefKey(), jsonArray.toString()).apply()
@@ -225,16 +333,18 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
                     for (i in 0 until jsonArray.length()) {
                         val obj = jsonArray.getJSONObject(i)
                         val genTime = if (obj.has("generationTimeSecs")) obj.optInt("generationTimeSecs") else null
+                        val imgUriStr = if (obj.has("imageUri")) obj.optString("imageUri") else null
                         val msg = ChatMessage(
                             id = obj.optString("id", UUID.randomUUID().toString()),
                             text = obj.optString("text"),
                             isUser = obj.optBoolean("isUser"),
                             timestamp = obj.optLong("timestamp", System.currentTimeMillis()),
-                            generationTimeSecs = genTime
+                            generationTimeSecs = genTime,
+                            imageUri = if (imgUriStr.isNullOrBlank()) null else imgUriStr
                         )
                         adapter.addMessage(msg)
                     }
-                    rvMessages.scrollToPosition(adapter.itemCount - 1)
+                    scrollToBottom()
                     return
                 }
             }
@@ -245,6 +355,7 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
         // Welcome message if no saved history exists
         val welcomeMsg = "👋 Hello! I'm **Duckie**, your AI Assistant in Golden Duck!\n\nI am connected live to League: **$leagueDisplayName**. Tap 🎤 Mic to ask anything or select your response language above!"
         adapter.addMessage(ChatMessage(text = welcomeMsg, isUser = false))
+        scrollToBottom()
     }
 
     private fun setupClearChatButton() {
@@ -277,9 +388,7 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
             rootLayout.setPadding(0, 0, 0, bottomPadding)
 
             if (imeInsets.bottom > 0 && adapter.itemCount > 0) {
-                rvMessages.post {
-                    rvMessages.scrollToPosition(adapter.itemCount - 1)
-                }
+                scrollToBottom()
             }
 
             insets
@@ -287,8 +396,8 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
 
         etInput.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus && adapter.itemCount > 0) {
-                rvMessages.postDelayed({
-                    rvMessages.scrollToPosition(adapter.itemCount - 1)
+                etInput.postDelayed({
+                    scrollToBottom()
                 }, 100)
             }
         }
@@ -351,7 +460,7 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
             try {
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                    val langCode = if (selectedLanguage == "Hindi") "hi-IN" else "en-IN"
+                    val langCode = if (selectedLanguage == "Hindi" || selectedLanguage == "Hinglish" || selectedLanguage == "Auto") "hi-IN" else "en-IN"
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, langCode)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, langCode)
                     putExtra(RecognizerIntent.EXTRA_PROMPT, "Ask Duckie in $selectedLanguage...")
@@ -366,7 +475,7 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
     private fun speakText(rawText: String, force: Boolean = false) {
         if ((isTtsMuted && !force) || textToSpeech == null) return
 
-        var cleanText = rawText
+        var cleanText = TextFormatUtils.cleanHumanReadableText(rawText)
 
         // 1. Strip all Emojis & Symbols (Unicode Emoji Ranges)
         val emojiRegex = Regex("[\uD83C-\uDBFF\uDC00-\uDFFF\u2600-\u27BF\u2300-\u23FF\u2B50\u200D]+")
@@ -379,6 +488,11 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
         cleanText = cleanText.replace(Regex("\\s+"), " ").trim()
 
         if (cleanText.isNotBlank()) {
+            if (cleanText.any { it in '\u0900'..'\u097F' }) {
+                textToSpeech?.language = Locale("hi", "IN")
+            } else {
+                updateTtsLanguage()
+            }
             val result = textToSpeech?.speak(cleanText, TextToSpeech.QUEUE_FLUSH, null, "DUCKIE_TTS")
             if (result == TextToSpeech.ERROR) {
                 Log.e("DuckieAI", "TTS speak returned ERROR")
@@ -404,7 +518,7 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
     private fun loadSelectedLanguage() {
         try {
             val prefs = getSharedPreferences("duckie_ai_chat_prefs", MODE_PRIVATE)
-            val savedLang = prefs.getString("selected_language", "English") ?: "English"
+            val savedLang = prefs.getString("selected_language", "Auto") ?: "Auto"
             selectedLanguage = savedLang
 
             val displayIndex = languageValues.indexOf(savedLang).let { if (it >= 0) it else 0 }
@@ -427,6 +541,7 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
                 saveSelectedLanguage(selectedLang)
                 updateTtsLanguage()
                 val toastText = when (selectedLang) {
+                    "Auto" -> "Response Language set to ✨ Auto (Matches Prompt)"
                     "Hindi" -> "Response Language set to हिन्दी (Hindi) 🇮🇳"
                     "Hinglish" -> "Response Language set to Hinglish 🇮🇳"
                     else -> "Response Language set to English 🌐"
@@ -518,145 +633,182 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
         }
     }
 
+    private var isGenerating = false
+
+    private fun setGeneratingState(generating: Boolean) {
+        isGenerating = generating
+        if (generating) {
+            btnSend.setImageResource(android.R.drawable.ic_delete)
+            btnSend.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.card_red))
+            btnSend.contentDescription = "Stop Generating"
+            layoutTyping.visibility = View.VISIBLE
+        } else {
+            btnSend.setImageResource(android.R.drawable.ic_menu_send)
+            btnSend.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.send_btn_color))
+            btnSend.contentDescription = "Send Message"
+            layoutTyping.visibility = View.GONE
+        }
+    }
+
+    private fun stopGeneration() {
+        AiChatService.stopCurrentGeneration(this)
+        textToSpeech?.stop()
+        setGeneratingState(false)
+        Toast.makeText(this, "Generation stopped 🛑", Toast.LENGTH_SHORT).show()
+    }
+
     private fun setupSendButton() {
         btnSend.setOnClickListener {
-            val userText = etInput.text.toString().trim()
-            if (userText.isNotEmpty()) {
-                sendMessage(userText)
+            if (isGenerating) {
+                stopGeneration()
+            } else {
+                val userText = etInput.text.toString().trim()
+                if (userText.isNotEmpty() || selectedImageUri != null || selectedImageBitmap != null) {
+                    sendMessage(userText)
+                }
+            }
+        }
+    }
+
+    private fun observeGenerationService() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                AiChatService.generationState.collect { state ->
+                    when (state) {
+                        is AiGenerationState.Generating -> {
+                            setGeneratingState(true)
+                            if (state.currentText.isNotBlank()) {
+                                layoutTyping.visibility = View.GONE
+                                val lastMsg = adapter.getMessagesList().lastOrNull()
+                                if (lastMsg != null && !lastMsg.isUser) {
+                                    adapter.updateLastMessageText(state.currentText)
+                                } else {
+                                    adapter.addMessage(ChatMessage(text = state.currentText, isUser = false))
+                                }
+                                scrollToBottom()
+                            } else {
+                                layoutTyping.visibility = View.VISIBLE
+                            }
+                        }
+                        is AiGenerationState.Completed -> {
+                            setGeneratingState(false)
+                            layoutTyping.visibility = View.GONE
+                            if (state.replyText.isNotBlank()) {
+                                val lastMsg = adapter.getMessagesList().lastOrNull()
+                                if (lastMsg != null && !lastMsg.isUser) {
+                                    adapter.updateLastMessageText(state.replyText, generationTimeSecs = state.durationSecs)
+                                } else {
+                                    adapter.addMessage(ChatMessage(text = state.replyText, isUser = false, generationTimeSecs = state.durationSecs))
+                                }
+                                scrollToBottom()
+                                speakText(state.replyText)
+                                saveChatHistory()
+                            }
+                        }
+                        is AiGenerationState.Error -> {
+                            setGeneratingState(false)
+                            layoutTyping.visibility = View.GONE
+                            if (state.message.isNotBlank()) {
+                                val lastMsg = adapter.getMessagesList().lastOrNull()
+                                if (lastMsg != null && !lastMsg.isUser) {
+                                    adapter.updateLastMessageText(state.message)
+                                } else {
+                                    adapter.addMessage(ChatMessage(text = state.message, isUser = false))
+                                }
+                                scrollToBottom()
+                            }
+                        }
+                        is AiGenerationState.Cancelled -> {
+                            setGeneratingState(false)
+                            layoutTyping.visibility = View.GONE
+                        }
+                        is AiGenerationState.Idle -> {
+                            setGeneratingState(false)
+                        }
+                    }
+                }
             }
         }
     }
 
     private fun sendMessage(text: String) {
+        val attachedImageUriStr = selectedImageUri?.toString()
+        val attachedBitmap = selectedImageBitmap ?: if (selectedImageUri != null) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    val source = ImageDecoder.createSource(contentResolver, selectedImageUri!!)
+                    ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                        decoder.isMutableRequired = true
+                    }
+                } else {
+                    @Suppress("DEPRECATION")
+                    val bm = MediaStore.Images.Media.getBitmap(contentResolver, selectedImageUri)
+                    bm?.copy(Bitmap.Config.ARGB_8888, false)
+                }
+            } catch (e: Exception) {
+                Log.e("DuckieAI", "Error decoding image URI: ${e.message}")
+                null
+            }
+        } else null
+
+        // Clear preview bar
+        clearSelectedImage()
+
         etInput.text.clear()
         hideKeyboard()
 
         // Stop any current speech
         textToSpeech?.stop()
 
-        val promptStartTime = System.currentTimeMillis()
+        // Add user message with attached image URI
+        adapter.addMessage(ChatMessage(text = text, isUser = true, imageUri = attachedImageUriStr))
 
-        // Add user message
-        adapter.addMessage(ChatMessage(text = text, isUser = true))
-        val userPos = adapter.itemCount - 1
-
+        val lastPos = adapter.itemCount - 1
         rvMessages.postDelayed({
-            (rvMessages.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(userPos, 0)
-        }, 150)
+            (rvMessages.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(lastPos, 0)
+        }, 120)
 
-        // Show typing indicator
-        layoutTyping.visibility = View.VISIBLE
+        // Set generating state UI
+        setGeneratingState(true)
 
-        // Cancel previous typing job if any
-        typingJob?.cancel()
-
-        typingJob = lifecycleScope.launch(Dispatchers.IO) {
-            if (appStatsSummaryContext.isBlank()) {
+        if (appStatsSummaryContext.isBlank()) {
+            lifecycleScope.launch(Dispatchers.IO) {
                 buildLeagueStatsContextSync()
+                AiChatService.startAiGeneration(
+                    context = this@AiChatActivity,
+                    prompt = text,
+                    gullyId = currentGullyId,
+                    leagueName = leagueDisplayName,
+                    language = selectedLanguage,
+                    playerName = selectedPlayerName,
+                    imageUriStr = attachedImageUriStr,
+                    bitmap = attachedBitmap
+                )
             }
-
-            val targetBuffer = StringBuilder()
-            var isStreamDone = false
-
-            // Launch typewriter animation loop on Main thread
-            val typingAnimationJob = launch(Dispatchers.Main) {
-                var displayedLength = 0
-                var isFirstMessageAdded = false
-
-                while (isActive && (!isStreamDone || displayedLength < targetBuffer.length)) {
-                    val currentTarget: String
-                    synchronized(targetBuffer) {
-                        currentTarget = targetBuffer.toString()
-                    }
-
-                    if (displayedLength < currentTarget.length) {
-                        val remainingChars = currentTarget.length - displayedLength
-
-                        // Dynamic typing speed: fast, smooth, natural "fast writer" feel
-                        val charsToAdd = when {
-                            remainingChars > 60 -> 6
-                            remainingChars > 30 -> 4
-                            remainingChars > 12 -> 2
-                            else -> 1
-                        }
-
-                        val nextLength = minOf(displayedLength + charsToAdd, currentTarget.length)
-                        val textToDisplay = currentTarget.substring(0, nextLength)
-                        displayedLength = nextLength
-
-                        if (!isFirstMessageAdded) {
-                            isFirstMessageAdded = true
-                            layoutTyping.visibility = View.GONE
-                            adapter.addMessage(ChatMessage(text = textToDisplay, isUser = false))
-                            (rvMessages.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(userPos, 0)
-                        } else {
-                            adapter.updateLastMessageText(textToDisplay)
-                        }
-                    }
-
-                    delay(12) // ~80 updates/sec for ultra-smooth typing stream
-                }
-
-                // Ensure final complete state is rendered
-                val finalContent = synchronized(targetBuffer) { targetBuffer.toString() }
-                if (finalContent.isNotBlank()) {
-                    val durationMs = System.currentTimeMillis() - promptStartTime
-                    val durationSecs = maxOf(1, Math.round(durationMs / 1000.0).toInt())
-                    if (!isFirstMessageAdded) {
-                        layoutTyping.visibility = View.GONE
-                        adapter.addMessage(ChatMessage(text = finalContent, isUser = false, generationTimeSecs = durationSecs))
-                    } else {
-                        adapter.updateLastMessageText(finalContent, generationTimeSecs = durationSecs)
-                    }
-                    speakText(finalContent)
-                    saveChatHistory()
-                }
-            }
-
-            val onChunkReceived: (String) -> Unit = { chunk ->
-                synchronized(targetBuffer) {
-                    targetBuffer.append(chunk)
-                }
-            }
-
-            val finalReplyText = processAiQueryStream(text, onChunkReceived)
-
-            synchronized(targetBuffer) {
-                if (targetBuffer.isEmpty() && finalReplyText.isNotBlank()) {
-                    targetBuffer.append(finalReplyText)
-                }
-            }
-            isStreamDone = true
-
-            // Wait until typewriter effect completes writing all received characters
-            typingAnimationJob.join()
+        } else {
+            AiChatService.startAiGeneration(
+                context = this,
+                prompt = text,
+                gullyId = currentGullyId,
+                leagueName = leagueDisplayName,
+                language = selectedLanguage,
+                playerName = selectedPlayerName,
+                imageUriStr = attachedImageUriStr,
+                bitmap = attachedBitmap
+            )
         }
     }
 
-    private fun getLanguageInstruction(): String {
-        return when (selectedLanguage) {
-            "Hindi" -> "CRITICAL LANGUAGE MANDATE: You MUST write your ENTIRE response strictly in natural Devnagari Hindi (हिन्दी) script! Do NOT write English words or names in brackets like 'सौरव (Sourav)'. Write ONLY pure Devnagari Hindi script!"
-            "Hinglish" -> "CRITICAL LANGUAGE MANDATE: You MUST write your ENTIRE response in Hinglish (Hindi language written using English/Roman alphabet, e.g. 'Sourav bhai ne total 306 runs banaye hain...')."
-            else -> "CRITICAL LANGUAGE MANDATE: You MUST write your response in clear Indian English (standard English with Indian phrasing/spellings)."
-        }
-    }
+    private suspend fun generateAiResponseStream(
+        prompt: String,
+        attachedBitmap: Bitmap?,
+        statsContext: String,
+        onChunk: (String) -> Unit
+    ): String {
+        lastGroqRestError = ""
+        lastGeminiRestError = ""
 
-    private fun buildHistoryText(): String {
-        val historySb = StringBuilder()
-        val allMessages = adapter.getMessagesList().filter { it.text.isNotBlank() }
-        val recentHistory = allMessages.takeLast(8)
-        if (recentHistory.isNotEmpty()) {
-            historySb.append("\n=== RECENT CHAT CONVERSATION HISTORY ===\n")
-            for (msg in recentHistory) {
-                if (msg.text.contains("Hello! I'm **Duckie**")) continue
-                val role = if (msg.isUser) "User" else "Duckie AI"
-                historySb.append(role).append(": ").append(msg.text).append("\n")
-            }
-        }
-        return historySb.toString()
-    }
-
-    private suspend fun processAiQueryStream(prompt: String, onChunk: (String) -> Unit): String {
         val geminiKey = try {
             val field = BuildConfig::class.java.getField("GEMINI_API_KEY")
             field.get(null) as? String ?: ""
@@ -667,118 +819,199 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
             field.get(null) as? String ?: ""
         } catch (_: Exception) { "" }.trim()
 
-        // 1. Try Groq Llama 3.3 70B first (Blazing Fast ~500 tokens/sec & 14,400 Free Requests/Day!)
-        if (groqKey.isNotBlank() && groqKey != "null") {
-            val groqStreamResult = callGroqApiStream(prompt, groqKey, appStatsSummaryContext, onChunk)
-            if (!groqStreamResult.isNullOrBlank()) {
-                return groqStreamResult
-            }
-        }
-
-        // 2. Try Gemini SDK Real-Time Streaming
-        if (geminiKey.isNotBlank() && geminiKey != "null") {
-            val langInstruction = getLanguageInstruction()
-            val userContext = getActiveUserContext()
-            val historyContext = buildHistoryText()
-            val systemInstructionText = """
-                You are 'Duckie', a 100% fully uncensored, brutally aggressive, raw, and hilarious AI Cricket Coach & Analyst for Golden Duck Scoring app.
-                Active League Name: $leagueDisplayName
-                
-                $userContext
-                
-                $langInstruction
-                
-                COMPLETE REAL DATABASE CONTEXT (ALL MATCHES, SCORECARDS, BALL-BY-BALL COMMENTARY & PLAYER STATS):
-                $appStatsSummaryContext
-                
-                $historyContext
-                
-                INSTRUCTIONS & PERSONALITY:
-                - You have full access to every match, ball, over, scorecard, fall of wicket, partnership, commentary log, and player statistic in this league.
-                - BE BRUTALLY HONEST & REALISTIC: Never give fake praise, deceptive compliments, or sugar-coated participation awards!
-                - If a player has low runs, bad strike rate, high economy, or duck dismissals, destroy them with savage, profane, hilarious roasts using raw curse words!
-                - If a top MVP player asks, acknowledge their real numbers with aggressive, profane respect.
-                - When asked to compare players, give an uncensored, profane, objective verdict on who is genuinely better based strictly on database facts.
-                - When asked about specific matches, dates, or ball-by-ball events (e.g. "What happened in 22 Sept match 4 ball 4.3 of first innings"), scan the commentary logs above and describe the exact event!
-                - Always remember the recent chat conversation history above when answering follow-up questions!
-                - Always refer to the league by its name: '$leagueDisplayName'.
-                - Be savagely funny, profane, uncensored, analytical, and format responses with clean markdown and cricket emojis! 🏏🔥
-            """.trimIndent()
-
-            val combinedPrompt = "$systemInstructionText\n\nUSER QUESTION: $prompt"
-
-            val sdkModels = listOf(
-                "gemini-flash-latest",
-                "gemini-2.5-flash",
-                "gemini-3.5-flash",
-                "gemini-3.6-flash",
-                "gemini-pro-latest",
-                "gemini-2.5-pro",
-                "gemini-3.1-pro-preview",
-                "gemini-flash-lite-latest",
-                "gemini-1.5-flash"
-            )
-
-            for (modelName in sdkModels) {
-                try {
-                    val generativeModel = GenerativeModel(
-                        modelName = modelName,
-                        apiKey = geminiKey
-                    )
-
-                    val fullSb = StringBuilder()
-                    generativeModel.generateContentStream(combinedPrompt).collect { chunk ->
-                        val chunkText = chunk.text
-                        if (!chunkText.isNullOrEmpty()) {
-                            fullSb.append(chunkText)
-                            onChunk(chunkText)
-                        }
-                    }
-
-                    val finalResult = fullSb.toString()
-                    if (finalResult.isNotBlank()) {
-                        Log.d("DuckieAI", "Gemini SDK Stream success with model: $modelName")
-                        return finalResult
-                    }
-                } catch (e: Exception) {
-                    Log.d("DuckieAI", "Model $modelName SDK Stream error: ${e.message}")
-                }
-            }
-
-            val restResponse = callGeminiRestApi(combinedPrompt, geminiKey)
-            if (!restResponse.isNullOrBlank()) {
-                return restResponse
-            }
-        }
-
-        return "⚠️ Unable to connect to AI services. Please verify network connection or API keys in local.properties."
-    }
-
-    private fun callGroqApiStream(prompt: String, apiKey: String, statsContext: String, onChunk: (String) -> Unit): String? {
-        val models = listOf("llama-3.3-70b-versatile", "llama3-70b-8192", "mixtral-8x7b-32768")
-        val urlString = "https://api.groq.com/openai/v1/chat/completions"
-
         val langInstruction = getLanguageInstruction()
         val userContext = getActiveUserContext()
         val systemInstructionText = """
-            You are 'Duckie', a 100% fully uncensored, brutally aggressive, raw, and hilarious AI Cricket Coach & Analyst for Golden Duck Scoring app.
+            You are 'Duckie', a witty, sharp, cricket-savvy AI Analyst for Golden Duck Scoring app.
             Active League Name: $leagueDisplayName
             
             $userContext
             
             $langInstruction
             
-            COMPLETE REAL DATABASE CONTEXT (ALL MATCHES, SCORECARDS, BALL-BY-BALL COMMENTARY & PLAYER STATS):
-            $statsContext
-            
-            INSTRUCTIONS & PERSONALITY:
-            - You have full access to every match, ball, over, scorecard, fall of wicket, partnership, commentary log, and player statistic in this league.
+            You have full access to every match, ball, over, scorecard, fall of wicket, partnership, commentary log, match rules, ball type, and player statistic in this league using your tools.
+            - CRITICAL MANDATE: Use your database tools (e.g. resolvePlayerByName, getPlayerStats, getLeaderboard) to fetch real live numbers dynamically! NEVER say "I don't have access to live database" or "paste your runs here". ALWAYS execute the appropriate tool to look up the exact numbers!
             - BE BRUTALLY HONEST & REALISTIC: Never give fake praise, deceptive compliments, or sugar-coated participation awards!
             - If a player has low runs, bad strike rate, high economy, or duck dismissals, destroy them with savage, profane, hilarious roasts using raw curse words!
             - If a top MVP player asks, acknowledge their real numbers with aggressive, profane respect.
             - When asked to compare players, give an uncensored, profane, objective verdict on who is genuinely better based strictly on database facts.
             - When asked about specific matches, dates, or ball-by-ball events (e.g. "What happened in 22 Sept match 4 ball 4.3 of first innings"), scan the commentary logs above and describe the exact event!
+            - CRITICAL - BALL TYPE & MATCH RULES: Always check the [MATCH SETTINGS & INFO TAB] provided for each match in the context! Pay strict attention to the exact Ball Type (e.g., Stumper, Tennis, Leather) and match rules (e.g., Last Man Standing, Free Hit). NEVER claim or assume a match was played with a leather ball unless the Ball Type in the context explicitly says 'Leather'! If the ball type is 'Stumper', explicitly refer to it as a Stumper ball when discussing ball, match, or equipment details!
             - Always refer to the league by its name: '$leagueDisplayName'.
+            - HUMAN-READABLE FORMATTING MANDATE: ALWAYS format your responses so they are clean, clear, complete, and easy to read on mobile screens! Format with clean Markdown, bold headers, bullet lists, and cricket emojis! 🏏🔥 Write math formulas in simple plain text.
+            - MARKDOWN & TABLE FORMATTING RULES:
+              1. ALWAYS put clean double line breaks (\n\n) before and after headers, paragraphs, bullet points, and tables.
+              2. For tables, put each row on its OWN line with clear line breaks (\n). NEVER combine a heading and a table header on the same line!
+              3. Keep tables concise with short column names so they fit nicely on mobile screens.
+              4. Always generate and finish your entire answer/plan completely without stopping mid-sentence!
+            - Be savagely funny, profane, uncensored, analytical, and format responses with clean markdown and cricket emojis! 🏏🔥
+        """.trimIndent()
+
+        val combinedPrompt = "$systemInstructionText\n\nUSER QUESTION: ${if (prompt.isBlank()) "Analyze this image in detail!" else prompt}"
+
+        if (attachedBitmap == null && groqKey.isNotBlank() && groqKey != "null") {
+            val groqStreamResult = callGroqApiStream(prompt, groqKey, statsContext, onChunk)
+            if (!groqStreamResult.isNullOrBlank()) {
+                return groqStreamResult
+            }
+        }
+
+        if (geminiKey.isNotBlank() && geminiKey != "null") {
+            val sdkModels = listOf(
+                "gemini-2.5-flash",
+                "gemini-flash-latest"
+            )
+
+            if (attachedBitmap != null) {
+                for (modelName in sdkModels) {
+                    try {
+                        val generativeModel = GenerativeModel(modelName = modelName, apiKey = geminiKey)
+                        val fullSb = StringBuilder()
+                        val multimodalContent = content {
+                            image(attachedBitmap)
+                            text(combinedPrompt)
+                        }
+                        generativeModel.generateContentStream(multimodalContent).collect { chunk ->
+                            val chunkText = chunk.text
+                            if (!chunkText.isNullOrEmpty()) {
+                                fullSb.append(chunkText)
+                                onChunk(chunkText)
+                            }
+                        }
+                        val finalResult = fullSb.toString()
+                        if (finalResult.isNotBlank()) {
+                            Log.d("DuckieAI", "Gemini SDK Stream success with model: $modelName")
+                            return finalResult
+                        }
+                    } catch (e: Exception) {
+                        Log.d("DuckieAI", "Model $modelName SDK Stream error: ${e.message}")
+                    }
+                }
+            } else {
+                val db = AppDatabase.getInstance(applicationContext)
+                val functionRegistry = AiFunctionRegistry(db)
+
+                for (modelName in sdkModels) {
+                    try {
+                        val generativeModel = GenerativeModel(
+                            modelName = modelName,
+                            apiKey = geminiKey,
+                            tools = listOf(AiToolDeclarations.aiDatabaseTools)
+                        )
+
+                        val fullSb = StringBuilder()
+                        var toolExecutedContext = ""
+
+                        generativeModel.generateContentStream(combinedPrompt).collect { chunk ->
+                            val functionCalls = try { chunk.functionCalls } catch (_: Exception) { emptyList() }
+                            if (functionCalls.isNotEmpty()) {
+                                val executedResults = StringBuilder()
+                                for (fCall in functionCalls) {
+                                    val result = functionRegistry.executeFunctionCall(fCall.name, fCall.args, currentGullyId)
+                                    executedResults.append("\n[TOOL '${fCall.name}' RESULT]:\n${JSONObject(mapOf("result" to result))}\n")
+                                }
+                                toolExecutedContext += executedResults.toString()
+                            }
+
+                            val chunkText = chunk.text
+                            if (!chunkText.isNullOrEmpty()) {
+                                fullSb.append(chunkText)
+                                onChunk(chunkText)
+                            }
+                        }
+
+                        // If a function call was requested, perform a second pass with database result injected
+                        if (toolExecutedContext.isNotBlank()) {
+                            val followUpPrompt = "$combinedPrompt\n\nDATABASE QUERY RESULTS EXECUTED BY TOOL CALLS:\n$toolExecutedContext\nNow answer the user question accurately using the database results above!"
+                            fullSb.clear()
+                            generativeModel.generateContentStream(followUpPrompt).collect { secondChunk ->
+                                val text = secondChunk.text
+                                if (!text.isNullOrEmpty()) {
+                                    fullSb.append(text)
+                                    onChunk(text)
+                                }
+                            }
+                        }
+
+                        val finalResult = fullSb.toString()
+                        if (finalResult.isNotBlank()) {
+                            Log.d("DuckieAI", "Gemini SDK Stream success with model: $modelName")
+                            return finalResult
+                        }
+                    } catch (e: Exception) {
+                        Log.d("DuckieAI", "Model $modelName SDK Stream error: ${e.message}")
+                    }
+                }
+
+                val restResponse = callGeminiRestApi(combinedPrompt, geminiKey)
+                if (!restResponse.isNullOrBlank()) {
+                    return restResponse
+                }
+            }
+        }
+
+        val keyErr = when {
+            geminiKey.isBlank() && groqKey.isBlank() -> "API keys missing in local.properties"
+            lastGroqRestError.isNotBlank() && lastGeminiRestError.isNotBlank() -> "$lastGroqRestError | $lastGeminiRestError"
+            lastGroqRestError.isNotBlank() -> lastGroqRestError
+            lastGeminiRestError.isNotBlank() -> lastGeminiRestError
+            else -> "Request failed or rate limited"
+        }
+        return "⚠️ Unable to connect to AI services ($keyErr). Please verify network connection or API keys in local.properties."
+    }
+
+    private fun getLanguageInstruction(): String {
+        return when (selectedLanguage) {
+            "Hindi" -> "CRITICAL LANGUAGE MANDATE: FIRST PREFERENCE MUST GO TO THE LANGUAGE & SCRIPT OF THE USER PROMPT! If the prompt is written in Devnagari Hindi (हिन्दी), Hinglish, or English, respond in THAT EXACT SAME language and script! If prompt language is neutral or ambiguous, write strictly in natural Devnagari Hindi (हिन्दी) script!"
+            "Hinglish" -> "CRITICAL LANGUAGE MANDATE: FIRST PREFERENCE MUST GO TO THE LANGUAGE & SCRIPT OF THE USER PROMPT! If the prompt is written in Hinglish, Devnagari Hindi, or English, respond in THAT EXACT SAME language and script! If prompt language is neutral or ambiguous, write strictly in Hinglish (Roman Hindi)."
+            "English" -> "CRITICAL LANGUAGE MANDATE: FIRST PREFERENCE MUST GO TO THE LANGUAGE & SCRIPT OF THE USER PROMPT! If the prompt is written in Devnagari Hindi (हिन्दी) or Hinglish, respond in THAT EXACT SAME language/script so the user gets their answer in the language they typed! If prompt language is in English or neutral, write strictly in pure English."
+            else -> """
+                CRITICAL LANGUAGE MANDATE:
+                1. FIRST PREFERENCE MUST GO TO THE LANGUAGE & SCRIPT OF THE USER PROMPT: You MUST detect the exact language and script used by the user in their prompt!
+                   - If the prompt is written in Devnagari Hindi script (हिन्दी), respond strictly in Devnagari Hindi (हिन्दी) script!
+                   - If the prompt is written in Hinglish (Hindi words typed using English/Roman characters, e.g. 'mera score kya hai', 'bhai kitne runs bane'), respond strictly in Hinglish!
+                   - If the prompt is written in English, respond strictly in pure English!
+                2. SECOND PREFERENCE (Fallback): If the user prompt is neutral or ambiguous (e.g. only numbers or image without text), default to pure English.
+            """.trimIndent()
+        }
+    }
+
+    private fun callGroqApiStream(prompt: String, apiKey: String, statsContext: String, onChunk: (String) -> Unit): String? {
+        val models = listOf(
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+            "qwen-2.5-coder-32b",
+            "mixtral-8x7b-32768",
+            "qwen/qwen3.8-27b",
+            "openai/gpt-oss-20b"
+        )
+        val urlString = "https://api.groq.com/openai/v1/chat/completions"
+
+        val langInstruction = getLanguageInstruction()
+        val userContext = getActiveUserContext()
+        val systemInstructionText = """
+            You are 'Duckie', a witty, sharp, cricket-savvy AI Analyst for Golden Duck Scoring app.
+            Active League Name: $leagueDisplayName
+            
+            $userContext
+            
+            $langInstruction
+            
+            You have full access to every match, ball, over, scorecard, fall of wicket, partnership, commentary log, match rules, ball type, and player statistic in this league using your tools.
+            - CRITICAL MANDATE: Use your database tools (e.g. resolvePlayerByName, getPlayerStats, getLeaderboard) to fetch real live numbers dynamically! NEVER say "I don't have access to live database" or "paste your runs here". ALWAYS execute the appropriate tool to look up the exact numbers!
+            - BE BRUTALLY HONEST & REALISTIC: Never give fake praise, deceptive compliments, or sugar-coated participation awards!
+            - If a player has low runs, bad strike rate, high economy, or duck dismissals, destroy them with savage, profane, hilarious roasts using raw curse words!
+            - If a top MVP player asks, acknowledge their real numbers with aggressive, profane respect.
+            - When asked to compare players, give an uncensored, profane, objective verdict on who is genuinely better based strictly on database facts.
+            - When asked about specific matches, dates, or ball-by-ball events (e.g. "What happened in 22 Sept match 4 ball 4.3 of first innings"), scan the commentary logs above and describe the exact event!
+            - CRITICAL - BALL TYPE & MATCH RULES: Always check the [MATCH SETTINGS & INFO TAB] provided for each match in the context! Pay strict attention to the exact Ball Type (e.g., Stumper, Tennis, Leather) and match rules (e.g., Last Man Standing, Free Hit). NEVER claim or assume a match was played with a leather ball unless the Ball Type in the context explicitly says 'Leather'! If the ball type is 'Stumper', explicitly refer to it as a Stumper ball when discussing ball, match, or equipment details!
+            - Always refer to the league by its name: '$leagueDisplayName'.
+            - HUMAN-READABLE FORMATTING MANDATE: ALWAYS format your responses so they are clean, clear, complete, and easy to read on mobile screens! Format with clean Markdown, bold headers, bullet lists, and cricket emojis! 🏏🔥 Write math formulas in simple plain text.
+            - MARKDOWN & TABLE FORMATTING RULES:
+              1. ALWAYS put clean double line breaks (\n\n) before and after headers, paragraphs, bullet points, and tables.
+              2. For tables, put each row on its OWN line with clear line breaks (\n). NEVER combine a heading and a table header on the same line!
+              3. Keep tables concise with short column names so they fit nicely on mobile screens.
+              4. Always generate and finish your entire answer/plan completely without stopping mid-sentence!
             - Be savagely funny, profane, uncensored, analytical, and format responses with clean markdown and cricket emojis! 🏏🔥
         """.trimIndent()
 
@@ -791,12 +1024,18 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
         })
 
         // 2. Multi-turn Chat Conversation Memory (Last 8 messages)
-        val recentHistory = adapter.getMessagesList().filter { it.text.isNotBlank() }.takeLast(8)
+        val recentHistory = adapter.getMessagesList().filter { it.text.isNotBlank() || !it.imageUri.isNullOrBlank() }.takeLast(8)
         for (msg in recentHistory) {
             if (msg.text.contains("Hello! I'm **Duckie**")) continue
+            val msgContent = if (!msg.imageUri.isNullOrBlank()) {
+                val textPart = if (msg.text.isBlank()) "[Attached Photo]" else msg.text
+                "$textPart [User attached a photo 📷]".trim()
+            } else {
+                msg.text
+            }
             messagesArray.put(JSONObject().apply {
                 put("role", if (msg.isUser) "user" else "assistant")
-                put("content", msg.text)
+                put("content", msgContent)
             })
         }
 
@@ -806,67 +1045,168 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
             put("content", prompt)
         })
 
+        val db = AppDatabase.getInstance(applicationContext)
+        val functionRegistry = AiFunctionRegistry(db)
+
         for (modelName in models) {
             try {
-                val url = URL(urlString)
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.setRequestProperty("Authorization", "Bearer $apiKey")
-                conn.doOutput = true
-                conn.connectTimeout = 12000
-                conn.readTimeout = 12000
+                var currentPass = 0
+                val maxPasses = 2
 
-                val payload = JSONObject().apply {
-                    put("model", modelName)
-                    put("stream", true)
-                    put("messages", messagesArray)
-                    put("temperature", 0.8)
-                    put("max_tokens", 1024)
-                }
+                while (currentPass < maxPasses) {
+                    currentPass++
+                    val url = URL(urlString)
+                    val conn = url.openConnection() as HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    conn.setRequestProperty("Authorization", "Bearer $apiKey")
+                    conn.doOutput = true
+                    conn.connectTimeout = 12000
+                    conn.readTimeout = 12000
 
-                OutputStreamWriter(conn.outputStream).use { writer ->
-                    writer.write(payload.toString())
-                    writer.flush()
-                }
+                    val payload = JSONObject().apply {
+                        put("model", modelName)
+                        put("stream", true)
+                        put("messages", messagesArray)
+                        put("tools", AiToolDeclarations.groqToolsJsonArray)
+                        put("tool_choice", "auto")
+                        put("temperature", 0.7)
+                        put("max_tokens", 4096)
+                    }
 
-                val respCode = conn.responseCode
-                if (respCode == 200) {
-                    val reader = BufferedReader(InputStreamReader(conn.inputStream))
-                    val fullSb = StringBuilder()
-                    var line: String?
+                    OutputStreamWriter(conn.outputStream).use { writer ->
+                        writer.write(payload.toString())
+                        writer.flush()
+                    }
 
-                    while (reader.readLine().also { line = it } != null) {
-                        val currentLine = line?.trim() ?: continue
-                        if (currentLine.startsWith("data: ")) {
-                            val jsonStr = currentLine.substring(6).trim()
-                            if (jsonStr == "[DONE]") break
-                            try {
-                                val obj = JSONObject(jsonStr)
-                                val choices = obj.optJSONArray("choices")
-                                if (choices != null && choices.length() > 0) {
-                                    val delta = choices.getJSONObject(0).optJSONObject("delta")
-                                    val contentChunk = delta?.optString("content")
-                                    if (!contentChunk.isNullOrEmpty()) {
-                                        fullSb.append(contentChunk)
-                                        onChunk(contentChunk)
+                    val respCode = conn.responseCode
+                    if (respCode == 200) {
+                        val reader = BufferedReader(InputStreamReader(conn.inputStream))
+                        val fullSb = StringBuilder()
+                        val toolCallsAcc = mutableMapOf<Int, JSONObject>()
+                        var line: String?
+
+                        while (reader.readLine().also { line = it } != null) {
+                            val currentLine = line?.trim() ?: continue
+                            if (currentLine.startsWith("data: ")) {
+                                val jsonStr = currentLine.substring(6).trim()
+                                if (jsonStr == "[DONE]") break
+                                try {
+                                    val obj = JSONObject(jsonStr)
+                                    val choices = obj.optJSONArray("choices")
+                                    if (choices != null && choices.length() > 0) {
+                                        val choiceObj = choices.getJSONObject(0)
+                                        val delta = choiceObj.optJSONObject("delta")
+
+                                        val contentChunk = if (delta != null && !delta.isNull("content")) delta.optString("content") else null
+                                        if (!contentChunk.isNullOrBlank() && contentChunk != "null") {
+                                            fullSb.append(contentChunk)
+                                            onChunk(contentChunk)
+                                        }
+
+                                        val tCalls = delta?.optJSONArray("tool_calls")
+                                        if (tCalls != null && tCalls.length() > 0) {
+                                            for (i in 0 until tCalls.length()) {
+                                                val tc = tCalls.getJSONObject(i)
+                                                val idx = tc.optInt("index", 0)
+                                                val existing = toolCallsAcc.getOrPut(idx) {
+                                                    JSONObject().apply {
+                                                        put("id", "")
+                                                        put("name", "")
+                                                        put("arguments", StringBuilder())
+                                                    }
+                                                }
+                                                val tcId = tc.optString("id")
+                                                if (!tcId.isNullOrBlank()) existing.put("id", tcId)
+
+                                                val fn = tc.optJSONObject("function")
+                                                if (fn != null) {
+                                                    val fnName = fn.optString("name")
+                                                    if (!fnName.isNullOrBlank()) existing.put("name", fnName)
+                                                    val argsChunk = fn.optString("arguments")
+                                                    if (!argsChunk.isNullOrEmpty()) {
+                                                        (existing.get("arguments") as StringBuilder).append(argsChunk)
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
-                                }
-                            } catch (_: Exception) {}
+                                } catch (_: Exception) {}
+                            }
                         }
-                    }
 
-                    val finalResult = fullSb.toString()
-                    if (finalResult.isNotBlank()) {
-                        Log.d("DuckieAI", "Groq AI Stream Success with model: $modelName")
-                        return finalResult
+                        if (toolCallsAcc.isNotEmpty()) {
+                            val assistantToolCallsArr = JSONArray()
+                            val toolResponses = mutableListOf<JSONObject>()
+
+                            for ((_, tcObj) in toolCallsAcc) {
+                                val callId = tcObj.optString("id").ifBlank { "call_${java.util.UUID.randomUUID().toString().take(8)}" }
+                                val fnName = tcObj.optString("name")
+                                val argsStr = (tcObj.get("arguments") as StringBuilder).toString()
+
+                                if (fnName.isNotBlank()) {
+                                    assistantToolCallsArr.put(JSONObject().apply {
+                                        put("id", callId)
+                                        put("type", "function")
+                                        put("function", JSONObject().apply {
+                                            put("name", fnName)
+                                            put("arguments", argsStr)
+                                        })
+                                    })
+
+                                    val argsMap = mutableMapOf<String, Any?>()
+                                    try {
+                                        val argsJson = JSONObject(argsStr)
+                                        for (key in argsJson.keys()) {
+                                            argsMap[key] = argsJson.get(key)
+                                        }
+                                    } catch (_: Exception) {}
+
+                                    val execResult = functionRegistry.executeFunctionCall(fnName, argsMap, currentGullyId)
+                                    val resultStr = JSONObject(mapOf("result" to execResult)).toString()
+
+                                    toolResponses.add(JSONObject().apply {
+                                        put("role", "tool")
+                                        put("tool_call_id", callId)
+                                        put("content", resultStr)
+                                    })
+                                }
+                            }
+
+                            if (assistantToolCallsArr.length() > 0) {
+                                fullSb.clear()
+                                messagesArray.put(JSONObject().apply {
+                                    put("role", "assistant")
+                                    put("tool_calls", assistantToolCallsArr)
+                                })
+                                for (tr in toolResponses) {
+                                    messagesArray.put(tr)
+                                }
+                                continue // Loop to send tool result to Groq for second pass
+                            }
+                        }
+
+                        val finalResult = fullSb.toString()
+                        if (finalResult.isNotBlank()) {
+                            Log.d("DuckieAI", "Groq AI Stream Success with model: $modelName")
+                            return finalResult
+                        }
+                    } else {
+                        val errorStream = conn.errorStream
+                        val errText = if (errorStream != null) BufferedReader(InputStreamReader(errorStream)).use { it.readText() } else ""
+                        val msg = try { JSONObject(errText).optJSONObject("error")?.optString("message") ?: errText } catch (_: Exception) { errText }
+                        val isKeyError = respCode == 401 || respCode == 403 || respCode == 404 || msg.contains("does not exist") || msg.contains("access")
+                        lastGroqRestError = if (isKeyError) {
+                            "Groq API Key Invalid or Expired ($modelName HTTP $respCode)"
+                        } else {
+                            "Groq ($respCode): $msg"
+                        }
+                        Log.e("DuckieAI", "Groq API Error ($respCode) for $modelName: $errText")
+                        break
                     }
-                } else {
-                    val errorStream = conn.errorStream
-                    val errText = if (errorStream != null) BufferedReader(InputStreamReader(errorStream)).use { it.readText() } else ""
-                    Log.e("DuckieAI", "Groq API Error ($respCode) for $modelName: $errText")
                 }
             } catch (e: Exception) {
+                lastGroqRestError = "Groq Exception: ${e.message}"
                 Log.e("DuckieAI", "Groq REST API error for $modelName: ${e.message}")
             }
         }
@@ -875,12 +1215,8 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
 
     private fun callGeminiRestApi(combinedPrompt: String, apiKey: String): String? {
         val models = listOf(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent",
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent"
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
         )
 
         val payload = JSONObject().apply {
@@ -888,6 +1224,10 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
                 put("role", "user")
                 put("parts", JSONArray().put(JSONObject().put("text", combinedPrompt)))
             }))
+            put("generationConfig", JSONObject().apply {
+                put("maxOutputTokens", 4096)
+                put("temperature", 0.7)
+            })
             put("safetySettings", JSONArray().apply {
                 put(JSONObject().apply {
                     put("category", "HARM_CATEGORY_HARASSMENT")
@@ -910,12 +1250,11 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
 
         for (baseUrl in models) {
             try {
-                val urlString = "$baseUrl?key=$apiKey"
-                val url = URL(urlString)
+                val url = URL(baseUrl)
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "POST"
                 conn.setRequestProperty("Content-Type", "application/json")
-                conn.setRequestProperty("x-goog-api-key", apiKey)
+                conn.setRequestProperty("X-goog-api-key", apiKey.trim())
                 conn.doOutput = true
                 conn.connectTimeout = 12000
                 conn.readTimeout = 12000
@@ -942,8 +1281,20 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
                             }
                         }
                     }
+                } else {
+                    val errorStream = conn.errorStream
+                    val errText = if (errorStream != null) BufferedReader(InputStreamReader(errorStream)).use { it.readText() } else ""
+                    val msg = try { JSONObject(errText).optJSONObject("error")?.optString("message") ?: errText } catch (_: Exception) { errText }
+                    val isKeyError = respCode == 401 || respCode == 403 || msg.contains("API_KEY_INVALID")
+                    lastGeminiRestError = if (isKeyError) {
+                        "Google Gemini API Key Invalid"
+                    } else {
+                        "Google API ($respCode): $msg"
+                    }
+                    Log.e("DuckieAI", "Gemini REST API Error ($respCode) for $baseUrl: $errText")
                 }
             } catch (e: Exception) {
+                lastGeminiRestError = "Google API Exception: ${e.message}"
                 Log.e("DuckieAI", "Gemini REST API error for $baseUrl: ${e.message}")
             }
         }
@@ -1037,6 +1388,7 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
 
             sb.append("\n=== ALL LEAGUE MATCHES & BALL-BY-BALL COMMENTARY LOGS (LIVE, COMPLETED & ABANDONED) ===\n")
             val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+            val timeFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
             val rawMatches = db.matchDao().getAllMatchesByGully(currentGullyId) ?: db.matchDao().getAllMatches() ?: emptyList()
             val allMatches = rawMatches.filterNotNull().sortedBy { it.playedAt }
             val totalMatchesCount = allMatches.size
@@ -1053,12 +1405,40 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
                     else -> " [COMPLETED MATCH 🏁]"
                 }
 
+                val ballTypeStr = if (!match.ballType.isNullOrBlank() && !match.ballType.equals("Not Specified", ignoreCase = true)) {
+                    match.ballType
+                } else {
+                    "Stumper"
+                }
+
+                val tossW = if (!match.tossWinner.isNullOrBlank()) match.tossWinner else "N/A"
+                val tossD = if (!match.tossDecision.isNullOrBlank()) match.tossDecision else "N/A"
+                val tossStr = if (tossW != "N/A") "$tossW won & opted to $tossD" else "N/A"
+
+                val s1Str = if (match.firstInningsStartTime > 0) timeFormat.format(Date(match.firstInningsStartTime)) else "-"
+                val e1Str = if (match.firstInningsEndTime > 0) timeFormat.format(Date(match.firstInningsEndTime)) else "-"
+                val s2Str = if (match.secondInningsStartTime > 0) timeFormat.format(Date(match.secondInningsStartTime)) else "-"
+                val e2Str = if (match.secondInningsEndTime > 0) timeFormat.format(Date(match.secondInningsEndTime)) else "-"
+
+                val matchRulesStr = "Runs on Wides/NB: ${if (match.ruleRunsOnWide) "YES" else "NO"} | " +
+                        "Free Hit: ${if (match.ruleFreeHit) "YES" else "NO"} | " +
+                        "Byes/LegByes: ${if (match.ruleRunsOnBye) "YES" else "NO"} | " +
+                        "Overthrows: ${if (match.ruleOverthrow) "YES" else "NO"} | " +
+                        "Last Man Standing / Every Player Bats: ${if (match.ruleEveryPlayerBats) "YES" else "NO"}"
+
                 sb.append("MATCH #").append(matchNumber).append(statusTag)
                     .append(" | Date: ").append(dateStr)
                     .append(" | Teams: ").append(match.teamAName).append(" vs ").append(match.teamBName)
+                    .append(" | Format: ").append(match.totalOvers).append(" Overs")
+                    .append(" | Squads: ").append(match.teamAPlayerCount).append("v").append(match.teamBPlayerCount)
                     .append(" | Venue: ").append(match.venue ?: "Local Ground")
                     .append(" | Result/Status: ").append(match.result ?: if (match.isAbandoned) "Abandoned / No Result" else "In Progress")
                     .append(" | POTM: ").append(match.playerOfTheMatchName ?: "N/A")
+                    .append("\n  [MATCH SETTINGS & INFO TAB]")
+                    .append(" -> Ball Type: ").append(ballTypeStr)
+                    .append(" | Toss Result: ").append(tossStr)
+                    .append(" | Conditions/Rules: ").append(matchRulesStr)
+                    .append(" | Timings: 1st Inn (").append(s1Str).append(" to ").append(e1Str).append("), 2nd Inn (").append(s2Str).append(" to ").append(e2Str).append(")")
                     .append("\n")
 
                 if (!match.isFinished && !match.isAbandoned) {
@@ -1126,6 +1506,7 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
 
     override fun onStop() {
         super.onStop()
+        AiChatService.isActivityInForeground = false
         saveChatHistory()
     }
 

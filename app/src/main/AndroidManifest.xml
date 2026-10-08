@@ -22,6 +22,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!-- Permission to trigger APK installation from inside the app -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -114,11 +116,16 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <activity android:name=".NotificationCenterActivity" android:exported="false" />
+
         <activity
             android:name=".AiChatActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <service
+            android:name=".AiChatService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <receiver
             android:name=".NotificationReplyReceiver"
@@ -126,6 +133,10 @@
 
         <receiver
             android:name=".NotificationDismissReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".MatchNotificationReceiver"
             android:exported="false" />
 
         <provider

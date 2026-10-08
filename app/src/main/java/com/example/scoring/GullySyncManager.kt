@@ -752,7 +752,7 @@ object GullySyncManager {
     /**
      * Sends a live score update notification that replaces the previous one.
      */
-    fun sendLiveScoreUpdate(context: Context, match: MatchEntity) {
+    fun sendLiveScoreUpdate(context: Context, match: MatchEntity, isAlertEvent: Boolean = false) {
         val gId = match.gullyId
         if (gId == "local" || gId.isEmpty()) return
 
@@ -794,7 +794,7 @@ object GullySyncManager {
             }
         }
 
-        LeagueNotificationManager.sendLeagueNotification(gId, title, body, match.id)
+        LeagueNotificationManager.sendLeagueNotification(gId, title, body, match.id, isAlertEvent || match.isFinished)
     }
 
     /**
@@ -806,7 +806,7 @@ object GullySyncManager {
         val title = "$gullyId - Milestone!"
         val body = "$playerName $milestone!"
 
-        LeagueNotificationManager.sendLeagueNotification(gullyId, title, body, matchId)
+        LeagueNotificationManager.sendLeagueNotification(gullyId, title, body, matchId, isAlertEvent = true)
     }
 
     /**

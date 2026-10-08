@@ -1115,7 +1115,7 @@ class LeagueChatAdapter(
 
                 val isAiResponse = item.senderId == "DUCKIE_AI_BOT" || item.messageText.contains("**")
                 if (isAiResponse) {
-                    getMarkwon(context).setMarkdown(tvText, item.messageText)
+                    getMarkwon(context).setMarkdown(tvText, TextFormatUtils.cleanHumanReadableText(item.messageText))
                 } else if (item.messageText.contains("@")) {
                     tvText.text = applyMentionSpans(item.messageText, textColor)
                 } else {

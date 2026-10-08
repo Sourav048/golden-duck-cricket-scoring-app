@@ -95,14 +95,17 @@ class PlayerListActivity : BaseActivity() {
 
             findViewById<View>(R.id.fabAddPlayer).setOnClickListener { showAddPlayerDialog() }
 
-            val btnCompare = findViewById<View>(R.id.btnComparePlayers)
-            btnCompare?.setOnClickListener {
+            val compareClickListener = View.OnClickListener {
                 startActivity(Intent(this, PlayerCompareActivity::class.java))
             }
+            findViewById<View>(R.id.btnComparePlayers)?.setOnClickListener(compareClickListener)
+            findViewById<View>(R.id.cardComparePlayers)?.setOnClickListener(compareClickListener)
 
-            findViewById<View>(R.id.btnImportPlayer)?.setOnClickListener {
+            val importClickListener = View.OnClickListener {
                 globalSearchLauncher.launch(Intent(this, GlobalSearchActivity::class.java))
             }
+            findViewById<View>(R.id.btnImportPlayer)?.setOnClickListener(importClickListener)
+            findViewById<View>(R.id.cardImportPlayer)?.setOnClickListener(importClickListener)
 
             // REPAIR SYNC: Ensure all players have their origin and base stats pushed to the global network
             val appContext = applicationContext
@@ -590,26 +593,26 @@ class PlayerListActivity : BaseActivity() {
                     var req = Glide.with(holder.itemView.context)
                         .load(photoTarget)
                         .signature(ObjectKey("${p.id}_${p.lastSyncedAt}_${photoTarget.hashCode()}"))
-                        .error(android.R.drawable.ic_menu_gallery)
+                        .error(R.drawable.ic_person_placeholder)
 
                     if (holder.photo.drawable == null) {
-                        req = req.placeholder(android.R.drawable.ic_menu_gallery)
+                        req = req.placeholder(R.drawable.ic_person_placeholder)
                     }
 
                     req.into(holder.photo)
                 } catch (_: Exception) {
                     Glide.with(holder.itemView.context).clear(holder.photo)
-                    holder.photo.setImageResource(android.R.drawable.ic_menu_gallery)
+                    holder.photo.setImageResource(R.drawable.ic_person_placeholder)
                 }
             } else {
                 Glide.with(holder.itemView.context).clear(holder.photo)
-                holder.photo.setImageResource(android.R.drawable.ic_menu_gallery)
+                holder.photo.setImageResource(R.drawable.ic_person_placeholder)
             }
 
             holder.badgeLayout.removeAllViews()
-            addBadgeIfRanked(holder.badgeLayout, p.id, RankingRegistry.top3OverallIds, R.drawable.badge_circle_gold)
-            addBadgeIfRanked(holder.badgeLayout, p.id, RankingRegistry.top3BattingIds, R.drawable.badge_circle_orange)
-            addBadgeIfRanked(holder.badgeLayout, p.id, RankingRegistry.top3BowlingIds, R.drawable.badge_circle_purple)
+            addBadgeIfRanked(holder.badgeLayout, p.id, RankingRegistry.top3OverallIds, RankingRegistry.getPrestigeGoldColor(this@PlayerListActivity))
+            addBadgeIfRanked(holder.badgeLayout, p.id, RankingRegistry.top3BattingIds, RankingRegistry.getPrestigeOrangeColor(this@PlayerListActivity))
+            addBadgeIfRanked(holder.badgeLayout, p.id, RankingRegistry.top3BowlingIds, RankingRegistry.getPrestigePurpleColor(this@PlayerListActivity))
 
             holder.itemView.setOnClickListener {
                 val intent = Intent(this@PlayerListActivity, PlayerDetailsActivity::class.java)
@@ -621,16 +624,20 @@ class PlayerListActivity : BaseActivity() {
 
         override fun getItemCount(): Int = players.size
 
-        private fun addBadgeIfRanked(container: LinearLayout, pid: String?, top3: List<String?>, bgRes: Int) {
+        private fun addBadgeIfRanked(container: LinearLayout, pid: String?, top3: List<String?>, badgeColor: Int) {
             val rank = top3.indexOf(pid) + 1
             if (rank > 0) {
                 val tv = TextView(container.context)
-                val size = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 22f, container.resources.displayMetrics).toInt()
+                val size = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24f, container.resources.displayMetrics).toInt()
                 val lp = LinearLayout.LayoutParams(size, size).apply { setMargins(4, 0, 4, 0) }
                 tv.layoutParams = lp
-                tv.setBackgroundResource(bgRes)
+                val shape = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(badgeColor)
+                }
+                tv.background = shape
                 tv.setTextColor(-0x1)
-                tv.textSize = 11f
+                tv.textSize = 12f
                 tv.setTypeface(null, Typeface.BOLD)
                 tv.gravity = Gravity.CENTER
                 tv.text = rank.toString()

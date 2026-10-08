@@ -4,26 +4,45 @@
     android:id="@+id/statsMainRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface">
+    android:background="?attr/android:windowBackground">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/statsAppBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/colorSurface"
-        android:elevation="0dp">
+        android:elevation="2dp"
+        app:elevation="2dp">
 
-        <TextView
-            android:id="@+id/tvStatsTitle"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/stats"
-            android:textSize="32sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:textColor="?attr/colorPrimary"
-            android:paddingTop="16dp"
-            android:paddingBottom="12dp" />
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="18dp"
+            android:paddingBottom="10dp">
+
+            <TextView
+                android:id="@+id/tvStatsTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/stats"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:textColor="?attr/colorPrimary"
+                android:letterSpacing="0.02" />
+
+            <TextView
+                android:id="@+id/tvStatsSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/stats_subtitle"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:paddingTop="2dp" />
+        </LinearLayout>
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayoutStats"
@@ -34,8 +53,11 @@
             app:tabIndicatorColor="?attr/colorPrimary"
             app:tabSelectedTextColor="?attr/colorPrimary"
             app:tabTextColor="?attr/colorOnSurfaceVariant"
+            app:tabIconTint="@color/tab_icon_color_selector"
             app:tabIndicatorHeight="3dp"
-            app:tabIndicatorFullWidth="true"
+            app:tabIndicatorFullWidth="false"
+            app:tabIndicatorAnimationMode="elastic"
+            app:tabRippleColor="?attr/colorControlHighlight"
             android:background="?attr/colorSurface" />
 
     </com.google.android.material.appbar.AppBarLayout>

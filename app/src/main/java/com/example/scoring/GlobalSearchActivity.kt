@@ -87,7 +87,7 @@ class GlobalSearchActivity : BaseActivity() {
             val isLegend = p.totalRuns >= 500 || p.totalWickets >= 50
             if (isLegend) {
                 holder.name.text = "🏆 ${p.name} (#${p.jerseyNumber})"
-                holder.name.setTextColor(android.graphics.Color.parseColor("#FFD700")) // Bright Gold
+                holder.name.setTextColor(android.graphics.Color.parseColor("#D4AF37")) // Rich Metallic Gold
             } else {
                 holder.name.text = "${p.name} (#${p.jerseyNumber})"
                 val colorOnSurface = ThemeManager.getThemeColor(holder.itemView.context, com.google.android.material.R.attr.colorOnSurface)

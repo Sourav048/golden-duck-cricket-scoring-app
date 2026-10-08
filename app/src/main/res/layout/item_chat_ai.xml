@@ -17,8 +17,10 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="18dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="1dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="?attr/colorOutlineVariant"
             app:cardBackgroundColor="?attr/colorSurfaceVariant">
 
             <TextView
@@ -26,8 +28,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="16dp"
-                android:paddingVertical="12dp"
-                android:lineSpacingExtra="3dp"
+                android:paddingVertical="14dp"
+                android:lineSpacingExtra="5dp"
+                android:lineSpacingMultiplier="1.15"
+                android:letterSpacing="0.01"
+                android:textIsSelectable="true"
                 android:text="Hello! How can I help you today?"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="15sp" />
@@ -39,6 +44,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginTop="4dp"
+            android:maxLines="1"
+            android:singleLine="true"
             android:text="12:00 PM"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="11sp"

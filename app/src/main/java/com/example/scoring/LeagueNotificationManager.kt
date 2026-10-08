@@ -80,13 +80,20 @@ object LeagueNotificationManager {
     /**
      * Sends a match/scorecard push notification via Cloudflare Worker relay.
      */
-    fun sendLeagueNotification(leagueId: String, title: String, body: String, matchId: String? = null) {
+    fun sendLeagueNotification(
+        leagueId: String,
+        title: String,
+        body: String,
+        matchId: String? = null,
+        isAlertEvent: Boolean = false
+    ) {
         val payload = JSONObject().apply {
             put("leagueId", leagueId)
             put("title", title)
             put("message", body)
             put("type", "MATCH")
             put("matchId", matchId ?: "")
+            put("isAlertEvent", isAlertEvent)
         }
         dispatchToRelay(payload)
     }

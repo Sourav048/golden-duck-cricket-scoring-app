@@ -131,6 +131,24 @@ object RankingRegistry {
         }
     }
 
+    @JvmStatic
+    fun getPrestigeGoldColor(context: Context): Int {
+        ensureColorsCached(context)
+        return cachedGold
+    }
+
+    @JvmStatic
+    fun getPrestigeOrangeColor(context: Context): Int {
+        ensureColorsCached(context)
+        return cachedOrange
+    }
+
+    @JvmStatic
+    fun getPrestigePurpleColor(context: Context): Int {
+        ensureColorsCached(context)
+        return cachedPurple
+    }
+
     private fun applyPrestigeInternal(playerId: String?, playerName: String?, tvName: TextView?, ivPhoto: ShapeableImageView?, overrideDefaultColor: Int? = null) {
         val name = tvName ?: return
         val context = name.context

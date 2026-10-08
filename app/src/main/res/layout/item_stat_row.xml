@@ -1,61 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.Material3.CardView.Elevated"
+    android:id="@+id/cardStatRow"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="6dp"
-    app:cardCornerRadius="16dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardCornerRadius="18dp"
     app:cardElevation="2dp"
-    app:cardBackgroundColor="?attr/colorSurface">
+    app:strokeWidth="1dp"
+    app:strokeColor="?attr/colorOutline"
+    app:cardBackgroundColor="?attr/colorSurfaceVariant">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="12dp">
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="12dp">
 
-        <TextView
-            android:id="@+id/tvStatRank"
-            android:layout_width="32dp"
-            android:layout_height="wrap_content"
-            android:text="1"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
-            android:gravity="center" />
+        <!-- Rank Oval Badge -->
+        <FrameLayout
+            android:id="@+id/flRankBadge"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_rank_default"
+            android:tag="custom_color">
 
+            <TextView
+                android:id="@+id/tvStatRank"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                tools:text="1"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:tag="custom_color" />
+        </FrameLayout>
+
+        <!-- Player Photo Avatar -->
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/ivStatPhoto"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_marginStart="12dp"
             android:scaleType="centerCrop"
-            android:background="@color/blue_lightest"
-            android:src="@android:drawable/ic_menu_gallery"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.LargeComponent" />
+            android:src="@drawable/ic_person_placeholder"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
 
+        <!-- Player Name -->
         <TextView
             android:id="@+id/tvStatPlayerName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="16dp"
-            android:text="Player Name"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp"
+            tools:text="Player Name"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface" />
+            android:textColor="?attr/colorOnSurface"
+            android:ellipsize="end"
+            android:maxLines="1" />
 
-        <TextView
-            android:id="@+id/tvStatValue"
+        <!-- Stat Value Pill Badge -->
+        <FrameLayout
+            android:id="@+id/flStatValueBg"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="120"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary" />
+            android:background="@drawable/bg_stat_value_pill"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="6dp"
+            android:tag="custom_color">
+
+            <TextView
+                android:id="@+id/tvStatValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="120"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary" />
+        </FrameLayout>
 
     </LinearLayout>
+
 </com.google.android.material.card.MaterialCardView>
