@@ -1,13 +1,13 @@
 {
   "fields": {
     "latest_version_code": {
-      "integerValue": "10"
+      "integerValue": "12"
     },
     "version_name": {
-      "stringValue": "6.0"
+      "stringValue": "7.0"
     },
     "download_url": {
-      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v6.0.apk"
+      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v7.0.apk"
     },
     "release_notes": {
       "stringValue": "• 2160p 4K UHD player photo resolution & Supabase Storage sync\n• Instant Glide photo cache invalidation across all screens\n• Global ghost player deletion fix\n• Single-notification deduplication & anti-spam fix\n• Normalized league ID casing & 5-hour notification prompt"

@@ -3,8 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingHorizontal="20dp"
-    android:paddingTop="20dp"
+    android:paddingHorizontal="18dp"
+    android:paddingTop="16dp"
     android:paddingBottom="88dp"
     android:clipToPadding="false"
     android:background="?attr/colorSurface">
@@ -24,72 +24,133 @@
             android:gravity="center_horizontal"
             android:visibility="gone">
 
-            <TextView
+            <!-- Title Header Pill -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="PLAYER OF THE MATCH"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:letterSpacing="0.1"
-                android:layout_marginBottom="12dp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_potm_header_pill"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="7dp"
+                android:layout_marginBottom="16dp">
 
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_trophy"
+                    app:tint="#D4AF37"
+                    android:contentDescription="@null"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PLAYER OF THE MATCH"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#D4AF37"
+                    android:letterSpacing="0.12" />
+            </LinearLayout>
+
+            <!-- POTM Hero Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="24dp"
-                app:cardElevation="6dp"
-                app:cardBackgroundColor="?attr/colorSurfaceVariant"
-                app:strokeWidth="1dp"
-                app:strokeColor="?attr/colorOutline"
-                android:layout_marginBottom="40dp">
-                <LinearLayout
+                app:cardElevation="3dp"
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeWidth="1.5dp"
+                app:strokeColor="#33D4AF37"
+                android:layout_marginBottom="28dp">
+
+                <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="28dp"
-                    android:gravity="center">
+                    android:layout_height="wrap_content">
 
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/cardPotmPhotoFrame"
-                        android:layout_width="120dp"
-                        android:layout_height="120dp"
-                        app:cardCornerRadius="24dp"
-                        app:cardElevation="0dp"
-                        app:cardBackgroundColor="#FFFFFF"
-                        app:strokeWidth="0dp"
-                        app:contentPadding="0dp">
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:id="@+id/ivPotmPhoto"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:padding="0dp"
-                            android:scaleType="centerCrop"
-                            android:src="@android:drawable/ic_menu_gallery"
-                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.LargeComponent" />
-                    </com.google.android.material.card.MaterialCardView>
+                    <!-- Background subtle gradient accent layer -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_potm_card_accent" />
 
-                    <TextView
-                        android:id="@+id/tvPotmName"
-                        style="@style/HighContrastText"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Player Name"
-                        android:textSize="28sp"
-                        android:textStyle="bold"
-                        android:textColor="?attr/colorOnSurface"
-                        android:layout_marginTop="16dp" />
+                        android:orientation="vertical"
+                        android:paddingHorizontal="24dp"
+                        android:paddingTop="28dp"
+                        android:paddingBottom="24dp"
+                        android:gravity="center">
 
-                    <TextView
-                        android:id="@+id/tvPotmStats"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0(0) &amp; 0/0"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:layout_marginTop="6dp" />
-                </LinearLayout>
+                        <!-- Photo Frame with double ring / badge -->
+                        <FrameLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content">
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardPotmPhotoFrame"
+                                android:layout_width="116dp"
+                                android:layout_height="116dp"
+                                app:cardCornerRadius="58dp"
+                                app:cardElevation="4dp"
+                                app:cardBackgroundColor="#FFFFFF"
+                                app:strokeWidth="0dp"
+                                app:contentPadding="0dp">
+
+                                <com.google.android.material.imageview.ShapeableImageView
+                                    android:id="@+id/ivPotmPhoto"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:padding="0dp"
+                                    android:scaleType="centerCrop"
+                                    android:contentDescription="@null"
+                                    android:src="@android:drawable/ic_menu_gallery"
+                                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <!-- Trophy Mini Overlay Badge -->
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:layout_gravity="bottom|end"
+                                android:src="@drawable/ic_trophy"
+                                android:background="@drawable/bg_rank_gold"
+                                android:padding="5dp"
+                                android:elevation="6dp"
+                                android:contentDescription="@null"
+                                app:tint="#FFFFFF" />
+                        </FrameLayout>
+
+                        <!-- Player Name -->
+                        <TextView
+                            android:id="@+id/tvPotmName"
+                            style="@style/HighContrastText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Player Name"
+                            android:textSize="24sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorOnSurface"
+                            android:gravity="center"
+                            android:layout_marginTop="16dp" />
+
+                        <!-- Stats Tag Pill -->
+                        <TextView
+                            android:id="@+id/tvPotmStats"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0(0) &amp; 0/0"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:textColor="?attr/colorPrimary"
+                            android:background="@drawable/bg_potm_stats_pill"
+                            android:paddingHorizontal="16dp"
+                            android:paddingVertical="7dp"
+                            android:layout_marginTop="12dp" />
+
+                    </LinearLayout>
+                </RelativeLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
@@ -101,6 +162,32 @@
             android:orientation="vertical"
             android:visibility="gone">
 
+            <!-- Section Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MATCH HIGHLIGHTS"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:letterSpacing="0.1" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:background="?attr/colorOutline"
+                    android:alpha="0.3" />
+            </LinearLayout>
+
             <!-- Most Sixes -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -108,40 +195,55 @@
                 android:layout_marginBottom="12dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
-                app:cardBackgroundColor="?attr/colorSurfaceVariant">
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutline">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="16dp"
+                    android:padding="14dp"
                     android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🚀"
-                        android:textSize="24sp"
-                        android:layout_marginEnd="16dp"/>
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_highlight_icon_sixes">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="🚀"
+                            android:textSize="20sp" />
+                    </FrameLayout>
+
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_marginStart="14dp"
                         android:orientation="vertical">
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="MOST SIXES"
                             android:textSize="10sp"
                             android:textStyle="bold"
-                            android:textColor="?attr/colorPrimary"
-                            android:letterSpacing="0.1"/>
+                            android:textColor="#EF6C00"
+                            android:letterSpacing="0.08" />
+
                         <TextView
                             android:id="@+id/tvMostSixes"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="-"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold"
-                            android:textColor="?attr/colorOnSurface"/>
+                            android:textColor="?attr/colorOnSurface"
+                            android:layout_marginTop="2dp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -153,40 +255,55 @@
                 android:layout_marginBottom="12dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
-                app:cardBackgroundColor="?attr/colorSurfaceVariant">
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutline">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="16dp"
+                    android:padding="14dp"
                     android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="☝️"
-                        android:textSize="24sp"
-                        android:layout_marginEnd="16dp"/>
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_highlight_icon_wickets">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="☝️"
+                            android:textSize="20sp" />
+                    </FrameLayout>
+
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_marginStart="14dp"
                         android:orientation="vertical">
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="MOST WICKETS"
                             android:textSize="10sp"
                             android:textStyle="bold"
-                            android:textColor="?attr/colorPrimary"
-                            android:letterSpacing="0.1"/>
+                            android:textColor="#B71C1C"
+                            android:letterSpacing="0.08" />
+
                         <TextView
                             android:id="@+id/tvMostWickets"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="-"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold"
-                            android:textColor="?attr/colorOnSurface"/>
+                            android:textColor="?attr/colorOnSurface"
+                            android:layout_marginTop="2dp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -198,40 +315,55 @@
                 android:layout_marginBottom="12dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
-                app:cardBackgroundColor="?attr/colorSurfaceVariant">
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutline">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="16dp"
+                    android:padding="14dp"
                     android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="⚡"
-                        android:textSize="24sp"
-                        android:layout_marginEnd="16dp"/>
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_highlight_icon_fours">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="⚡"
+                            android:textSize="20sp" />
+                    </FrameLayout>
+
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_marginStart="14dp"
                         android:orientation="vertical">
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="MOST FOURS"
                             android:textSize="10sp"
                             android:textStyle="bold"
-                            android:textColor="?attr/colorPrimary"
-                            android:letterSpacing="0.1"/>
+                            android:textColor="#D4AF37"
+                            android:letterSpacing="0.08" />
+
                         <TextView
                             android:id="@+id/tvMostFours"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="-"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold"
-                            android:textColor="?attr/colorOnSurface"/>
+                            android:textColor="?attr/colorOnSurface"
+                            android:layout_marginTop="2dp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -243,24 +375,37 @@
                 android:layout_marginBottom="24dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
-                app:cardBackgroundColor="?attr/colorSurfaceVariant">
+                app:cardBackgroundColor="?attr/colorSurface"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutline">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="16dp"
+                    android:padding="14dp"
                     android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🎯"
-                        android:textSize="24sp"
-                        android:layout_marginEnd="16dp"/>
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_highlight_icon_dots">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="🎯"
+                            android:textSize="20sp" />
+                    </FrameLayout>
+
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:layout_marginStart="14dp"
                         android:orientation="vertical">
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -268,15 +413,17 @@
                             android:textSize="10sp"
                             android:textStyle="bold"
                             android:textColor="?attr/colorPrimary"
-                            android:letterSpacing="0.1"/>
+                            android:letterSpacing="0.08" />
+
                         <TextView
                             android:id="@+id/tvMostDots"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="-"
-                            android:textSize="16sp"
+                            android:textSize="15sp"
                             android:textStyle="bold"
-                            android:textColor="?attr/colorOnSurface"/>
+                            android:textColor="?attr/colorOnSurface"
+                            android:layout_marginTop="2dp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

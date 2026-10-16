@@ -16,15 +16,15 @@ val localProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.example.scoring"
+    namespace = "com.goldenduck.scoring"
     compileSdk = 35
 
     defaultConfig {
         applicationId = "com.goldenduck.scoring"
         minSdk = 24
         targetSdk = 35
-        versionCode = 11
-        versionName = "6.1"
+        versionCode = 12
+        versionName = "7.0"
 
         val onesignalRestApiKey = localProperties.getProperty("onesignal.rest.api.key") ?: ""
         buildConfigField("String", "ONESIGNAL_REST_API_KEY", "\"$onesignalRestApiKey\"")

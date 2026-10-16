@@ -4,20 +4,38 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?attr/colorSurface">
+    android:background="?attr/android:windowBackground">
 
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tabLayoutInnings"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:tabMode="fixed"
-        app:tabGravity="fill"
-        app:tabSelectedTextColor="?attr/colorPrimary"
-        app:tabIndicatorColor="?attr/colorPrimary"
-        app:tabTextColor="?attr/colorOnSurfaceVariant"
-        android:background="?attr/colorSurface" />
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="8dp"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="2dp"
+        app:cardBackgroundColor="?attr/colorSurface"
+        app:strokeWidth="1dp"
+        app:strokeColor="?attr/colorOutline">
 
-    <com.example.scoring.NestedScrollableHost
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayoutInnings"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            app:tabMode="fixed"
+            app:tabGravity="fill"
+            app:tabSelectedTextColor="?attr/colorPrimary"
+            app:tabIndicatorColor="?attr/colorPrimary"
+            app:tabIndicatorHeight="3dp"
+            app:tabIndicatorAnimationMode="elastic"
+            app:tabIndicatorGravity="bottom"
+            app:tabTextColor="?attr/colorOnSurfaceVariant"
+            app:tabTextAppearance="@style/CustomTabTextAppearance"
+            android:background="?attr/colorSurface" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.goldenduck.scoring.NestedScrollableHost
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -26,6 +44,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
-    </com.example.scoring.NestedScrollableHost>
+    </com.goldenduck.scoring.NestedScrollableHost>
 
 </LinearLayout>

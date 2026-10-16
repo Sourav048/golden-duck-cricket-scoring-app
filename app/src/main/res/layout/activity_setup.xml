@@ -10,54 +10,81 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Fixed Header -->
-        <LinearLayout
+        <!-- Fixed Header Card -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="20dp"
-            android:paddingTop="20dp"
-            android:paddingBottom="12dp"
-            android:background="?attr/android:windowBackground"
-            android:elevation="4dp">
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="3dp"
+            app:cardBackgroundColor="?attr/colorSurface"
+            app:strokeWidth="1dp"
+            app:strokeColor="?attr/colorOutline">
 
-            <TextView
-                android:id="@+id/tvMatchConfigTitle"
-                android:layout_width="wrap_content"
+            <RelativeLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Match Setup"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="28sp"
-                android:textStyle="bold"
-                android:layout_marginStart="8dp" />
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_toStartOf="@id/btnProceedTop"
+                    android:layout_centerVertical="true"
+                    android:orientation="vertical">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnProceedTop"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="wrap_content"
-                android:layout_height="56dp"
-                android:text="Proceed"
-                android:paddingHorizontal="24dp"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:cornerRadius="16dp"
-                app:icon="@drawable/ic_play"
-                app:iconGravity="end" />
-        </LinearLayout>
+                    <TextView
+                        android:id="@+id/tvMatchConfigTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Match Setup"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorPrimary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Venue, teams &amp; rules"
+                        android:textSize="14sp"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:layout_marginTop="2dp" />
+
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnProceedTop"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:text="Proceed"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="10dp"
+                    app:icon="@drawable/ic_chevron_right"
+                    app:iconGravity="textEnd"
+                    app:iconSize="22dp"
+                    app:cornerRadius="24dp"
+                    app:backgroundTint="?attr/colorPrimary"
+                    android:textColor="?attr/colorOnPrimary" />
+
+            </RelativeLayout>
+
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Scrollable Content -->
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:paddingHorizontal="20dp"
-            android:paddingTop="8dp">
+            android:paddingHorizontal="16dp"
+            android:paddingTop="4dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -65,192 +92,334 @@
                 android:orientation="vertical"
                 android:paddingBottom="40dp">
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="?attr/colorSurface"
-                android:layout_marginBottom="16dp">
-
-                <LinearLayout
+                <!-- Venue Card -->
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    app:cardCornerRadius="18dp"
+                    app:cardElevation="2dp"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="?attr/colorOutline"
+                    android:layout_marginBottom="12dp">
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Match Venue"
-                        app:startIconDrawable="@android:drawable/ic_menu_mylocation">
-                        <AutoCompleteTextView
-                            android:id="@+id/venueInput"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textCapWords"
-                            android:completionThreshold="1"
-                            android:padding="16dp" />
-                    </com.google.android.material.textfield.TextInputLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                            android:hint="Match Venue"
+                            app:startIconDrawable="@drawable/ic_venue_location"
+                            app:startIconTint="?attr/colorPrimary"
+                            app:boxCornerRadiusTopStart="14dp"
+                            app:boxCornerRadiusTopEnd="14dp"
+                            app:boxCornerRadiusBottomStart="14dp"
+                            app:boxCornerRadiusBottomEnd="14dp">
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="?attr/colorSurface"
-                android:layout_marginBottom="16dp">
+                            <AutoCompleteTextView
+                                android:id="@+id/venueInput"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Match Venue"
+                                android:inputType="textCapWords"
+                                android:completionThreshold="1"
+                                android:padding="16dp"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:importantForAutofill="no" />
 
-                <LinearLayout
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Teams Card -->
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    app:cardCornerRadius="18dp"
+                    app:cardElevation="2dp"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="?attr/colorOutline"
+                    android:layout_marginBottom="12dp">
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Red Team (Default)"
-                        app:startIconDrawable="@android:drawable/ic_menu_edit"
-                        android:layout_marginBottom="12dp">
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/teamAInput"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                        android:orientation="vertical"
+                        android:padding="14dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="VS"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white"
-                        android:layout_gravity="start"
-                        android:layout_marginStart="100dp"
-                        android:layout_marginBottom="12dp" />
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Blue Team (Default)"
-                        app:startIconDrawable="@android:drawable/ic_menu_edit">
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/teamBInput"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content" />
-                    </com.google.android.material.textfield.TextInputLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Match Settings -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="?attr/colorSurface"
-                android:layout_marginBottom="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:hint="Number of Overs">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/oversInput"
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                            android:hint="Red Team (Default)"
+                            app:startIconDrawable="@drawable/ic_edit_team"
+                            app:startIconTint="?attr/colorPrimary"
+                            app:boxCornerRadiusTopStart="14dp"
+                            app:boxCornerRadiusTopEnd="14dp"
+                            app:boxCornerRadiusBottomStart="14dp"
+                            app:boxCornerRadiusBottomEnd="14dp">
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Select Ball Type">
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/teamAInput"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:padding="16dp"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:importantForAutofill="no" />
 
-                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                            android:id="@+id/ballTypeSpinner"
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- VS Badge Divider -->
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="none"
-                            android:padding="16dp"
-                            android:dropDownHeight="wrap_content"
-                            android:dropDownVerticalOffset="4dp"
-                            android:cursorVisible="false"
-                            android:background="@null" />
-                    </com.google.android.material.textfield.TextInputLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                            android:orientation="horizontal"
+                            android:gravity="center"
+                            android:layout_marginVertical="10dp">
 
-            <!-- Rule Toggles -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="?attr/colorSurface"
-                android:layout_marginBottom="24dp">
+                            <View
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1"
+                                android:background="?attr/colorOutline"
+                                android:alpha="0.3" />
 
-                <LinearLayout
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:tag="custom_color"
+                                android:text="VS"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:textColor="?attr/colorOnPrimary"
+                                android:paddingHorizontal="16dp"
+                                android:paddingVertical="6dp"
+                                android:gravity="center"
+                                android:background="@drawable/bg_vs_badge"
+                                app:backgroundTint="?attr/colorPrimary"
+                                android:layout_marginHorizontal="12dp"
+                                android:includeFontPadding="false" />
+
+                            <View
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1"
+                                android:background="?attr/colorOutline"
+                                android:alpha="0.3" />
+
+                        </LinearLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Blue Team (Default)"
+                            app:startIconDrawable="@drawable/ic_edit_team"
+                            app:startIconTint="?attr/colorSecondary"
+                            app:boxCornerRadiusTopStart="14dp"
+                            app:boxCornerRadiusTopEnd="14dp"
+                            app:boxCornerRadiusBottomStart="14dp"
+                            app:boxCornerRadiusBottomEnd="14dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/teamBInput"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:padding="16dp"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:importantForAutofill="no" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Match Format Card -->
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    app:cardCornerRadius="18dp"
+                    app:cardElevation="2dp"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="?attr/colorOutline"
+                    android:layout_marginBottom="12dp">
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchRunsOnWide"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Runs on Wides/No-Balls"
-                        android:checked="false" />
+                        android:orientation="vertical"
+                        android:padding="14dp">
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchFreeHit"
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Number of Overs"
+                            app:startIconDrawable="@drawable/ic_overs"
+                            app:startIconTint="?attr/colorPrimary"
+                            app:boxCornerRadiusTopStart="14dp"
+                            app:boxCornerRadiusTopEnd="14dp"
+                            app:boxCornerRadiusBottomStart="14dp"
+                            app:boxCornerRadiusBottomEnd="14dp"
+                            android:layout_marginBottom="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/oversInput"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="number"
+                                android:maxLength="3"
+                                android:padding="16dp"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:importantForAutofill="no" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/ballTypeInputLayout"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Select Ball Type"
+                            app:startIconDrawable="@drawable/ic_ball_type"
+                            app:startIconTint="?attr/colorPrimary"
+                            app:endIconMode="custom"
+                            app:endIconDrawable="@drawable/ic_chevron_right"
+                            app:endIconTint="?attr/colorPrimary"
+                            app:boxCornerRadiusTopStart="14dp"
+                            app:boxCornerRadiusTopEnd="14dp"
+                            app:boxCornerRadiusBottomStart="14dp"
+                            app:boxCornerRadiusBottomEnd="14dp">
+
+                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                                android:id="@+id/ballTypeSpinner"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Select Ball Type"
+                                android:inputType="none"
+                                android:focusable="false"
+                                android:clickable="true"
+                                android:padding="16dp"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:cursorVisible="false"
+                                android:background="@null"
+                                android:importantForAutofill="no" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Rule Toggles Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="18dp"
+                    app:cardElevation="2dp"
+                    app:cardBackgroundColor="?attr/colorSurface"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="?attr/colorOutline"
+                    android:layout_marginBottom="24dp">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Free Hit after No Ball"
-                        android:checked="true" />
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchRunsOnBye"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Runs on Byes/Leg-Byes"
-                        android:checked="false" />
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchRunsOnWide"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Runs on Wides/No-Balls"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:paddingVertical="10dp"
+                            android:checked="false" />
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchOverthrow"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Runs on Overthrow"
-                        android:checked="false" />
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="?attr/colorOutline"
+                            android:alpha="0.15" />
 
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchEveryPlayerBats"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Last Man Stand"
-                        android:checked="true" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchFreeHit"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Free Hit after No Ball"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:paddingVertical="10dp"
+                            android:checked="true" />
 
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="?attr/colorOutline"
+                            android:alpha="0.15" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchRunsOnBye"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Runs on Byes/Leg-Byes"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:paddingVertical="10dp"
+                            android:checked="false" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="?attr/colorOutline"
+                            android:alpha="0.15" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchOverthrow"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Runs on Overthrow"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:paddingVertical="10dp"
+                            android:checked="false" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="?attr/colorOutline"
+                            android:alpha="0.15" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchEveryPlayerBats"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Last Man Stand"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:paddingVertical="10dp"
+                            android:checked="true" />
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

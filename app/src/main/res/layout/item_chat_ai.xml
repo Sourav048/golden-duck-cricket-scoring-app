@@ -5,8 +5,40 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingHorizontal="12dp"
-    android:paddingVertical="6dp"
+    android:paddingVertical="4dp"
     android:gravity="start">
+
+    <!-- DATE HEADER CONTAINER (Center Aligned) -->
+    <LinearLayout
+        android:id="@+id/layoutDateHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="10dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="1dp"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+            app:strokeWidth="0.5dp"
+            app:strokeColor="@color/card_stroke">
+
+            <TextView
+                android:id="@+id/tvDateHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="5dp"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,11 +49,11 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="1dp"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="1.5dp"
             app:strokeWidth="1dp"
-            app:strokeColor="?attr/colorOutlineVariant"
-            app:cardBackgroundColor="?attr/colorSurfaceVariant">
+            app:strokeColor="@color/card_stroke"
+            app:cardBackgroundColor="@color/received_bubble_bg">
 
             <TextView
                 android:id="@+id/tvAiMessage"
@@ -29,12 +61,12 @@
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="16dp"
                 android:paddingVertical="14dp"
-                android:lineSpacingExtra="5dp"
-                android:lineSpacingMultiplier="1.15"
+                android:lineSpacingExtra="4dp"
+                android:lineSpacingMultiplier="1.18"
                 android:letterSpacing="0.01"
                 android:textIsSelectable="true"
                 android:text="Hello! How can I help you today?"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textColor="@color/received_bubble_text"
                 android:textSize="15sp" />
         </com.google.android.material.card.MaterialCardView>
 
@@ -47,9 +79,9 @@
             android:maxLines="1"
             android:singleLine="true"
             android:text="12:00 PM"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textColor="@color/received_bubble_time"
             android:textSize="11sp"
-            android:textStyle="bold" />
+            android:textStyle="normal" />
     </LinearLayout>
 
 </LinearLayout>

@@ -7,6 +7,7 @@
     android:paddingHorizontal="16dp"
     android:paddingVertical="10dp"
     android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground"
     android:weightSum="1.0">
 
     <TextView
@@ -14,9 +15,9 @@
         style="@style/HighContrastText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="0.5"
+        android:layout_weight="0.50"
         tools:text="Batter Name"
-        android:textSize="15sp"
+        android:textSize="14sp"
         android:textStyle="bold"
         android:textColor="?attr/colorPrimary" />
 
@@ -26,7 +27,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="0.25"
         tools:text="120-5"
-        android:textSize="14sp"
+        android:textSize="13sp"
         android:textStyle="bold"
         android:gravity="center"
         android:textColor="?attr/colorOnSurface" />
@@ -37,9 +38,8 @@
         android:layout_height="wrap_content"
         android:layout_weight="0.25"
         tools:text="18.4"
-        android:textSize="14sp"
-        android:textStyle="bold"
+        android:textSize="13sp"
         android:gravity="end"
-        android:textColor="?attr/colorOnSurface" />
+        android:textColor="?attr/colorOnSurfaceVariant" />
 
 </LinearLayout>

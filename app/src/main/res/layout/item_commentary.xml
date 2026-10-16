@@ -4,57 +4,193 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:paddingVertical="12dp"
-    android:paddingHorizontal="16dp"
-    android:gravity="start">
+    android:orientation="vertical"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingVertical="4dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
-    <!-- Left Column: Over and Icon -->
-    <LinearLayout
-        android:id="@+id/layoutCommLeftColumn"
-        android:layout_width="60dp"
+    <!-- 1. Innings / Match State Hero Banner -->
+    <FrameLayout
+        android:id="@+id/layoutInningsHeader"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center_horizontal">
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone"
+        tools:visibility="visible">
 
-        <TextView
-            android:id="@+id/tvCommOver"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="0.1"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorOnSurface"
-            android:layout_marginBottom="6dp"/>
+            android:layout_gravity="center"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/bg_commentary_innings_header"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="8dp"
+            android:elevation="2dp">
 
-        <FrameLayout
-            android:id="@+id/layoutCommIcon"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:background="@drawable/circle_bg_grey">
+            <ImageView
+                android:id="@+id/ivInningsIcon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/ic_stat_bat"
+                app:tint="?attr/colorOnPrimary"/>
 
             <TextView
-                android:id="@+id/tvCommIconText"
+                android:id="@+id/tvInningsTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="0"
+                android:textSize="13sp"
+                android:textStyle="bold"
                 android:textColor="?attr/colorOnPrimary"
+                android:letterSpacing="0.06"
+                tools:text="FIRST INNINGS"/>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- 2. Fact / Setup Info Card (For SETUP_FACT, FACT, SQUAD_FACT) -->
+    <LinearLayout
+        android:id="@+id/layoutFactCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_commentary_fact_card"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="12dp"
+        android:layout_marginHorizontal="2dp"
+        android:layout_marginVertical="4dp"
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
+
+            <ImageView
+                android:id="@+id/ivFactIcon"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/ic_info"
+                app:tint="?attr/colorPrimary"/>
+
+            <TextView
+                android:id="@+id/tvFactTag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:textSize="11sp"
-                android:textStyle="bold"/>
-        </FrameLayout>
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary"
+                android:textAllCaps="true"
+                android:letterSpacing="0.05"
+                tools:text="MATCH INFO"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvFactText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13.5sp"
+            android:textColor="?attr/colorOnSurface"
+            android:lineSpacingExtra="2dp"
+            tools:text="Match Started at 15:57 on 12 OCT 2026"/>
+
     </LinearLayout>
 
-    <!-- Right Column: Narrative Text -->
-    <TextView
-        android:id="@+id/tvCommText"
-        android:layout_width="0dp"
+    <!-- 3. Ball Delivery Row (For actual ball-by-ball commentary) -->
+    <LinearLayout
+        android:id="@+id/layoutBallRow"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:layout_marginStart="16dp"
-        tools:text="Bowler to Batter, no run."
-        android:textSize="14sp"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:lineSpacingExtra="2dp"/>
+        android:minHeight="58dp"
+        android:orientation="horizontal"
+        android:gravity="start|center_vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:paddingVertical="4dp">
+
+        <!-- Left Timeline Column -->
+        <FrameLayout
+            android:id="@+id/layoutCommLeftColumn"
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <!-- Vertical Timeline Line -->
+            <View
+                android:id="@+id/viewTimelineLine"
+                android:layout_width="2dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_horizontal"
+                android:background="?attr/colorOutline"
+                android:alpha="0.25"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+
+                <TextView
+                    android:id="@+id/tvCommOver"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:layout_marginBottom="3dp"
+                    tools:text="0.1"/>
+
+                <FrameLayout
+                    android:id="@+id/layoutCommIcon"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:background="@drawable/circle_bg_grey">
+
+                    <TextView
+                        android:id="@+id/tvCommIconText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:textSize="11.5sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        tools:text="4"/>
+                </FrameLayout>
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Right Delivery Card Container -->
+        <LinearLayout
+            android:id="@+id/layoutDeliveryCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_gravity="center_vertical"
+            android:orientation="vertical"
+            android:background="@drawable/bg_commentary_card"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="10dp">
+
+            <TextView
+                android:id="@+id/tvCommText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="13.5sp"
+                android:textColor="?attr/colorOnSurface"
+                android:lineSpacingExtra="2.5dp"
+                tools:text="Sushant Agrawal to Vivek, FOUR"/>
+        </LinearLayout>
+    </LinearLayout>
 
 </LinearLayout>

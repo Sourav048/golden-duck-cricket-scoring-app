@@ -14,26 +14,26 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingHorizontal="12dp"
-        android:paddingVertical="12dp"
+        android:paddingVertical="10dp"
         android:background="?attr/colorSurfaceContainer"
         android:elevation="4dp">
 
         <ImageButton
             android:id="@+id/btnAiBack"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_revert"
-            app:tint="?attr/colorPrimary"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="?attr/colorOnSurface"
             android:contentDescription="Back" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="6dp"
             app:cardCornerRadius="20dp"
             app:cardElevation="2dp"
-            app:strokeWidth="1dp"
+            app:strokeWidth="1.5dp"
             app:strokeColor="?attr/colorPrimary">
 
             <ImageView
@@ -48,14 +48,14 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:orientation="vertical">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Duckie AI Assistant 🤖"
-                android:textSize="18sp"
+                android:textSize="17sp"
                 android:textStyle="bold"
                 android:textColor="?attr/colorOnSurface" />
 
@@ -70,21 +70,22 @@
 
         <ImageButton
             android:id="@+id/ibAiClearChat"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginStart="4dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_delete"
-            app:tint="?attr/colorError"
+            android:src="@drawable/ic_delete"
+            app:tint="?attr/colorOnSurfaceVariant"
             android:contentDescription="Clear Chat History" />
 
         <ImageButton
             android:id="@+id/ibAiSpeaker"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_lock_silent_mode_off"
-            app:tint="?attr/colorPrimary"
+            android:src="@drawable/ic_volume_up"
+            app:tint="?attr/colorOnSurfaceVariant"
             android:contentDescription="Toggle Voice Output" />
     </LinearLayout>
 
@@ -95,8 +96,8 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:paddingHorizontal="12dp"
-        android:paddingVertical="6dp"
-        android:background="?attr/colorSurfaceVariant"
+        android:paddingVertical="8dp"
+        android:background="?attr/colorSurfaceContainerLow"
         android:gravity="center_vertical">
 
         <!-- Left Dropdown: Response Language -->
@@ -107,18 +108,22 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="6dp"
-            app:boxCornerRadiusTopStart="10dp"
-            app:boxCornerRadiusTopEnd="10dp"
-            app:boxCornerRadiusBottomStart="10dp"
-            app:boxCornerRadiusBottomEnd="10dp"
-            android:hint="Response Language">
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp"
+            app:boxStrokeWidth="1dp"
+            app:boxStrokeColor="@color/card_stroke"
+            app:hintEnabled="false">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                 android:id="@+id/actvAiLanguage"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="none"
-                android:textSize="13sp"
+                android:hint="Response Language"
+                android:textSize="12.5sp"
+                android:paddingHorizontal="12dp"
                 android:paddingVertical="10dp"
                 android:dropDownHeight="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -131,19 +136,23 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="6dp"
-            app:boxCornerRadiusTopStart="10dp"
-            app:boxCornerRadiusTopEnd="10dp"
-            app:boxCornerRadiusBottomStart="10dp"
-            app:boxCornerRadiusBottomEnd="10dp"
-            android:visibility="visible"
-            android:hint="Who are you?">
+            app:boxCornerRadiusTopStart="12dp"
+            app:boxCornerRadiusTopEnd="12dp"
+            app:boxCornerRadiusBottomStart="12dp"
+            app:boxCornerRadiusBottomEnd="12dp"
+            app:boxStrokeWidth="1dp"
+            app:boxStrokeColor="@color/card_stroke"
+            app:hintEnabled="false"
+            android:visibility="visible">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                 android:id="@+id/actvAiSecondary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="none"
-                android:textSize="13sp"
+                android:hint="Who are you?"
+                android:textSize="12.5sp"
+                android:paddingHorizontal="12dp"
                 android:paddingVertical="10dp"
                 android:dropDownHeight="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -156,7 +165,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:paddingVertical="8dp"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="10dp"
         android:clipToPadding="false" />
 
     <!-- Typing Indicator -->
@@ -170,13 +180,25 @@
         android:paddingVertical="6dp"
         android:visibility="gone">
 
-        <TextView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Duckie is thinking... 🤖💭"
-            android:textSize="13sp"
-            android:textStyle="italic"
-            android:textColor="?attr/colorPrimary" />
+            app:cardCornerRadius="14dp"
+            app:cardElevation="1dp"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+            app:strokeWidth="0.5dp"
+            app:strokeColor="@color/card_stroke">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                android:text="Duckie is thinking... 🤖💭"
+                android:textSize="12.5sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary" />
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 
     <!-- Attached Image Preview Container -->
@@ -214,7 +236,8 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="10dp"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="8dp"
         android:background="?attr/colorSurfaceContainer"
         android:elevation="8dp">
 
@@ -225,41 +248,44 @@
             android:layout_weight="1"
             android:background="@drawable/bg_chat_input_rounded"
             android:paddingHorizontal="16dp"
-            android:paddingVertical="12dp"
+            android:paddingVertical="10dp"
             android:hint="Ask Duckie anything..."
             android:maxLines="4"
-            android:textSize="15sp"
+            android:textSize="14.5sp"
             android:textColor="?attr/colorOnSurface"
             android:textColorHint="?attr/colorOnSurfaceVariant" />
 
         <ImageButton
             android:id="@+id/ibAiPhoto"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_marginStart="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_camera"
-            app:tint="?attr/colorPrimary"
+            android:src="@drawable/ic_camera"
+            app:tint="?attr/colorOnSurfaceVariant"
             android:contentDescription="Attach Photo" />
 
         <ImageButton
             android:id="@+id/ibAiMic"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_marginStart="2dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_btn_speak_now"
-            app:tint="?attr/colorPrimary"
+            android:src="@drawable/ic_mic"
+            app:tint="?attr/colorOnSurfaceVariant"
             android:contentDescription="Voice Input" />
 
-        <ImageButton
+        <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/btnAiSend"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginStart="2dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_send"
-            app:tint="@color/send_btn_color"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_send_button"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_send"
+            android:tint="@color/send_btn_ic"
+            app:tint="@color/send_btn_ic"
             android:contentDescription="Send Message" />
     </LinearLayout>
 

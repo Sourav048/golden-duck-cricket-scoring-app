@@ -1,0 +1,294 @@
+package com.goldenduck.scoring
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
+import android.net.Uri
+import android.util.Base64
+import android.util.Log
+import androidx.annotation.Keep
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.UUID
+import java.util.concurrent.Executors
+
+@Keep
+object PhotoUtils {
+    private const val PHOTO_DIR = "player_photos"
+    private const val MAX_SIZE = 2160 // Max dimension in pixels for 2160p 4K UHD
+    private const val QUALITY = 85   // High Quality Crisp Compression
+
+    private const val SUPABASE_URL = "https://alyfggrwppkctlbroqzr.supabase.co"
+    private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFseWZnZ3J3cHBrY3RsYnJvcXpyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODgxMTE4MSwiZXhwIjoyMTA0Mzg3MTgxfQ.OsUzeI4QQZG0QOVAaGu_4iVStPJaOmmWUBNXcgk1juk"
+    private const val SUPABASE_BUCKET = "player_photos"
+
+    /**
+     * Uploads a local player photo to Supabase Storage and returns the public URL.
+     */
+    fun uploadPlayerPhotoToSupabase(context: Context, localPhotoPath: String?, playerId: String): String? {
+        if (localPhotoPath.isNullOrEmpty()) return null
+        val file = File(localPhotoPath)
+        if (!file.exists() || !file.isFile) return null
+
+        try {
+            val fileName = "player_${playerId}.jpg"
+            val url = URL("$SUPABASE_URL/storage/v1/object/$SUPABASE_BUCKET/$fileName")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Authorization", "Bearer $SUPABASE_KEY")
+            conn.setRequestProperty("apiKey", SUPABASE_KEY)
+            conn.setRequestProperty("x-upsert", "true")
+            conn.setRequestProperty("Content-Type", "image/jpeg")
+            conn.doOutput = true
+
+            file.inputStream().use { input ->
+                conn.outputStream.use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            val responseCode = conn.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK || responseCode == 201) {
+                val publicUrl = "$SUPABASE_URL/storage/v1/object/public/$SUPABASE_BUCKET/$fileName"
+                Log.d("PHOTO_UTILS", "Successfully uploaded player photo to Supabase: $publicUrl")
+                return publicUrl
+            } else {
+                Log.e("PHOTO_UTILS", "Failed to upload player photo to Supabase ($responseCode)")
+                return null
+            }
+        } catch (e: Exception) {
+            Log.e("PHOTO_UTILS", "Error uploading player photo to Supabase: ${e.message}")
+            return null
+        }
+    }
+
+    /**
+     * Scans existing player photos (no-op retained for backwards compatibility).
+     */
+    fun fixAllExistingPhotos(context: Context) {
+        // No-op: do not force auto-rotation on saved photos to avoid corrupting landscape images.
+    }
+
+    /**
+     * Saves a photo with "Image Guard" (Auto-Resize, EXIF Orientation Correction & Compression).
+     */
+    fun savePhoto(context: Context, sourceUri: Uri): String? {
+        try {
+            val dir = File(context.filesDir, PHOTO_DIR)
+            if (!dir.exists()) dir.mkdirs()
+
+            val fileName = "player_${UUID.randomUUID()}.jpg"
+            val destFile = File(dir, fileName)
+
+            val inputStream: InputStream? = context.contentResolver.openInputStream(sourceUri)
+            val originalBitmap = BitmapFactory.decodeStream(inputStream) ?: return null
+            inputStream?.close()
+
+            // 1. Correct EXIF Rotation
+            val orientedBitmap = rotateBitmapIfRequired(context, originalBitmap, sourceUri)
+
+            // 2. Resize for "Image Guard"
+            val processedBitmap = resizeBitmap(orientedBitmap, MAX_SIZE)
+
+            // 3. Compress and Save
+            FileOutputStream(destFile).use { output ->
+                processedBitmap.compress(Bitmap.CompressFormat.JPEG, QUALITY, output)
+            }
+            
+            if (originalBitmap != orientedBitmap && !originalBitmap.isRecycled) {
+                originalBitmap.recycle()
+            }
+            if (orientedBitmap != processedBitmap && !orientedBitmap.isRecycled) {
+                orientedBitmap.recycle()
+            }
+            if (!processedBitmap.isRecycled) {
+                processedBitmap.recycle()
+            }
+
+            return destFile.absolutePath
+        } catch (e: Exception) {
+            Log.e("PHOTO_UTILS", "Failed to save photo: ${e.message}")
+            return null
+        }
+    }
+
+    private fun rotateBitmapIfRequired(context: Context, bitmap: Bitmap, uri: Uri): Bitmap {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return bitmap
+            val exif = ExifInterface(inputStream)
+            inputStream.close()
+
+            val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+            val degrees = when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                else -> 0f
+            }
+
+            if (degrees != 0f) {
+                val matrix = Matrix()
+                matrix.postRotate(degrees)
+                Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+            } else {
+                bitmap
+            }
+        } catch (e: Exception) {
+            Log.e("PHOTO_UTILS", "Failed to check EXIF orientation: ${e.message}")
+            bitmap
+        }
+    }
+
+    private fun rotateBitmapFromFile(path: String, bitmap: Bitmap): Bitmap {
+        return try {
+            val exif = ExifInterface(path)
+            val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+            val degrees = when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                else -> 0f
+            }
+
+            if (degrees != 0f) {
+                val matrix = Matrix()
+                matrix.postRotate(degrees)
+                Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+            } else {
+                bitmap
+            }
+        } catch (e: Exception) {
+            bitmap
+        }
+    }
+
+    private fun resizeBitmap(bm: Bitmap, maxDim: Int): Bitmap {
+        val width = bm.width
+        val height = bm.height
+        
+        if (width <= maxDim && height <= maxDim) return bm
+
+        val scale = if (width > height) {
+            maxDim.toFloat() / width
+        } else {
+            maxDim.toFloat() / height
+        }
+
+        val matrix = Matrix()
+        matrix.postScale(scale, scale)
+        
+        return Bitmap.createBitmap(bm, 0, 0, width, height, matrix, true)
+    }
+
+    /**
+     * Converts a photo to a Base64 string for cloud sync.
+     * Extremely resilient: handles raw paths, file URIs, and content URIs, auto-correcting orientation.
+     */
+    fun pathToBase64(context: Context, path: String?): String? {
+        if (path.isNullOrEmpty()) return null
+        
+        var bitmap: Bitmap? = null
+        try {
+            // 1. Try decoding as a direct file path first
+            val file = File(path)
+            if (file.exists() && file.isFile) {
+                val raw = BitmapFactory.decodeFile(path)
+                if (raw != null) {
+                    bitmap = rotateBitmapFromFile(path, raw)
+                }
+                Log.d("PHOTO_UTILS", "Decoded via direct path: $path")
+            }
+
+            // 2. Fallback to ContentResolver if direct path fails or it's a URI
+            if (bitmap == null) {
+                val uri = if (path.startsWith("content://") || path.startsWith("file://")) {
+                    Uri.parse(path)
+                } else {
+                    Uri.fromFile(File(path))
+                }
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val raw = BitmapFactory.decodeStream(stream)
+                    if (raw != null) {
+                        bitmap = rotateBitmapIfRequired(context, raw, uri)
+                    }
+                    Log.d("PHOTO_UTILS", "Decoded via ContentResolver: $path")
+                }
+            }
+
+            if (bitmap == null) {
+                Log.e("PHOTO_UTILS", "All decoding attempts failed for: $path")
+                return null
+            }
+
+            val targetBitmap = bitmap!!
+
+            // 3. Resize for Base64 Fallback (Max 500px for Firestore 1MB safety)
+            val processedBitmap = resizeBitmap(targetBitmap, 500)
+            
+            val outputStream = ByteArrayOutputStream()
+            processedBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+            val bytes = outputStream.toByteArray()
+            
+            val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+            
+            // Cleanup
+            if (processedBitmap != targetBitmap && !processedBitmap.isRecycled) {
+                processedBitmap.recycle()
+            }
+            if (!targetBitmap.isRecycled) {
+                targetBitmap.recycle()
+            }
+            
+            Log.d("PHOTO_UTILS", "Successfully converted to Base64 (Size: ${bytes.size} bytes)")
+            return base64
+
+        } catch (e: Exception) {
+            Log.e("PHOTO_UTILS", "Critical failure in pathToBase64: ${e.message}")
+            if (bitmap != null && !bitmap.isRecycled) bitmap.recycle()
+            return null
+        }
+    }
+
+    /**
+     * Saves a Base64 string back to a file during import.
+     * Uses Player ID to prevent duplicate files and "Ghost Photos".
+     */
+    fun base64ToPath(context: Context, base64: String?, playerId: String): String? {
+        if (base64.isNullOrEmpty()) return null
+        try {
+            val dir = File(context.filesDir, PHOTO_DIR)
+            if (!dir.exists()) dir.mkdirs()
+
+            val fileName = "player_${playerId}.jpg"
+            val destFile = File(dir, fileName)
+
+            val bytes = Base64.decode(base64, Base64.DEFAULT)
+            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
+            FileOutputStream(destFile).use { out ->
+                if (bitmap != null) {
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, QUALITY, out)
+                } else {
+                    out.write(bytes)
+                }
+            }
+            if (bitmap != null && !bitmap.isRecycled) bitmap.recycle()
+            return destFile.absolutePath
+        } catch (e: Exception) {
+            Log.e("PHOTO_UTILS", "Failed to save Base64 to file: ${e.message}")
+            return null
+        }
+    }
+    
+    fun isValidInternalPath(path: String?): Boolean {
+        if (path.isNullOrEmpty()) return false
+        val file = File(path)
+        return file.exists() && file.isFile
+    }
+}

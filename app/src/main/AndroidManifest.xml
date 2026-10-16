@@ -40,7 +40,7 @@
         <!-- OneSignal Background Notification Service Extension -->
         <meta-data
             android:name="com.onesignal.NotificationServiceExtension"
-            android:value="com.example.scoring.AppNotificationServiceExtension" />
+            android:value="com.goldenduck.scoring.AppNotificationServiceExtension" />
 
         <!-- HOME — launches when the app icon is tapped -->
         <activity

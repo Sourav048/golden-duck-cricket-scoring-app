@@ -2,353 +2,610 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:tag="custom_color">
 
     <LinearLayout
         android:id="@+id/homeRoot"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="?attr/colorSurface"
-        android:paddingHorizontal="20dp">
+        android:background="@color/bg_main"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="20dp"
+        android:tag="custom_color">
 
-    <RelativeLayout
-        android:id="@+id/layoutHomeHeader"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp">
-
-        <ImageButton
-            android:id="@+id/btnHomeMenu"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_more"
-            app:tint="?attr/colorPrimary"
-            android:contentDescription="Menu" />
-
-        <LinearLayout
-            android:id="@+id/layoutHomeRightActions"
-            android:layout_width="wrap_content"
+        <!-- Top Header Navigation Bar -->
+        <RelativeLayout
+            android:id="@+id/layoutHomeHeader"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:orientation="horizontal">
+            android:layout_marginBottom="24dp"
+            android:tag="custom_color">
 
+            <!-- Left Drawer / Menu Button Container -->
             <FrameLayout
-                android:id="@+id/layoutHomeLeagueChat"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
+                android:id="@+id/layoutHomeLeftMenu"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/bg_header_icon_circle"
+                android:tag="custom_color">
 
                 <ImageButton
-                    android:id="@+id/btnHomeLeagueChat"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:id="@+id/btnHomeMenu"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_league_chat"
-                    app:tint="?attr/colorPrimary"
-                    android:contentDescription="League Chat" />
-
-                <TextView
-                    android:id="@+id/tvLeagueChatBadge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="top|end"
-                    android:layout_marginEnd="4dp"
-                    android:layout_marginTop="4dp"
-                    android:background="@drawable/badge_unread_count"
-                    android:gravity="center"
-                    android:minWidth="18dp"
-                    android:minHeight="18dp"
-                    android:paddingHorizontal="5dp"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
+                    android:src="@drawable/ic_menu_hamburger"
+                    app:tint="?attr/colorOnSurface"
+                    android:padding="10dp"
+                    android:scaleType="fitCenter"
+                    android:tag="custom_color"
+                    android:contentDescription="@string/cd_menu" />
             </FrameLayout>
-        </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvHomeTitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_toEndOf="@id/btnHomeMenu"
-            android:layout_toStartOf="@id/layoutHomeRightActions"
-            android:layout_centerVertical="true"
-            android:gravity="center"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:text="@string/title_home"
-            android:textSize="35sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary" />
-    </RelativeLayout>
-
-    <!-- Row 1 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal"
-        android:baselineAligned="false"
-        android:layout_marginBottom="16dp">
-
-        <!-- New Match Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardNewMatch"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            app:cardCornerRadius="28dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="?attr/colorPrimary"
-            app:rippleColor="?attr/colorOnPrimary">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🏏"
-                    android:textSize="54sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/new_match"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="?attr/colorOnPrimary"
-                    android:layout_marginTop="12dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Previous Matches Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardHistory"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            app:cardCornerRadius="28dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="?attr/colorPrimary"
-            app:rippleColor="?attr/colorOnPrimary">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📋"
-                    android:textSize="54sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/previous_matches"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="?attr/colorOnPrimary"
-                    android:layout_marginTop="12dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-    </LinearLayout>
-
-    <!-- Row 2 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal"
-        android:baselineAligned="false">
-
-        <!-- Players Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardPlayers"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            app:cardCornerRadius="28dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="?attr/colorPrimary"
-            app:rippleColor="?attr/colorOnPrimary">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="👤"
-                    android:textSize="54sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/players"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="?attr/colorOnPrimary"
-                    android:layout_marginTop="12dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Stats Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardStats"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            app:cardCornerRadius="28dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="?attr/colorPrimary"
-            app:rippleColor="?attr/colorOnPrimary">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📊"
-                    android:textSize="54sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="?attr/colorOnPrimary"
-                    android:layout_marginTop="12dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-    </LinearLayout>
-
-    <!-- Row 3: Gully Management -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardGully"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="24dp"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="2dp"
-        app:cardBackgroundColor="?attr/colorSurfaceVariant"
-        app:rippleColor="?attr/colorPrimary"
-        app:strokeWidth="1dp"
-        app:strokeColor="?attr/colorOutlineVariant">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="20dp">
-
+            <!-- Center App Branding Title -->
             <TextView
+                android:id="@+id/tvHomeTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/layoutHomeLeftMenu"
+                android:layout_toStartOf="@id/layoutHomeRightActions"
+                android:layout_centerVertical="true"
+                android:gravity="center"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="@string/title_home"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.02"
+                android:textColor="?attr/colorOnSurface"
+                android:tag="custom_color" />
+
+            <!-- Right Actions Container -->
+            <LinearLayout
+                android:id="@+id/layoutHomeRightActions"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🌍"
-                android:textSize="32sp"
-                android:layout_marginEnd="16dp" />
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:tag="custom_color">
 
+                <!-- 🤖 AI Assistant Button -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/btnHomeAiAssistant"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="10dp"
+                    app:cardCornerRadius="22dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:strokeWidth="1.5dp"
+                    app:strokeColor="#D4AF37"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/ai_assistant_cd"
+                    android:tag="custom_color">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_ai_fab_gradient"
+                        android:tag="custom_color">
+
+                        <!-- Glowing Inner Circle Frame -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_margin="2dp"
+                            android:background="@drawable/bg_ai_fab_ring"
+                            android:tag="custom_color" />
+
+                        <!-- Duckie AI Assistant Image Avatar -->
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_margin="2dp"
+                            android:padding="2dp"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/ic_ai_assistant"
+                            android:contentDescription="@string/ai_assistant_cd"
+                            android:tag="custom_color"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+                    </FrameLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <FrameLayout
+                    android:id="@+id/layoutHomeLeagueChat"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_header_icon_circle"
+                    android:tag="custom_color">
+
+                    <ImageButton
+                        android:id="@+id/btnHomeLeagueChat"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_league_chat"
+                        app:tint="?attr/colorOnSurface"
+                        android:padding="10dp"
+                        android:scaleType="fitCenter"
+                        android:tag="custom_color"
+                        android:contentDescription="@string/cd_league_chat" />
+
+                    <TextView
+                        android:id="@+id/tvLeagueChatBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="top|end"
+                        android:layout_marginEnd="2dp"
+                        android:layout_marginTop="2dp"
+                        android:background="@drawable/badge_unread_count"
+                        android:gravity="center"
+                        android:minWidth="18dp"
+                        android:minHeight="18dp"
+                        android:paddingHorizontal="4dp"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:visibility="gone"
+                        android:tag="custom_color" />
+                </FrameLayout>
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- 2x2 Grid Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:tag="custom_color">
+
+            <!-- Row 1: New Match & Matches -->
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:layout_marginBottom="14dp"
+                android:tag="custom_color">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="My Cricket"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="?attr/colorOnSurface" />
+                <!-- New Match Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardNewMatch"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="7dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/surface_card"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/card_stroke"
+                    app:rippleColor="?attr/colorControlHighlight"
+                    android:tag="custom_color">
 
-                <TextView
-                    android:id="@+id/tvHomeGullyStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Local Mode (Offline)"
-                    android:textSize="13sp"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="16dp"
+                        android:tag="custom_color">
+
+                        <!-- Top Right Pill Tag -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentTop="true"
+                            android:background="@drawable/bg_card_pill_teal"
+                            android:paddingHorizontal="9dp"
+                            android:paddingVertical="4dp"
+                            android:text="@string/home_start_tag"
+                            android:textColor="@color/pill_teal_text"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:tag="custom_color" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:tag="custom_color">
+
+                            <!-- Icon Container Badge -->
+                            <FrameLayout
+                                android:layout_width="60dp"
+                                android:layout_height="60dp"
+                                android:background="@drawable/bg_card_icon_teal"
+                                android:elevation="4dp"
+                                android:tag="custom_color">
+
+                                <ImageView
+                                    android:layout_width="38dp"
+                                    android:layout_height="38dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_card_cricket"
+                                    app:tint="#FFFFFF"
+                                    android:tag="custom_color"
+                                    android:contentDescription="@string/new_match" />
+                            </FrameLayout>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="14dp"
+                                android:text="@string/new_match"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="17sp"
+                                android:textStyle="bold"
+                                android:tag="custom_color" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/home_sub_new_match"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp"
+                                android:tag="custom_color" />
+                        </LinearLayout>
+                    </RelativeLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Previous Matches Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardHistory"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="7dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/surface_card"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/card_stroke"
+                    app:rippleColor="?attr/colorControlHighlight"
+                    android:tag="custom_color">
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="16dp"
+                        android:tag="custom_color">
+
+                        <!-- Top Right Pill Tag -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentTop="true"
+                            android:background="@drawable/bg_card_pill_amber"
+                            android:paddingHorizontal="9dp"
+                            android:paddingVertical="4dp"
+                            android:text="@string/home_logs_tag"
+                            android:textColor="@color/pill_amber_text"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:tag="custom_color" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:tag="custom_color">
+
+                            <!-- Icon Container Badge -->
+                            <FrameLayout
+                                android:layout_width="60dp"
+                                android:layout_height="60dp"
+                                android:background="@drawable/bg_card_icon_amber"
+                                android:elevation="4dp"
+                                android:tag="custom_color">
+
+                                <ImageView
+                                    android:layout_width="38dp"
+                                    android:layout_height="38dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_card_history"
+                                    app:tint="#FFFFFF"
+                                    android:tag="custom_color"
+                                    android:contentDescription="@string/previous_matches" />
+                            </FrameLayout>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="14dp"
+                                android:text="@string/previous_matches"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="17sp"
+                                android:textStyle="bold"
+                                android:tag="custom_color" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/home_sub_history"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp"
+                                android:tag="custom_color" />
+                        </LinearLayout>
+                    </RelativeLayout>
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_play"
-                app:tint="?attr/colorPrimary"
-                android:contentDescription="Go to League Management" />
+            <!-- Row 2: Players & Stats -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:tag="custom_color">
+
+                <!-- Players Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardPlayers"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="7dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/surface_card"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/card_stroke"
+                    app:rippleColor="?attr/colorControlHighlight"
+                    android:tag="custom_color">
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="16dp"
+                        android:tag="custom_color">
+
+                        <!-- Top Right Pill Tag -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentTop="true"
+                            android:background="@drawable/bg_card_pill_blue"
+                            android:paddingHorizontal="9dp"
+                            android:paddingVertical="4dp"
+                            android:text="@string/home_squad_tag"
+                            android:textColor="@color/pill_blue_text"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:tag="custom_color" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:tag="custom_color">
+
+                            <!-- Icon Container Badge -->
+                            <FrameLayout
+                                android:layout_width="60dp"
+                                android:layout_height="60dp"
+                                android:background="@drawable/bg_card_icon_blue"
+                                android:elevation="4dp"
+                                android:tag="custom_color">
+
+                                <ImageView
+                                    android:layout_width="38dp"
+                                    android:layout_height="38dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_card_players"
+                                    app:tint="#FFFFFF"
+                                    android:tag="custom_color"
+                                    android:contentDescription="@string/players" />
+                            </FrameLayout>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="14dp"
+                                android:text="@string/players"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="17sp"
+                                android:textStyle="bold"
+                                android:tag="custom_color" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/home_sub_players"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp"
+                                android:tag="custom_color" />
+                        </LinearLayout>
+                    </RelativeLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Stats Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardStats"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="7dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/surface_card"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/card_stroke"
+                    app:rippleColor="?attr/colorControlHighlight"
+                    android:tag="custom_color">
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="16dp"
+                        android:tag="custom_color">
+
+                        <!-- Top Right Pill Tag -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:layout_alignParentTop="true"
+                            android:background="@drawable/bg_card_pill_purple"
+                            android:paddingHorizontal="9dp"
+                            android:paddingVertical="4dp"
+                            android:text="@string/home_trends_tag"
+                            android:textColor="@color/pill_purple_text"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:tag="custom_color" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:tag="custom_color">
+
+                            <!-- Icon Container Badge -->
+                            <FrameLayout
+                                android:layout_width="60dp"
+                                android:layout_height="60dp"
+                                android:background="@drawable/bg_card_icon_purple"
+                                android:elevation="4dp"
+                                android:tag="custom_color">
+
+                                <ImageView
+                                    android:layout_width="38dp"
+                                    android:layout_height="38dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_card_stats"
+                                    app:tint="#FFFFFF"
+                                    android:tag="custom_color"
+                                    android:contentDescription="@string/stats" />
+                            </FrameLayout>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="14dp"
+                                android:text="@string/stats"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="17sp"
+                                android:textStyle="bold"
+                                android:tag="custom_color" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/home_sub_stats"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="11sp"
+                                android:tag="custom_color" />
+                        </LinearLayout>
+                    </RelativeLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
 
-</LinearLayout>
-
-    <!-- 🤖 Floating Draggable AI Assistant Bubble (Default: Top Right over Matches card) -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/fabAiAssistant"
-        android:layout_width="66dp"
-        android:layout_height="66dp"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="70dp"
-        android:layout_marginEnd="12dp"
-        app:cardCornerRadius="33dp"
-        app:cardElevation="12dp"
-        app:cardMaxElevation="16dp"
-        app:cardBackgroundColor="@android:color/transparent"
-        app:strokeWidth="2dp"
-        app:strokeColor="#D4AF37"
-        android:clickable="true"
-        android:focusable="true">
-
-        <FrameLayout
+        <!-- Bottom Row: Gully / League Management -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardGully"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@drawable/bg_ai_fab_gradient">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/surface_card"
+            app:rippleColor="?attr/colorControlHighlight"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/card_stroke"
+            android:tag="custom_color">
 
-            <!-- Glowing Inner Circle Frame -->
-            <View
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_margin="3dp"
-                android:background="@drawable/bg_ai_fab_ring" />
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="18dp"
+                android:paddingVertical="16dp"
+                android:tag="custom_color">
 
-            <!-- Duckie AI Assistant Image Avatar -->
-            <com.google.android.material.imageview.ShapeableImageView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_margin="4dp"
-                android:padding="2dp"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_ai_assistant"
-                android:contentDescription="@string/ai_assistant_cd"
-                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+                <!-- Globe Icon Container Badge -->
+                <FrameLayout
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="16dp"
+                    android:background="@drawable/bg_header_icon_circle"
+                    android:tag="custom_color">
 
-        </FrameLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:text="🌍"
+                        android:textSize="26sp"
+                        android:tag="custom_color" />
+                </FrameLayout>
 
-    </com.google.android.material.card.MaterialCardView>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:tag="custom_color">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/home_my_cricket"
+                        android:textSize="17sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorOnSurface"
+                        android:tag="custom_color" />
+
+                    <TextView
+                        android:id="@+id/tvHomeGullyStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Local Mode (Offline)"
+                        android:textSize="12sp"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:tag="custom_color" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="?attr/colorOnSurfaceVariant"
+                    android:tag="custom_color"
+                    android:contentDescription="@string/cd_league_management" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
 
 </FrameLayout>

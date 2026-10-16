@@ -5,15 +5,49 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingHorizontal="12dp"
-    android:paddingVertical="6dp"
+    android:paddingVertical="4dp"
     android:gravity="end">
+
+    <!-- DATE HEADER CONTAINER (Center Aligned) -->
+    <LinearLayout
+        android:id="@+id/layoutDateHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="10dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="1dp"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+            app:strokeWidth="0.5dp"
+            app:strokeColor="@color/card_stroke">
+
+            <TextView
+                android:id="@+id/tvDateHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="5dp"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:cardCornerRadius="18dp"
-        app:cardElevation="1dp"
-        app:cardBackgroundColor="?attr/colorPrimary">
+        app:cardElevation="1.5dp"
+        app:strokeWidth="0.5dp"
+        app:strokeColor="?attr/colorOutlineVariant"
+        app:cardBackgroundColor="@color/sent_bubble_bg">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -37,8 +71,9 @@
                 android:paddingVertical="12dp"
                 android:maxWidth="280dp"
                 android:text="My message"
-                android:textColor="?attr/colorOnPrimary"
-                android:textSize="15sp" />
+                android:textColor="@color/sent_bubble_text"
+                android:textSize="15sp"
+                android:lineSpacingExtra="2dp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -51,8 +86,8 @@
         android:maxLines="1"
         android:singleLine="true"
         android:text="12:00 PM"
-        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textColor="@color/sent_bubble_time"
         android:textSize="11sp"
-        android:textStyle="bold" />
+        android:textStyle="normal" />
 
 </LinearLayout>

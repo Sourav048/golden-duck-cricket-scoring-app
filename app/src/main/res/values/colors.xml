@@ -10,6 +10,9 @@
     <color name="colorPrimaryVariant">#004D40</color>
     <color name="colorOnPrimary">#FFFFFF</color>
     <color name="send_btn_color">#00695C</color>
+    <color name="send_btn_bg">#00695C</color>
+    <color name="send_btn_ic">#FFFFFF</color>
+    <color name="ai_chat_stop_btn_ic">#FFFFFF</color>
 
     <!-- Text (Light) -->
     <color name="text_primary">#1A1C1E</color>
@@ -53,10 +56,33 @@
     <color name="sent_bubble_bg">#00695C</color>
     <color name="sent_bubble_text">#FFFFFF</color>
     <color name="sent_bubble_time">#E0F2F1</color>
-    <color name="received_bubble_bg">#F0F2F5</color>
+    <color name="received_bubble_bg">#FFFFFF</color>
     <color name="received_bubble_text">#1F2937</color>
     <color name="received_bubble_time">#6B7280</color>
     <color name="reaction_bg">#FFFFFF</color>
     <color name="reaction_text">#1F2937</color>
     <color name="reaction_stroke">#E2E8F0</color>
+
+    <!-- Dashboard Pill Tag Colors (Light Mode) -->
+    <color name="pill_teal_bg">#E0F2F1</color>
+    <color name="pill_teal_text">#00695C</color>
+    <color name="pill_amber_bg">#FFF8E1</color>
+    <color name="pill_amber_text">#E65100</color>
+    <color name="pill_blue_bg">#E3F2FD</color>
+    <color name="pill_blue_text">#1565C0</color>
+    <color name="pill_purple_bg">#F3E5F5</color>
+    <color name="pill_purple_text">#6A1B9A</color>
+    <color name="pill_green_bg">#E8F5E9</color>
+    <color name="pill_green_text">#2E7D32</color>
+    <color name="pill_red_bg">#FFEBEE</color>
+    <color name="pill_red_text">#C62828</color>
+    <color name="card_stroke">#CBD5E1</color>
+
+    <!-- Rank Badge Default Colors (Light Mode) -->
+    <color name="rank_default_bg">#F1F5F9</color>
+    <color name="rank_default_stroke">#CBD5E1</color>
+
+    <!-- Unranked Stat Value Pill Colors (Light Mode) -->
+    <color name="unranked_pill_bg">#1A00695C</color>
+    <color name="unranked_pill_stroke">#3300695C</color>
 </resources>

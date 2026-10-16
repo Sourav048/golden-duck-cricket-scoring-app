@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.example.scoring",
+  "applicationId": "com.goldenduck.scoring",
   "variantName": "debug",
   "elements": [
     {

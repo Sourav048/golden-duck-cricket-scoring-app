@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="horizontal"
-            android:padding="6dp" />
+            android:padding="4dp" />
     </HorizontalScrollView>
 
     <View
@@ -35,33 +35,45 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
         android:paddingVertical="12dp"
-        android:paddingHorizontal="16dp"
-        android:text="💬   Reply to Message"
+        android:paddingHorizontal="12dp"
+        app:drawableStartCompat="@drawable/ic_reply"
+        android:drawablePadding="14dp"
+        app:drawableTint="?attr/colorOnSurface"
+        android:text="Reply to Message"
         android:textColor="?attr/colorOnSurface"
-        android:textSize="16sp" />
+        android:textSize="15sp" />
 
     <TextView
         android:id="@+id/optionCopy"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
         android:paddingVertical="12dp"
-        android:paddingHorizontal="16dp"
-        android:text="📋   Copy Text"
+        android:paddingHorizontal="12dp"
+        app:drawableStartCompat="@drawable/ic_copy"
+        android:drawablePadding="14dp"
+        app:drawableTint="?attr/colorOnSurface"
+        android:text="Copy Text"
         android:textColor="?attr/colorOnSurface"
-        android:textSize="16sp" />
+        android:textSize="15sp" />
 
     <TextView
         android:id="@+id/optionDownloadMedia"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
         android:paddingVertical="12dp"
-        android:paddingHorizontal="16dp"
-        android:text="⬇️   Download Media"
+        android:paddingHorizontal="12dp"
+        app:drawableStartCompat="@drawable/ic_download"
+        android:drawablePadding="14dp"
+        app:drawableTint="?attr/colorOnSurface"
+        android:text="Download Media"
         android:textColor="?attr/colorOnSurface"
-        android:textSize="16sp"
+        android:textSize="15sp"
         android:visibility="gone" />
 
     <TextView
@@ -69,22 +81,30 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
         android:paddingVertical="12dp"
-        android:paddingHorizontal="16dp"
-        android:text="ℹ️   Message Info (Seen By)"
+        android:paddingHorizontal="12dp"
+        app:drawableStartCompat="@drawable/ic_info"
+        android:drawablePadding="14dp"
+        app:drawableTint="?attr/colorOnSurface"
+        android:text="Message Info (Seen By)"
         android:textColor="?attr/colorOnSurface"
-        android:textSize="16sp" />
+        android:textSize="15sp" />
 
     <TextView
         android:id="@+id/optionDelete"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
         android:paddingVertical="12dp"
-        android:paddingHorizontal="16dp"
-        android:text="🗑️   Delete Message"
-        android:textColor="#FF3B30"
-        android:textSize="16sp"
+        android:paddingHorizontal="12dp"
+        app:drawableStartCompat="@drawable/ic_delete"
+        android:drawablePadding="14dp"
+        app:drawableTint="#EF4444"
+        android:text="Delete Message"
+        android:textColor="#EF4444"
+        android:textSize="15sp"
         android:visibility="gone" />
 
 </LinearLayout>

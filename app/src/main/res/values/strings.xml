@@ -5,6 +5,20 @@
     <string name="previous_matches">Matches</string>
     <string name="players">Players</string>
     <string name="stats">Stats</string>
+    <string name="home_dashboard">Dashboard</string>
+    <string name="home_quick_actions">Quick Actions 🏏</string>
+    <string name="home_start_tag">START</string>
+    <string name="home_logs_tag">LOGS</string>
+    <string name="home_squad_tag">SQUAD</string>
+    <string name="home_trends_tag">TRENDS</string>
+    <string name="home_sub_new_match">Live Scoring &amp; Toss</string>
+    <string name="home_sub_history">History &amp; Archives</string>
+    <string name="home_sub_players">Profiles &amp; Rosters</string>
+    <string name="home_sub_stats">Analytics &amp; Records</string>
+    <string name="home_my_cricket">My Cricket</string>
+    <string name="cd_menu">Menu</string>
+    <string name="cd_league_chat">League Chat</string>
+    <string name="cd_league_management">Go to League Management</string>
     <string name="match_setup">Match Setup</string>
     <string name="team_a_hint">Team A name</string>
     <string name="team_b_hint">Team B name</string>
@@ -26,7 +40,7 @@
     <string name="bowler_placeholder">Bowler: %1$s</string>
     <string name="btn_start_2nd_innings">Start 2nd Innings</string>
     <string name="btn_back_to_home">Back to Home</string>
-    <string name="btn_finish_match">Finish Match</string>
+    <string name="btn_finish_match">Finish &amp; Conclude Match</string>
     <string name="wicket">WICKET</string>
 
     <!-- Ball Types -->

@@ -12,26 +12,56 @@
         android:orientation="vertical">
 
         <!-- Title Section -->
-        <LinearLayout
+        <RelativeLayout
             android:id="@+id/layoutTitleContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="24dp"
-            android:paddingTop="18dp"
-            android:paddingBottom="12dp"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:paddingHorizontal="16dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="6dp">
 
-            <TextView
-                android:id="@+id/tvPlayerListTitle"
+            <!-- Back Arrow Button (Left Side) -->
+            <ImageButton
+                android:id="@+id/btnBackPlayerList"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@null"
+                android:padding="10dp"
+                android:src="@drawable/ic_arrow_back"
+                app:tint="?attr/colorPrimary" />
+
+            <!-- Title & Subtitle (Centered) -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/players"
-                android:textSize="44sp"
-                android:textStyle="bold"
-                android:textColor="?attr/colorPrimary"
-                android:letterSpacing="0.02" />
-        </LinearLayout>
+                android:layout_centerInParent="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvPlayerListTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/players"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="33sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvPlayerListSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/players_subtitle"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="13sp"
+                    android:visibility="visible" />
+            </LinearLayout>
+
+        </RelativeLayout>
 
         <!-- Actions Row (Two Separate Cards) -->
         <LinearLayout

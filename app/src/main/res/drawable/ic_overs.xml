@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 1. ARROW LOOP (Sweeping over the top to keep the bottom safe) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M 4,11 A 8,8 0 1,1 20,11 L 22.5,11 L 17.5,16 L 12.5,11 L 17,11 A 5,5 0 0,0 7,11 Z" />
+
+    <!-- 2. CRICKET BALL (Mathematical cutouts guaranteed to render sharply) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M 12,6.5 A 4.5,4.5 0 1,1 11.9,6.5 Z M 10,14.5 C 11,13 11,9 10,7.5 C 8,9 8,13 10,14.5 Z M 14,7.5 C 13,9 13,13 14,14.5 C 16,13 16,9 14,7.5 Z" />
+
+    <!-- 3. THE SIX DOTS (Combined into a single un-clippable string, safely raised away from bottom edge) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M 4.5,15 a 1,1 0 1,1 0,2 a 1,1 0 1,1 0,-2 M 7.5,17.5 a 1,1 0 1,1 0,2 a 1,1 0 1,1 0,-2 M 10.5,19.5 a 1,1 0 1,1 0,2 a 1,1 0 1,1 0,-2 M 13.5,19.5 a 1,1 0 1,1 0,2 a 1,1 0 1,1 0,-2 M 16.5,17.5 a 1,1 0 1,1 0,2 a 1,1 0 1,1 0,-2 M 19.5,15 a 1,1 0 1,1 0,2 a 1,1 0 1,1 0,-2" />
+
+</vector>

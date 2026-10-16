@@ -4,8 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingHorizontal="12dp"
-    android:paddingVertical="4dp">
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="3dp">
 
     <!-- DATE HEADER CONTAINER (Center Aligned) -->
     <LinearLayout
@@ -32,7 +32,7 @@
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="14dp"
                 android:paddingVertical="5dp"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
                 android:textColor="?attr/colorOnSurfaceVariant" />
         </com.google.android.material.card.MaterialCardView>
@@ -44,7 +44,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end"
-        android:layout_marginStart="60dp"
+        android:layout_marginStart="50dp"
         android:orientation="vertical"
         android:visibility="gone">
 
@@ -52,7 +52,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            app:cardCornerRadius="18dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="1dp"
             app:cardBackgroundColor="@color/sent_bubble_bg"
             app:strokeWidth="0dp">
@@ -62,8 +62,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingHorizontal="4dp"
-                android:paddingTop="4dp"
+                android:paddingHorizontal="6dp"
+                android:paddingTop="5dp"
                 android:paddingBottom="6dp">
 
                 <!-- Sent Quoted Reply Box -->
@@ -139,11 +139,11 @@
 
                     <ImageView
                         android:id="@+id/ivSentPlayOverlay"
-                        android:layout_width="56dp"
-                        android:layout_height="56dp"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
                         android:layout_gravity="center"
                         android:background="@drawable/bg_circle_play_overlay"
-                        android:padding="14dp"
+                        android:padding="13dp"
                         android:src="@drawable/ic_play"
                         android:visibility="gone"
                         app:tint="#FFFFFF"
@@ -165,7 +165,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     app:cardCornerRadius="12dp"
-                    app:cardBackgroundColor="#2AFFFFFF"
+                    app:cardBackgroundColor="#20FFFFFF"
                     app:strokeWidth="0dp"
                     android:visibility="gone">
 
@@ -178,9 +178,9 @@
 
                         <ImageView
                             android:id="@+id/ivSentDocIcon"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:src="@android:drawable/ic_menu_agenda"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:src="@drawable/ic_document"
                             app:tint="@color/sent_bubble_text"
                             android:contentDescription="Document Icon" />
 
@@ -211,9 +211,9 @@
 
                         <ImageView
                             android:id="@+id/ivSentDocDownload"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/stat_sys_download"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:src="@drawable/ic_download"
                             app:tint="@color/sent_bubble_text"
                             android:contentDescription="Open Document" />
                     </LinearLayout>
@@ -226,7 +226,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     app:cardCornerRadius="14dp"
-                    app:cardBackgroundColor="#2AFFFFFF"
+                    app:cardBackgroundColor="#20FFFFFF"
                     app:strokeWidth="0dp"
                     android:visibility="gone">
 
@@ -239,10 +239,11 @@
 
                         <ImageButton
                             android:id="@+id/btnPlaySentAudio"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
+                            android:layout_width="38dp"
+                            android:layout_height="38dp"
                             android:background="@drawable/bg_circle_play_audio_sent"
                             android:padding="8dp"
+                            android:scaleType="fitCenter"
                             android:src="@drawable/ic_play"
                             app:tint="@color/sent_bubble_text"
                             android:contentDescription="Play Voice Note" />
@@ -255,7 +256,7 @@
                             android:max="100"
                             android:progress="0"
                             android:progressTint="@color/sent_bubble_text"
-                            android:progressBackgroundTint="#40000000"
+                            android:progressBackgroundTint="#40FFFFFF"
                             android:thumbTint="@color/sent_bubble_text" />
 
                         <TextView
@@ -274,10 +275,11 @@
                     android:id="@+id/tvSentMessage"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:maxWidth="252dp"
-                    android:paddingHorizontal="8dp"
-                    android:paddingTop="2dp"
+                    android:maxWidth="260dp"
+                    android:paddingHorizontal="6dp"
+                    android:paddingTop="1dp"
                     android:textSize="15sp"
+                    android:lineSpacingExtra="2dp"
                     android:textColor="@color/sent_bubble_text" />
 
                 <TextView
@@ -285,7 +287,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="end"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_marginTop="2dp"
                     android:textSize="11sp"
                     android:textColor="@color/sent_bubble_time"
@@ -299,7 +301,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            android:layout_marginTop="-5dp"
+            android:layout_marginTop="-6dp"
             android:layout_marginEnd="8dp"
             android:elevation="3dp"
             android:visibility="gone">
@@ -319,7 +321,7 @@
                     android:layout_height="wrap_content"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="3dp"
-                    android:textSize="17sp"
+                    android:textSize="15sp"
                     android:textColor="@color/reaction_text" />
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
@@ -357,7 +359,7 @@
                 android:layout_height="32dp"
                 android:gravity="center"
                 android:textColor="#FFFFFF"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textStyle="bold"
                 android:background="@drawable/bg_circle_avatar"
                 android:visibility="gone" />
@@ -373,289 +375,289 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
-                android:layout_marginBottom="0dp"
-                android:textSize="11sp"
+                android:layout_marginBottom="2dp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 android:textColor="?attr/colorPrimary" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="1dp"
-            app:cardBackgroundColor="@color/received_bubble_bg"
-            app:strokeWidth="0dp">
-
-            <LinearLayout
-                android:id="@+id/containerReceivedContent"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingHorizontal="4dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="6dp">
-
-                <!-- Received Quoted Reply Box -->
-                <LinearLayout
-                    android:id="@+id/layoutReceivedReply"
-                    android:layout_width="230dp"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="6dp"
-                    android:layout_marginBottom="4dp"
-                    android:background="@drawable/bg_quoted_reply_received"
-                    android:gravity="center_vertical"
-                    android:visibility="gone">
-
-                    <View
-                        android:layout_width="3dp"
-                        android:layout_height="28dp"
-                        android:background="?attr/colorPrimary"
-                        android:layout_marginEnd="6dp" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/tvReceivedReplySender"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:textSize="12sp"
-                            android:textStyle="bold"
-                            android:maxLines="1"
-                            android:ellipsize="end"
-                            android:textColor="@color/received_bubble_text" />
-
-                        <TextView
-                            android:id="@+id/tvReceivedReplyText"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:textSize="11sp"
-                            android:maxLines="1"
-                            android:ellipsize="end"
-                            android:textColor="@color/received_bubble_time" />
-                    </LinearLayout>
-
-                    <com.google.android.material.imageview.ShapeableImageView
-                        android:id="@+id/ivReceivedReplyMedia"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_marginStart="8dp"
-                        android:scaleType="centerCrop"
-                        android:visibility="gone"
-                        app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.SmallComponent" />
-                </LinearLayout>
-
-                <!-- Received Media Frame -->
-                <FrameLayout
-                    android:id="@+id/frameReceivedMedia"
-                    android:layout_width="260dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="4dp"
-                    android:visibility="gone">
-
-                    <com.google.android.material.imageview.ShapeableImageView
-                        android:id="@+id/ivReceivedMedia"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:adjustViewBounds="true"
-                        android:maxHeight="320dp"
-                        android:scaleType="centerCrop"
-                        app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.MediumComponent" />
-
-                    <ImageView
-                        android:id="@+id/ivReceivedPlayOverlay"
-                        android:layout_width="56dp"
-                        android:layout_height="56dp"
-                        android:layout_gravity="center"
-                        android:background="@drawable/bg_circle_play_overlay"
-                        android:padding="14dp"
-                        android:src="@drawable/ic_play"
-                        android:visibility="gone"
-                        app:tint="#FFFFFF"
-                        android:contentDescription="Play Video" />
-
-                    <ProgressBar
-                        android:id="@+id/pbReceivedMediaLoading"
-                        style="?android:attr/progressBarStyleSmall"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_gravity="center"
-                        android:visibility="gone" />
-                </FrameLayout>
-
-                <!-- Received Document Layout -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/layoutReceivedDocument"
-                    android:layout_width="250dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardBackgroundColor="#14000000"
-                    app:strokeColor="#20000000"
-                    app:strokeWidth="1dp"
-                    app:cardElevation="0dp"
-                    android:visibility="gone">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:padding="8dp"
-                        android:gravity="center_vertical">
-
-                        <ImageView
-                            android:id="@+id/ivReceivedDocIcon"
-                            android:layout_width="36dp"
-                            android:layout_height="36dp"
-                            android:src="@android:drawable/ic_menu_agenda"
-                            app:tint="@color/received_bubble_text"
-                            android:contentDescription="Document Icon" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="8dp"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/tvReceivedDocName"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:textSize="13sp"
-                                android:textStyle="bold"
-                                android:maxLines="1"
-                                android:ellipsize="middle"
-                                android:textColor="@color/received_bubble_text" />
-
-                            <TextView
-                                android:id="@+id/tvReceivedDocSize"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:textSize="11sp"
-                                android:textColor="@color/received_bubble_time" />
-                        </LinearLayout>
-
-                        <ImageView
-                            android:id="@+id/ivReceivedDocDownload"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/stat_sys_download"
-                            app:tint="@color/received_bubble_text"
-                            android:contentDescription="Open Document" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Received Audio / Voice Note Layout -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/layoutReceivedAudio"
-                    android:layout_width="250dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="4dp"
-                    app:cardCornerRadius="14dp"
-                    app:cardBackgroundColor="#14000000"
-                    app:strokeColor="#20000000"
-                    app:strokeWidth="1dp"
-                    app:cardElevation="0dp"
-                    android:visibility="gone">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:padding="6dp"
-                        android:gravity="center_vertical">
-
-                        <ImageButton
-                            android:id="@+id/btnPlayReceivedAudio"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:background="@drawable/bg_circle_play_audio_received"
-                            android:padding="8dp"
-                            android:src="@drawable/ic_play"
-                            app:tint="@color/received_bubble_text"
-                            android:contentDescription="Play Voice Note" />
-
-                        <SeekBar
-                            android:id="@+id/sbReceivedAudioProgress"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:max="100"
-                            android:progress="0"
-                            android:progressTint="@color/received_bubble_text"
-                            android:progressBackgroundTint="#40000000"
-                            android:thumbTint="@color/received_bubble_text" />
-
-                        <TextView
-                            android:id="@+id/tvReceivedAudioDuration"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="6dp"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/received_bubble_text"
-                            android:text="0:00" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <TextView
-                    android:id="@+id/tvReceivedMessage"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:maxWidth="252dp"
-                    android:paddingHorizontal="8dp"
-                    android:paddingTop="2dp"
-                    android:textSize="15sp"
-                    android:textColor="@color/received_bubble_text" />
-
-                <TextView
-                    android:id="@+id/tvReceivedTime"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="end"
-                    android:layout_marginEnd="6dp"
-                    android:layout_marginTop="2dp"
-                    android:textSize="11sp"
-                    android:textColor="@color/received_bubble_time"
-                    android:alpha="0.85" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Received Reactions Row -->
-        <LinearLayout
-            android:id="@+id/layoutReceivedReactions"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="start"
-            android:layout_marginTop="-5dp"
-            android:layout_marginStart="8dp"
-            android:elevation="3dp"
-            android:visibility="gone">
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="3dp"
-                app:cardBackgroundColor="@color/reaction_bg"
-                app:strokeWidth="1dp"
-                app:strokeColor="@color/reaction_stroke">
+                app:cardElevation="1dp"
+                app:cardBackgroundColor="@color/received_bubble_bg"
+                app:strokeWidth="0dp">
 
-                <TextView
-                    android:id="@+id/tvReceivedReactions"
+                <LinearLayout
+                    android:id="@+id/containerReceivedContent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="3dp"
-                    android:textSize="17sp"
-                    android:textColor="@color/reaction_text" />
+                    android:orientation="vertical"
+                    android:paddingHorizontal="6dp"
+                    android:paddingTop="5dp"
+                    android:paddingBottom="6dp">
+
+                    <!-- Received Quoted Reply Box -->
+                    <LinearLayout
+                        android:id="@+id/layoutReceivedReply"
+                        android:layout_width="230dp"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:padding="6dp"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/bg_quoted_reply_received"
+                        android:gravity="center_vertical"
+                        android:visibility="gone">
+
+                        <View
+                            android:layout_width="3dp"
+                            android:layout_height="28dp"
+                            android:background="?attr/colorPrimary"
+                            android:layout_marginEnd="6dp" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvReceivedReplySender"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:maxLines="1"
+                                android:ellipsize="end"
+                                android:textColor="@color/received_bubble_text" />
+
+                            <TextView
+                                android:id="@+id/tvReceivedReplyText"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textSize="11sp"
+                                android:maxLines="1"
+                                android:ellipsize="end"
+                                android:textColor="@color/received_bubble_time" />
+                        </LinearLayout>
+
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:id="@+id/ivReceivedReplyMedia"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:scaleType="centerCrop"
+                            android:visibility="gone"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.SmallComponent" />
+                    </LinearLayout>
+
+                    <!-- Received Media Frame -->
+                    <FrameLayout
+                        android:id="@+id/frameReceivedMedia"
+                        android:layout_width="260dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:visibility="gone">
+
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:id="@+id/ivReceivedMedia"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:adjustViewBounds="true"
+                            android:maxHeight="320dp"
+                            android:scaleType="centerCrop"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.MediumComponent" />
+
+                        <ImageView
+                            android:id="@+id/ivReceivedPlayOverlay"
+                            android:layout_width="52dp"
+                            android:layout_height="52dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/bg_circle_play_overlay"
+                            android:padding="13dp"
+                            android:src="@drawable/ic_play"
+                            android:visibility="gone"
+                            app:tint="#FFFFFF"
+                            android:contentDescription="Play Video" />
+
+                        <ProgressBar
+                            android:id="@+id/pbReceivedMediaLoading"
+                            style="?android:attr/progressBarStyleSmall"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_gravity="center"
+                            android:visibility="gone" />
+                    </FrameLayout>
+
+                    <!-- Received Document Layout -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/layoutReceivedDocument"
+                        android:layout_width="250dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardBackgroundColor="#12FFFFFF"
+                        app:strokeWidth="0dp"
+                        app:cardElevation="0dp"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:padding="8dp"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:id="@+id/ivReceivedDocIcon"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_document"
+                                app:tint="@color/received_bubble_text"
+                                android:contentDescription="Document Icon" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="8dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tvReceivedDocName"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold"
+                                    android:maxLines="1"
+                                    android:ellipsize="middle"
+                                    android:textColor="@color/received_bubble_text" />
+
+                                <TextView
+                                    android:id="@+id/tvReceivedDocSize"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:textSize="11sp"
+                                    android:textColor="@color/received_bubble_time" />
+                            </LinearLayout>
+
+                            <ImageView
+                                android:id="@+id/ivReceivedDocDownload"
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:src="@drawable/ic_download"
+                                app:tint="@color/received_bubble_text"
+                                android:contentDescription="Open Document" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Received Audio / Voice Note Layout -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/layoutReceivedAudio"
+                        android:layout_width="250dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        app:cardCornerRadius="14dp"
+                        app:cardBackgroundColor="#12FFFFFF"
+                        app:strokeWidth="0dp"
+                        app:cardElevation="0dp"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:padding="6dp"
+                            android:gravity="center_vertical">
+
+                            <ImageButton
+                                android:id="@+id/btnPlayReceivedAudio"
+                                android:layout_width="38dp"
+                                android:layout_height="38dp"
+                                android:background="@drawable/bg_circle_play_audio_received"
+                                android:padding="8dp"
+                                android:scaleType="fitCenter"
+                                android:src="@drawable/ic_play"
+                                app:tint="@color/received_bubble_text"
+                                android:contentDescription="Play Voice Note" />
+
+                            <SeekBar
+                                android:id="@+id/sbReceivedAudioProgress"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:max="100"
+                                android:progress="0"
+                                android:progressTint="@color/received_bubble_text"
+                                android:progressBackgroundTint="#30FFFFFF"
+                                android:thumbTint="@color/received_bubble_text" />
+
+                            <TextView
+                                android:id="@+id/tvReceivedAudioDuration"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="6dp"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/received_bubble_text"
+                                android:text="0:00" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <TextView
+                        android:id="@+id/tvReceivedMessage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:maxWidth="260dp"
+                        android:paddingHorizontal="6dp"
+                        android:paddingTop="1dp"
+                        android:textSize="15sp"
+                        android:lineSpacingExtra="2dp"
+                        android:textColor="@color/received_bubble_text" />
+
+                    <TextView
+                        android:id="@+id/tvReceivedTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:layout_marginEnd="4dp"
+                        android:layout_marginTop="2dp"
+                        android:textSize="11sp"
+                        android:textColor="@color/received_bubble_time"
+                        android:alpha="0.85" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
-        </LinearLayout>
+
+            <!-- Received Reactions Row -->
+            <LinearLayout
+                android:id="@+id/layoutReceivedReactions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start"
+                android:layout_marginTop="-6dp"
+                android:layout_marginStart="8dp"
+                android:elevation="3dp"
+                android:visibility="gone">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="3dp"
+                    app:cardBackgroundColor="@color/reaction_bg"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/reaction_stroke">
+
+                    <TextView
+                        android:id="@+id/tvReceivedReactions"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="3dp"
+                        android:textSize="15sp"
+                        android:textColor="@color/reaction_text" />
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 

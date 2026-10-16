@@ -7,10 +7,6 @@
 -keepclassmembers class com.goldenduck.scoring.** { *; }
 -keepclassmembers class com.goldenduck.scoring.**$* { *; }
 -keepclassmembers enum com.goldenduck.scoring.** { *; }
--keep class com.example.scoring.** { *; }
--keepclassmembers class com.example.scoring.** { *; }
--keepclassmembers class com.example.scoring.**$* { *; }
--keepclassmembers enum com.example.scoring.** { *; }
 
 # --- ENUM VALUES PRESERVATION ---
 -keepclassmembers enum * {
@@ -28,36 +24,36 @@
 }
 
 # --- ROOM DATABASE & CONVERTERS ---
--keep class com.example.scoring.Converters { *; }
--keepclassmembers class com.example.scoring.Converters { *; }
+-keep class com.goldenduck.scoring.Converters { *; }
+-keepclassmembers class com.goldenduck.scoring.Converters { *; }
 -keepclassmembers class * extends androidx.room.RoomDatabase {
     <init>(...);
 }
 -keep class * extends androidx.room.RoomDatabase
 -keep class androidx.room.RoomDatabase
--keep class com.example.scoring.AppDatabase
+-keep class com.goldenduck.scoring.AppDatabase
 
 -keep @androidx.room.Entity class * { *; }
 -keep class * implements androidx.room.RoomDatabase { *; }
 -keep interface * extends androidx.room.Dao { *; }
 
 # Keep Room Entities and DAOs
--keep class com.example.scoring.PlayerEntity { *; }
--keep class com.example.scoring.MatchEntity { *; }
--keep class com.example.scoring.PlayerMatchStatEntity { *; }
--keep class com.example.scoring.DraftMatchEntity { *; }
--keep interface com.example.scoring.*Dao { *; }
+-keep class com.goldenduck.scoring.PlayerEntity { *; }
+-keep class com.goldenduck.scoring.MatchEntity { *; }
+-keep class com.goldenduck.scoring.PlayerMatchStatEntity { *; }
+-keep class com.goldenduck.scoring.DraftMatchEntity { *; }
+-keep interface com.goldenduck.scoring.*Dao { *; }
 
 # --- DATA MODELS (Gson, Firestore, Room) ---
--keep class com.example.scoring.Ball { *; }
--keep class com.example.scoring.BallType { *; }
--keep class com.example.scoring.Match { *; }
--keep class com.example.scoring.Player { *; }
--keep class com.example.scoring.Innings { *; }
--keep class com.example.scoring.CommentaryEntry { *; }
--keep class com.example.scoring.FowEvent { *; }
--keep class com.example.scoring.PartnershipEvent { *; }
--keep class com.example.scoring.BackupManager$BackupBundle { *; }
+-keep class com.goldenduck.scoring.Ball { *; }
+-keep class com.goldenduck.scoring.BallType { *; }
+-keep class com.goldenduck.scoring.Match { *; }
+-keep class com.goldenduck.scoring.Player { *; }
+-keep class com.goldenduck.scoring.Innings { *; }
+-keep class com.goldenduck.scoring.CommentaryEntry { *; }
+-keep class com.goldenduck.scoring.FowEvent { *; }
+-keep class com.goldenduck.scoring.PartnershipEvent { *; }
+-keep class com.goldenduck.scoring.BackupManager$BackupBundle { *; }
 
 # --- FIREBASE & GOOGLE ---
 -keep class com.google.firebase.** { *; }
@@ -82,8 +78,8 @@
 
 # --- VIEWMODEL & VIEW BINDING ---
 -keep class * extends androidx.lifecycle.ViewModel { *; }
--keep class com.example.scoring.ScoringViewModel { *; }
--keep class com.example.scoring.databinding.** { *; }
+-keep class com.goldenduck.scoring.ScoringViewModel { *; }
+-keep class com.goldenduck.scoring.databinding.** { *; }
 
 # --- RECYCLERVIEW ---
 -keep class * extends androidx.recyclerview.widget.RecyclerView$ViewHolder { *; }
@@ -98,16 +94,16 @@
 -keep interface com.onesignal.** { *; }
 -dontwarn com.onesignal.**
 
--keep class com.example.scoring.AppNotificationServiceExtension { *; }
--keepclassmembers class com.example.scoring.AppNotificationServiceExtension { *; }
+-keep class com.goldenduck.scoring.AppNotificationServiceExtension { *; }
+-keepclassmembers class com.goldenduck.scoring.AppNotificationServiceExtension { *; }
 -keep class * implements com.onesignal.notifications.INotificationServiceExtension { *; }
 -keep class * implements com.onesignal.notifications.INotificationLifecycleListener { *; }
 -keep class * implements com.onesignal.notifications.INotificationClickListener { *; }
--keep class com.example.scoring.NotificationReplyReceiver { *; }
--keepclassmembers class com.example.scoring.NotificationReplyReceiver { *; }
--keep class com.example.scoring.NotificationDismissReceiver { *; }
--keepclassmembers class com.example.scoring.NotificationDismissReceiver { *; }
--keep class com.example.scoring.ChatNotificationHelper { *; }
--keepclassmembers class com.example.scoring.ChatNotificationHelper { *; }
--keep class com.example.scoring.LeagueNotificationManager { *; }
--keepclassmembers class com.example.scoring.LeagueNotificationManager { *; }
+-keep class com.goldenduck.scoring.NotificationReplyReceiver { *; }
+-keepclassmembers class com.goldenduck.scoring.NotificationReplyReceiver { *; }
+-keep class com.goldenduck.scoring.NotificationDismissReceiver { *; }
+-keepclassmembers class com.goldenduck.scoring.NotificationDismissReceiver { *; }
+-keep class com.goldenduck.scoring.ChatNotificationHelper { *; }
+-keepclassmembers class com.goldenduck.scoring.ChatNotificationHelper { *; }
+-keep class com.goldenduck.scoring.LeagueNotificationManager { *; }
+-keepclassmembers class com.goldenduck.scoring.LeagueNotificationManager { *; }
