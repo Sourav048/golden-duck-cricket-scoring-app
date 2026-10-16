@@ -10,7 +10,7 @@
       "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v7.0.apk"
     },
     "release_notes": {
-      "stringValue": "• 2160p 4K UHD player photo resolution & Supabase Storage sync\n• Instant Glide photo cache invalidation across all screens\n• Global ghost player deletion fix\n• Single-notification deduplication & anti-spam fix\n• Normalized league ID casing & 5-hour notification prompt"
+      "stringValue": "• Faster & More Responsive Live Scoring: Snappy ball-by-ball updates and instant scorecard refresh\n• Redesigned Squad & Player Selector: Effortlessly pick players and manage team rosters\n• Modern Material 3 UI: Polished dialogs, match history cards, and seamless dark mode\n• Reliable Cloud Sync: Instant match backup and real-time score updates across league members\n• Performance & Bug Fixes: Smoother app startup, lower memory usage, and improved overall stability"
     },
     "force_update": {
       "booleanValue": false
