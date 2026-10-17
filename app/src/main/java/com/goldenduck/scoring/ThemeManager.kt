@@ -241,6 +241,7 @@ object ThemeManager {
             }
             is TextView -> {
                 if (v.tag == "custom_color") return
+                if (v.id == R.id.tvInningsTeamName || v.id == R.id.tvInningsScore || v.id == R.id.tvCommIconText) return
                 val currentColor = v.textColors.defaultColor
                 val isPrestige = RankingRegistry.isPrestigeColor(currentColor)
 

@@ -892,13 +892,18 @@ class MainActivity : BaseActivity(), ScoringProvider {
     override fun getPlayerFromCache(name: String?): Player? {
         if (name == null) return null
         val trimmedName = name.trim()
+        val currentGId = GullySyncManager.getCurrentGullyId(applicationContext) ?: "local"
         if (!playerStatCache.containsKey(trimmedName)) {
             val p = Player(trimmedName)
             p.id = nameToIdMap[trimmedName]
-            p.gullyId = GullySyncManager.getCurrentGullyId(applicationContext) ?: "local"
+            p.gullyId = currentGId
             playerStatCache[trimmedName] = p
         }
-        return playerStatCache[trimmedName]
+        val cachedP = playerStatCache[trimmedName]
+        if (cachedP != null && (cachedP.gullyId == "local" || cachedP.gullyId.isEmpty()) && currentGId != "local") {
+            cachedP.gullyId = currentGId
+        }
+        return cachedP
     }
 
     private fun initPlayers() {
@@ -1269,7 +1274,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             }
         }
 
-        isFreeHitActive = (type == BallType.NO_BALL)
+        isFreeHitActive = (type == BallType.NO_BALL) || (type == BallType.WIDE && isFreeHitActive)
 
         val isOverComplete = innings.legalBalls % 6 == 0 && (type == BallType.NORMAL || type == BallType.BYE || type == BallType.LEG_BYE)
 
@@ -3482,7 +3487,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 playerStats = runningPlayerStats,
                 currentStrikerName = initStriker1,
                 currentNonStrikerName = initNonStriker1,
-                currentBowlerName = initBowler1
+                currentBowlerName = initBowler1,
+                isRuleRunsOnWide = m.ruleRunsOnWide
             )
 
             val i1Events = i1Balls.map { ball ->
@@ -3529,7 +3535,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 playerStats = runningPlayerStats,
                 currentStrikerName = initStriker2,
                 currentNonStrikerName = initNonStriker2,
-                currentBowlerName = initBowler2
+                currentBowlerName = initBowler2,
+                isRuleRunsOnWide = m.ruleRunsOnWide
             )
 
             val i2Events = i2Balls.map { ball ->
@@ -3840,6 +3847,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                             p.id = nameToIdMap[trimmedPName] ?: nameToIdMap[p.name] ?: db?.playerDao()?.getPlayerByName(trimmedPName)?.id
                         }
                         val s = PlayerMatchStatEntity.fromPlayer(p, matchId, teamName)
+                        s.gullyId = entity.gullyId
                         db?.statsDao()?.insertStat(s)
                     }
                 }
@@ -4715,6 +4723,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 }
                 
                 iconLayout.backgroundTintList = android.content.res.ColorStateList.valueOf(bgColor)
+                standard.tvBallEvent.tag = "custom_color"
                 standard.tvBallEvent.setTextColor(ThemeManager.getContrastColor(bgColor))
             }
         }

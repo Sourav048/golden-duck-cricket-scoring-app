@@ -62,6 +62,8 @@ object RankingRegistry {
                 
                 // CRITICAL SAFETY: Wrap stats fetching in try-catch
                 try {
+                    db.statsDao().fixOrphanMatchStats()
+                    db.statsDao().fixMismatchedGullyMatchStats()
                     val overall = db.statsDao().getOverallRankings(gId) ?: emptyList()
                     val batting = db.statsDao().getBattingRankings(gId) ?: emptyList()
                     val bowling = db.statsDao().getBowlingRankings(gId) ?: emptyList()

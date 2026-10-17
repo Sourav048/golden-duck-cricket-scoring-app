@@ -10,7 +10,8 @@ data class MatchState(
     val currentNonStrikerName: String? = null,
     val currentBowlerName: String? = null,
     val isFreeHitActive: Boolean = false,
-    val isOverComplete: Boolean = false
+    val isOverComplete: Boolean = false,
+    val isRuleRunsOnWide: Boolean = true
 ) {
     fun getPlayer(name: String?): Player? {
         if (name.isNullOrBlank()) return null

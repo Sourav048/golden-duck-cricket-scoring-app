@@ -103,6 +103,9 @@ interface StatsDao {
     @Query("UPDATE player_match_stats SET playerId = (SELECT p.id FROM players p WHERE LOWER(TRIM(p.name)) = LOWER(TRIM(player_match_stats.playerName)) ORDER BY p.lastSyncedAt DESC, p.createdAt DESC LIMIT 1) WHERE (playerId IS NULL OR playerId = '' OR playerId NOT IN (SELECT id FROM players)) AND EXISTS (SELECT 1 FROM players p WHERE LOWER(TRIM(p.name)) = LOWER(TRIM(player_match_stats.playerName)))")
     fun fixOrphanMatchStats(): Int
 
+    @Query("UPDATE player_match_stats SET gullyId = (SELECT m.gullyId FROM matches m WHERE m.id = player_match_stats.matchId) WHERE EXISTS (SELECT 1 FROM matches m WHERE m.id = player_match_stats.matchId AND m.gullyId != player_match_stats.gullyId AND m.gullyId IS NOT NULL AND m.gullyId != '')")
+    fun fixMismatchedGullyMatchStats(): Int
+
     @Query("SELECT s.playerId, COALESCE(p.name, s.playerName) as playerName, p.photoUri as photoUri, (SUM(s.runsScored) + SUM(s.sixes)*4 + SUM(s.fours)*2 + SUM(CASE WHEN s.runsScored >= 100 THEN 50 WHEN s.runsScored >= 80 THEN 40 WHEN s.runsScored >= 50 THEN 25 WHEN s.runsScored >= 30 THEN 10 ELSE 0 END) + SUM(s.wicketsTaken)*25 + SUM(s.maidens)*15 + SUM(s.dotBalls)*2 + SUM(s.catches)*8 + SUM(s.stumpings)*12 + SUM(s.runOuts)*12) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id WHERE s.playerName NOT IN ('FIELD', 'PENALTY', 'RETIRED') AND s.gullyId = :gId GROUP BY s.playerId HAVING total > 0 ORDER BY total DESC")
     fun getOverallRankings(gId: String): List<PlayerTotalStat?>?
 
@@ -121,21 +124,21 @@ interface StatsDao {
     @Query("SELECT s.playerId, COALESCE(p.name, s.playerName) as playerName, p.photoUri as photoUri, SUM(s.runOuts) as total FROM player_match_stats s LEFT JOIN players p ON s.playerId = p.id WHERE s.playerName NOT IN ('FIELD', 'PENALTY', 'RETIRED') AND s.gullyId = :gId GROUP BY s.playerId HAVING total > 0 ORDER BY total DESC, (SUM(s.runsScored) + SUM(s.sixes)*4 + SUM(s.fours)*2 + SUM(CASE WHEN s.runsScored >= 100 THEN 50 WHEN s.runsScored >= 80 THEN 40 WHEN s.runsScored >= 50 THEN 25 WHEN s.runsScored >= 30 THEN 10 ELSE 0 END) + SUM(s.wicketsTaken)*25 + SUM(s.maidens)*15 + SUM(s.dotBalls)*2 + SUM(s.catches)*8 + SUM(s.stumpings)*12 + SUM(s.runOuts)*12) DESC, playerName ASC")
     fun getMostRunOuts(gId: String): List<PlayerTotalStat?>?
 
-    @Query("SELECT SUM(runsScored) FROM player_match_stats s JOIN players p ON s.playerId = p.id WHERE p.globalId = :gId OR p.id = :gId")
+    @Query("SELECT SUM(runsScored) FROM (SELECT s.matchId, MAX(s.runsScored) as runsScored FROM player_match_stats s JOIN players p ON s.playerId = p.id WHERE p.globalId = :gId OR p.id = :gId GROUP BY s.matchId)")
     fun getGlobalTotalRuns(gId: String): Int?
 
-    @Query("SELECT SUM(wicketsTaken) FROM player_match_stats s JOIN players p ON s.playerId = p.id WHERE p.globalId = :gId OR p.id = :gId")
+    @Query("SELECT SUM(wicketsTaken) FROM (SELECT s.matchId, MAX(s.wicketsTaken) as wicketsTaken FROM player_match_stats s JOIN players p ON s.playerId = p.id WHERE p.globalId = :gId OR p.id = :gId GROUP BY s.matchId)")
     fun getGlobalTotalWickets(gId: String): Int?
 
-    @Query("SELECT COUNT(*) FROM player_match_stats s JOIN players p ON s.playerId = p.id WHERE p.globalId = :gId OR p.id = :gId")
+    @Query("SELECT COUNT(DISTINCT s.matchId) FROM player_match_stats s JOIN players p ON s.playerId = p.id WHERE p.globalId = :gId OR p.id = :gId")
     fun getGlobalTotalMatches(gId: String): Int
 
-    @Query("SELECT SUM(runsScored) FROM player_match_stats WHERE playerId = :pId")
+    @Query("SELECT SUM(runsScored) FROM (SELECT matchId, MAX(runsScored) as runsScored FROM player_match_stats WHERE playerId = :pId GROUP BY matchId)")
     fun getTotalRuns(pId: String): Int?
 
-    @Query("SELECT SUM(wicketsTaken) FROM player_match_stats WHERE playerId = :pId")
+    @Query("SELECT SUM(wicketsTaken) FROM (SELECT matchId, MAX(wicketsTaken) as wicketsTaken FROM player_match_stats WHERE playerId = :pId GROUP BY matchId)")
     fun getTotalWickets(pId: String): Int?
 
-    @Query("SELECT COUNT(*) FROM player_match_stats WHERE playerId = :pId")
+    @Query("SELECT COUNT(DISTINCT matchId) FROM player_match_stats WHERE playerId = :pId")
     fun getTotalMatches(pId: String): Int
 }

@@ -99,7 +99,15 @@ object MatchEngine {
             }
         }
 
-        val runsForRotation = if (ball.type == BallType.NORMAL || ball.type == BallType.NO_BALL) ball.batRuns else ball.runs
+        val widePenalty = if (state.isRuleRunsOnWide) 1 else 0
+        val nbPenalty = if (state.isRuleRunsOnWide) 1 else 0
+
+        val runsForRotation = when (ball.type) {
+            BallType.WIDE -> (ball.runs - widePenalty).coerceAtLeast(0)
+            BallType.NO_BALL -> (ball.runs - nbPenalty).coerceAtLeast(0)
+            BallType.PENALTY -> 0
+            else -> ball.runs
+        }
         val isOddRuns = runsForRotation % 2 != 0
 
         val isLegalBall = ball.type != BallType.WIDE && ball.type != BallType.NO_BALL
@@ -121,7 +129,7 @@ object MatchEngine {
         }
 
         // Handle Free Hit state
-        val nextFreeHitActive = (ball.type == BallType.NO_BALL)
+        val nextFreeHitActive = (ball.type == BallType.NO_BALL) || (ball.type == BallType.WIDE && state.isFreeHitActive)
 
         return MatchState(
             innings = innings,

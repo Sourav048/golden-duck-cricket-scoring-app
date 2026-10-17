@@ -36,6 +36,7 @@ class LeaderboardViewModel(application: Application) : AndroidViewModel(applicat
 
                 val gId = GullySyncManager.getCurrentGullyId(ctx) ?: "local"
                 db.statsDao().fixOrphanMatchStats()
+                db.statsDao().fixMismatchedGullyMatchStats()
 
                 val stats: List<PlayerTotalStat?>? = when (type) {
                     "Most Runs" -> db.statsDao().getMostRuns(gId)

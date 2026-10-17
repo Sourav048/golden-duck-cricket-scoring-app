@@ -133,6 +133,7 @@ object StatsRecalculator {
                     for (p in playerMap.values) {
                         val teamName = if (entity.teamANames?.contains(p.name) == true) entity.teamAName else entity.teamBName
                         val s = PlayerMatchStatEntity.fromPlayer(p, matchId, teamName)
+                        s.gullyId = gId
                         db.statsDao().insertStat(s)
                     }
                 }
@@ -206,6 +207,7 @@ object StatsRecalculator {
             try {
                 val db = AppDatabase.getInstance(context)
                 db.statsDao().fixOrphanMatchStats()
+                db.statsDao().fixMismatchedGullyMatchStats()
 
                 val allStats = db.statsDao().getAllStats()?.filterNotNull() ?: run {
                     onComplete?.invoke()

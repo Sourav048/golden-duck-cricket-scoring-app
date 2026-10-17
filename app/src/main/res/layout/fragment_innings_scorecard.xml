@@ -38,6 +38,7 @@
 
                     <TextView
                         android:id="@+id/tvInningsTeamName"
+                        android:tag="custom_color"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         tools:text="KRISHNA CHODUS"
@@ -53,6 +54,7 @@
 
                     <TextView
                         android:id="@+id/tvInningsScore"
+                        android:tag="custom_color"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         tools:text="101/1 (8.0/8 Ov)"

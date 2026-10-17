@@ -472,7 +472,7 @@ class SquadFragment : Fragment() {
             dialog.show()
             ThemeManager.colorizeDialog(dialog)
 
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { btn ->
                 val name = nameInput.text.toString().trim()
                 val jersey = jerseyInput.text.toString().trim()
 
@@ -490,6 +490,8 @@ class SquadFragment : Fragment() {
                     nameInput.error = "$name is already playing in this match"
                     return@setOnClickListener
                 }
+
+                btn.isEnabled = false
 
                 val ctx = context
                 // CHECK FOR EXISTING PLAYER IN LEAGUE / GULLY FIRST (OFFLINE FRIENDLY)
@@ -511,6 +513,7 @@ class SquadFragment : Fragment() {
                             // BRAND NEW PLAYER: Require Internet Connection!
                             if (!GullySyncManager.isNetworkAvailable(ctx)) {
                                 Toast.makeText(ctx, "Internet connection required to create a new player.", Toast.LENGTH_LONG).show()
+                                btn.isEnabled = true
                                 return@runOnUiThread
                             }
 
@@ -524,6 +527,7 @@ class SquadFragment : Fragment() {
                                             .setMessage("This player already exists in some other Gully. Change your name a little bit to create a new player.")
                                             .setPositiveButton("Dismiss") { d, _ -> d.dismiss() }
                                             .show()
+                                        btn.isEnabled = true
                                     } else {
                                         // Proceed to create new player
                                         provider.addPlayerToTeam(teamName, name, fragment.selectedPlayerInfo[0], fragment.selectedPlayerInfo[1], jersey)

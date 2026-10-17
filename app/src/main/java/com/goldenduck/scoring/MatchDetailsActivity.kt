@@ -7,8 +7,11 @@ import android.os.Handler
 import android.os.Looper
 import android.graphics.Typeface
 import android.provider.Settings
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.util.TypedValue
+import android.widget.EditText
 import com.google.firebase.firestore.ListenerRegistration
 import android.view.View
 import android.view.ViewGroup
@@ -220,6 +223,10 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
             this.match = m
             this.isFinished = entity.isFinished
             this.isAbandoned = entity.isAbandoned
+            this.isRuleRunsOnWide = m.ruleRunsOnWide
+            this.isRuleFreeHit = m.ruleFreeHit
+            this.isRuleRunsOnBye = m.ruleRunsOnBye
+            this.isRuleOverthrow = m.ruleOverthrow
 
             runOnUiThread {
                 this.matchEntity = entity
@@ -442,6 +449,10 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                     this.statsEntities = stats
                     this.isFinished = entity.isFinished
                     this.isAbandoned = entity.isAbandoned
+                    this.isRuleRunsOnWide = m.ruleRunsOnWide
+                    this.isRuleFreeHit = m.ruleFreeHit
+                    this.isRuleRunsOnBye = m.ruleRunsOnBye
+                    this.isRuleOverthrow = m.ruleOverthrow
 
                     // Refresh squads, photos & maps from incoming entity
                     val currentA = ArrayList<String?>()
@@ -528,12 +539,29 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                             val widePenalty = if (isRuleRunsOnWide) 1 else 0
                             val nbPenalty = if (isRuleRunsOnWide) 1 else 0
                             val event = when {
-                                b.isWicket -> if (b.runs > (if (b.type == BallType.WIDE) widePenalty else if (b.type == BallType.NO_BALL) nbPenalty else 0)) "${b.runs}W" else "W"
-                                b.type == BallType.WIDE -> "WD${if (b.runs > widePenalty) b.runs - widePenalty else ""}".trimEnd()
-                                b.type == BallType.NO_BALL -> "NB${if (b.runs > nbPenalty) b.runs - nbPenalty else ""}".trimEnd()
-                                b.type == BallType.BYE -> "B${b.runs}"
-                                b.type == BallType.LEG_BYE -> "LB${b.runs}"
-                                b.runs == 0 -> "0"
+                                b.isWicket -> {
+                                    val runsRan = when (b.type) {
+                                        BallType.WIDE -> b.runs - widePenalty
+                                        BallType.NO_BALL -> b.runs - nbPenalty
+                                        else -> b.runs
+                                    }
+                                    if (runsRan <= 0) "W" else "${runsRan}W"
+                                }
+                                b.type == BallType.BYE -> {
+                                    if (b.runs == 0) "." else "${b.runs}B"
+                                }
+                                b.type == BallType.LEG_BYE -> {
+                                    if (b.runs == 0) "." else "${b.runs}LB"
+                                }
+                                b.type == BallType.WIDE -> {
+                                    val runsRan = b.runs - widePenalty
+                                    if (runsRan <= 0) "WD" else "${runsRan}WD"
+                                }
+                                b.type == BallType.NO_BALL -> {
+                                    val runsRan = b.runs - nbPenalty
+                                    if (runsRan <= 0) "NB" else "${runsRan}NB"
+                                }
+                                b.type == BallType.PENALTY -> "P${b.runs}"
                                 else -> b.runs.toString()
                             }
                             overBallsList.add(event)
@@ -580,12 +608,29 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                                         val widePenalty = if (isRuleRunsOnWide) 1 else 0
                                         val nbPenalty = if (isRuleRunsOnWide) 1 else 0
                                         val event = when {
-                                            ball.isWicket -> if (ball.runs > (if (ball.type == BallType.WIDE) widePenalty else if (ball.type == BallType.NO_BALL) nbPenalty else 0)) "${ball.runs}W" else "W"
-                                            ball.type == BallType.WIDE -> "WD${if (ball.runs > widePenalty) ball.runs - widePenalty else ""}".trimEnd()
-                                            ball.type == BallType.NO_BALL -> "NB${if (ball.runs > nbPenalty) ball.runs - nbPenalty else ""}".trimEnd()
-                                            ball.type == BallType.BYE -> "B${ball.runs}"
-                                            ball.type == BallType.LEG_BYE -> "LB${ball.runs}"
-                                            ball.runs == 0 -> "0"
+                                            ball.isWicket -> {
+                                                val runsRan = when (ball.type) {
+                                                    BallType.WIDE -> ball.runs - widePenalty
+                                                    BallType.NO_BALL -> ball.runs - nbPenalty
+                                                    else -> ball.runs
+                                                }
+                                                if (runsRan <= 0) "W" else "${runsRan}W"
+                                            }
+                                            ball.type == BallType.BYE -> {
+                                                if (ball.runs == 0) "." else "${ball.runs}B"
+                                            }
+                                            ball.type == BallType.LEG_BYE -> {
+                                                if (ball.runs == 0) "." else "${ball.runs}LB"
+                                            }
+                                            ball.type == BallType.WIDE -> {
+                                                val runsRan = ball.runs - widePenalty
+                                                if (runsRan <= 0) "WD" else "${runsRan}WD"
+                                            }
+                                            ball.type == BallType.NO_BALL -> {
+                                                val runsRan = ball.runs - nbPenalty
+                                                if (runsRan <= 0) "NB" else "${runsRan}NB"
+                                            }
+                                            ball.type == BallType.PENALTY -> "P${ball.runs}"
                                             else -> ball.runs.toString()
                                         }
                                         ballsInOver.add(0, event)
@@ -999,6 +1044,7 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
             backgroundTintList = android.content.res.ColorStateList.valueOf(bgColor)
         }
         val tv = TextView(ctx).apply {
+            tag = "custom_color"
             text = b
             setTextColor(ThemeManager.getContrastColor(bgColor))
             textSize = if (text.length > 2) 8f else 10f
@@ -1070,5 +1116,106 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
     override fun playLottie(assetName: String?) {}
     override fun addPlayerToTeam(teamName: String?, playerName: String?, playerId: String?, photoUri: String?, jerseyNumber: String?) {}
     override fun removePlayerFromTeam(teamName: String?, playerName: String?) {}
-    override fun showEditCommentaryDialog(context: android.content.Context, entry: CommentaryEntry, pos: Int) {}
+
+    override fun showEditCommentaryDialog(context: Context, entry: CommentaryEntry, pos: Int) {
+        // Backward compatibility: If baseText is missing, try to extract it from existing text
+        if (entry.baseText == null && !entry.text.isNullOrEmpty()) {
+            val text = entry.text!!
+            if (entry.userNote.isNotEmpty() && text.endsWith(entry.userNote)) {
+                entry.baseText = text.substring(0, text.length - entry.userNote.length).trimEnd().trimEnd(',')
+            } else {
+                entry.baseText = text
+            }
+        }
+
+        val input = EditText(context).apply {
+            hint = "Add Moment..."
+            setText(entry.userNote)
+            setSelection(entry.userNote.length)
+        }
+
+        input.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                if (count == 1 && s?.get(start) == '@') {
+                    showMentionSelection(context, input, start)
+                }
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+        
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(64, 32, 64, 32)
+            addView(input)
+        }
+
+        val dialog = ThemeManager.createDynamicBuilder(context)
+            .setTitle("Add Moment! ${entry.over}")
+            .setView(container)
+            .setPositiveButton("Save") { _, _ ->
+                val newUserNote = input.text.toString().trim()
+                entry.userNote = newUserNote
+                
+                // Reconstruct the display text
+                val base = entry.baseText ?: ""
+                if (newUserNote.isNotEmpty()) {
+                    entry.text = "$base, $newUserNote"
+                } else {
+                    entry.text = base
+                }
+                
+                viewModel?.updateCommentary(ArrayList(commentary))
+                saveCommentaryToDatabase()
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+        
+        dialog.show()
+        ThemeManager.colorizeDialog(dialog)
+    }
+
+    private fun showMentionSelection(context: Context, input: EditText, mentionIndex: Int) {
+        val names = getSortedPlayerNames()
+        val array = names.toTypedArray()
+        if (array.isEmpty()) return
+        
+        val dialog = ThemeManager.createDynamicBuilder(context)
+            .setTitle("Mention Player")
+            .setItems(array) { _, w ->
+                val selectedName = array[w]
+                val currentText = input.text
+                currentText.replace(mentionIndex, mentionIndex + 1, selectedName)
+                input.setSelection(mentionIndex + selectedName.length)
+            }
+            .create()
+        
+        dialog.show()
+        ThemeManager.colorizeDialog(dialog)
+    }
+
+    private fun getSortedPlayerNames(): List<String> {
+        val names = LinkedHashSet<String>()
+        striker?.name?.let { names.add(it) }
+        nonStriker?.name?.let { names.add(it) }
+        bowler?.name?.let { names.add(it) }
+
+        teamANames?.mapNotNull { it }?.forEach { names.add(it) }
+        teamBNames?.mapNotNull { it }?.forEach { names.add(it) }
+
+        return names.toList()
+    }
+
+    private fun saveCommentaryToDatabase() {
+        val mId = currentMatchId ?: return
+        AppDatabase.ioExecutor.execute {
+            val entity = db?.matchDao()?.getMatchById(mId) ?: return@execute
+            entity.commentaryJson = ArrayList(commentary)
+            db?.matchDao()?.insertMatch(entity)
+            val gId = GullySyncManager.getCurrentGullyId(this)
+            if (!gId.isNullOrEmpty()) {
+                GullySyncManager.syncMatchToCloud(gId, entity)
+            }
+        }
+    }
 }

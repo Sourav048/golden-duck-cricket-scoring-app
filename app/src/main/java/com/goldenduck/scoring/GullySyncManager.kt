@@ -255,6 +255,7 @@ object GullySyncManager {
                                                         cloudMatch.commentaryJson = payload.cj
                                                         cloudMatch.pshipJson1 = payload.p1; cloudMatch.pshipJson2 = payload.p2
                                                         cloudMatch.fowJson1 = payload.f1; cloudMatch.fowJson2 = payload.f2
+                                                        localDb.statsDao().deleteStatsByMatch(cloudMatch.id)
                                                         payload.stats?.forEach { s -> if (s != null) localDb.statsDao().insertStat(s) }
                                                     }
                                                 }
@@ -464,6 +465,7 @@ object GullySyncManager {
             if (player.globalId == null) player.globalId = finalGlobalId
 
             // CRITICAL FIX: Fetch global-aware totals (Across all local gullies this device knows about)
+            localDb.statsDao().fixOrphanMatchStats()
             val localRuns = localDb.statsDao().getGlobalTotalRuns(finalGlobalId) ?: 0
             val localWickets = localDb.statsDao().getGlobalTotalWickets(finalGlobalId) ?: 0
             val localMatches = localDb.statsDao().getGlobalTotalMatches(finalGlobalId)
@@ -507,12 +509,12 @@ object GullySyncManager {
             globalRef.set(profileUpdate, SetOptions.merge()).addOnSuccessListener {
                 // Now handle origin and stats with a second merged set to be safe
                 val statsAndOrigin = hashMapOf<String, Any>()
-                
+
                 globalRef.get().addOnSuccessListener { doc ->
                     if (!doc.exists() || doc.getString("originGully").isNullOrEmpty()) {
                         statsAndOrigin["originGully"] = player.originGully ?: gullyId
                     }
-                    
+
                     statsAndOrigin["totalRuns"] = localRuns.toLong()
                     statsAndOrigin["totalWickets"] = localWickets.toLong()
                     statsAndOrigin["totalMatches"] = localMatches.toLong()

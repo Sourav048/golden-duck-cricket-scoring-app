@@ -598,6 +598,7 @@ class LiveScoringFragment : Fragment() {
 
         // 3. Text Label
         val tv = TextView(ctx).apply {
+            tag = "custom_color"
             text = when (event) {
                 "0" -> "•"
                 else -> event

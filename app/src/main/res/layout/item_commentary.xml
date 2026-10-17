@@ -144,10 +144,14 @@
                     android:id="@+id/tvCommOver"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="12sp"
+                    android:textSize="11.5sp"
                     android:textStyle="bold"
                     android:textColor="?attr/colorOnSurfaceVariant"
-                    android:layout_marginBottom="3dp"
+                    android:background="@drawable/bg_over_pill"
+                    android:paddingHorizontal="5dp"
+                    android:paddingTop="1.5dp"
+                    android:paddingBottom="2.5dp"
+                    android:layout_marginBottom="0dp"
                     tools:text="0.1"/>
 
                 <FrameLayout
@@ -158,6 +162,7 @@
 
                     <TextView
                         android:id="@+id/tvCommIconText"
+                        android:tag="custom_color"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
