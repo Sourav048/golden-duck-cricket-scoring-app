@@ -1104,7 +1104,7 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
                                         val delta = choiceObj.optJSONObject("delta")
 
                                         val contentChunk = if (delta != null && !delta.isNull("content")) delta.optString("content") else null
-                                        if (!contentChunk.isNullOrBlank() && contentChunk != "null") {
+                                        if (!contentChunk.isNullOrEmpty() && contentChunk != "null") {
                                             fullSb.append(contentChunk)
                                             onChunk(contentChunk)
                                         }
@@ -1183,7 +1183,11 @@ class AiChatActivity : BaseActivity(), TextToSpeech.OnInitListener {
                                 fullSb.clear()
                                 messagesArray.put(JSONObject().apply {
                                     put("role", "assistant")
-                                    put("content", assistantText)
+                                    if (assistantText.isNotEmpty()) {
+                                        put("content", assistantText)
+                                    } else {
+                                        put("content", JSONObject.NULL)
+                                    }
                                     put("tool_calls", assistantToolCallsArr)
                                 })
                                 for (tr in toolResponses) {

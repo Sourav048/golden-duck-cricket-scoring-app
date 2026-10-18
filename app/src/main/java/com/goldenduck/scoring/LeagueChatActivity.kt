@@ -457,43 +457,128 @@ class LeagueChatActivity : BaseActivity() {
             val now = System.currentTimeMillis()
             val localJoinedAt = prefs.getLong("league_joined_at_$leagueId", now)
 
+            val rawAndroidId = senderId.removePrefix("user_")
+            val altSenderId = if (senderId.startsWith("user_")) rawAndroidId else "user_$senderId"
+            val possibleUserIds = listOf(senderId, altSenderId).distinct()
+
+            fun applyRestoredProfile(restoredName: String?, restoredPic: String?) {
+                val editor = prefs.edit()
+                var updated = false
+
+                if (!restoredName.isNullOrBlank() && !restoredName.startsWith("Player-") && senderName != restoredName) {
+                    senderName = restoredName.trim()
+                    editor.putString("chat_sender_name", senderName)
+                    updated = true
+                }
+
+                if (!restoredPic.isNullOrBlank() && senderProfilePic != restoredPic) {
+                    senderProfilePic = restoredPic.trim()
+                    editor.putString("chat_sender_profile_pic", senderProfilePic)
+                    updated = true
+                }
+
+                if (updated) {
+                    editor.apply()
+                    if (::tvLeagueSubtitle.isInitialized) {
+                        tvLeagueSubtitle.text = "League: $leagueId • As: $senderName"
+                    }
+                    updateHeaderProfileAvatar()
+
+                    activeProfileDialogAvatarView?.let { iv ->
+                        if (!senderProfilePic.isNullOrBlank()) {
+                            activeProfileDialogPlaceholderView?.visibility = View.GONE
+                            iv.visibility = View.VISIBLE
+                            Glide.with(this@LeagueChatActivity).load(senderProfilePic).circleCrop().into(iv)
+                        }
+                    }
+                }
+            }
+
+            fun saveFinalUserMap(joinedAtVal: Long) {
+                prefs.edit().putLong("league_joined_at_$leagueId", joinedAtVal).apply()
+
+                val userMap = hashMapOf(
+                    "userId" to senderId,
+                    "displayName" to senderName,
+                    "profilePic" to (senderProfilePic ?: ""),
+                    "joinedAt" to joinedAtVal,
+                    "lastActive" to System.currentTimeMillis()
+                )
+                db.collection("gullies").document(leagueId)
+                    .collection("chat_users").document(senderId)
+                    .set(userMap, SetOptions.merge())
+                    .addOnSuccessListener {
+                        GullySyncManager.syncLeagueMemberCount(leagueId)
+                    }
+            }
+
+            // 1. Check primary chat_users document
             db.collection("gullies").document(leagueId)
                 .collection("chat_users").document(senderId)
                 .get()
                 .addOnSuccessListener { doc ->
                     val remoteJoinedAt = doc.getLong("joinedAt")
-                    val effectiveJoinedAt = if (remoteJoinedAt != null && remoteJoinedAt > 0) {
-                        remoteJoinedAt
-                    } else {
-                        localJoinedAt
-                    }
-                    prefs.edit().putLong("league_joined_at_$leagueId", effectiveJoinedAt).apply()
+                    val effectiveJoinedAt = if (remoteJoinedAt != null && remoteJoinedAt > 0) remoteJoinedAt else localJoinedAt
 
-                    val userMap = hashMapOf(
-                        "userId" to senderId,
-                        "displayName" to senderName,
-                        "profilePic" to (senderProfilePic ?: ""),
-                        "joinedAt" to effectiveJoinedAt,
-                        "lastActive" to System.currentTimeMillis()
-                    )
-                    db.collection("gullies").document(leagueId)
-                        .collection("chat_users").document(senderId)
-                        .set(userMap, SetOptions.merge())
-                        .addOnSuccessListener {
-                            GullySyncManager.syncLeagueMemberCount(leagueId)
-                        }
+                    val remoteName = doc.getString("displayName") ?: doc.getString("name")
+                    val remotePic = doc.getString("profilePic") ?: doc.getString("senderProfilePic")
+
+                    val hasValidRemoteName = !remoteName.isNullOrBlank() && !remoteName.startsWith("Player-")
+
+                    if (hasValidRemoteName) {
+                        applyRestoredProfile(remoteName, remotePic)
+                        saveFinalUserMap(effectiveJoinedAt)
+                    } else {
+                        // 2. Check alternate document ID in chat_users
+                        db.collection("gullies").document(leagueId)
+                            .collection("chat_users").document(altSenderId)
+                            .get()
+                            .addOnSuccessListener { altDoc ->
+                                val altName = altDoc.getString("displayName") ?: altDoc.getString("name")
+                                val altPic = altDoc.getString("profilePic") ?: altDoc.getString("senderProfilePic")
+
+                                if (!altName.isNullOrBlank() && !altName.startsWith("Player-")) {
+                                    applyRestoredProfile(altName, altPic)
+                                    saveFinalUserMap(effectiveJoinedAt)
+                                } else {
+                                    // 3. Fallback: Search past messages sent by this device in this league
+                                    db.collection("gullies").document(leagueId)
+                                        .collection("messages")
+                                        .whereIn("senderId", possibleUserIds)
+                                        .get()
+                                        .addOnSuccessListener { msgSnap ->
+                                            var foundPastName: String? = null
+                                            var foundPastPic: String? = null
+
+                                            if (msgSnap != null && !msgSnap.isEmpty) {
+                                                for (msgDoc in msgSnap.documents) {
+                                                    val mName = msgDoc.getString("senderName")
+                                                    val mPic = msgDoc.getString("senderProfilePic")
+                                                    if (!mName.isNullOrBlank() && !mName.startsWith("Player-")) {
+                                                        foundPastName = mName
+                                                        if (!mPic.isNullOrBlank()) foundPastPic = mPic
+                                                        break
+                                                    }
+                                                }
+                                            }
+
+                                            if (foundPastName != null) {
+                                                applyRestoredProfile(foundPastName, foundPastPic)
+                                            }
+                                            saveFinalUserMap(effectiveJoinedAt)
+                                        }
+                                        .addOnFailureListener {
+                                            saveFinalUserMap(effectiveJoinedAt)
+                                        }
+                                }
+                            }
+                            .addOnFailureListener {
+                                saveFinalUserMap(effectiveJoinedAt)
+                            }
+                    }
                 }
                 .addOnFailureListener {
-                    val userMap = hashMapOf(
-                        "userId" to senderId,
-                        "displayName" to senderName,
-                        "profilePic" to (senderProfilePic ?: ""),
-                        "joinedAt" to localJoinedAt,
-                        "lastActive" to System.currentTimeMillis()
-                    )
-                    db.collection("gullies").document(leagueId)
-                        .collection("chat_users").document(senderId)
-                        .set(userMap, SetOptions.merge())
+                    saveFinalUserMap(localJoinedAt)
                 }
         }
     }

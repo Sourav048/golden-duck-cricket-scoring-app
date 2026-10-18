@@ -66,7 +66,8 @@ object GullySyncManager {
                 gullyRef.set(data).addOnSuccessListener {
                     val gullyPrefs = db.app.applicationContext.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
                     val myUserId = gullyPrefs.getString("chat_sender_id", null) ?: ScoringApp.instance?.getOrCreateUserId()
-                    val myName = gullyPrefs.getString("chat_sender_name", "Admin") ?: "Admin"
+                    val defaultName = if (!myUserId.isNullOrEmpty()) "Player-${myUserId.takeLast(4)}" else "Player"
+                    val myName = gullyPrefs.getString("chat_sender_name", defaultName) ?: defaultName
                     if (!myUserId.isNullOrEmpty()) {
                         val userMap = hashMapOf(
                             "userId" to myUserId,
@@ -98,7 +99,8 @@ object GullySyncManager {
                 if (cloudPass == pass) {
                     val gullyPrefs = db.app.applicationContext.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
                     val myUserId = gullyPrefs.getString("chat_sender_id", null) ?: ScoringApp.instance?.getOrCreateUserId()
-                    val myName = gullyPrefs.getString("chat_sender_name", "Member") ?: "Member"
+                    val defaultName = if (!myUserId.isNullOrEmpty()) "Player-${myUserId.takeLast(4)}" else "Player"
+                    val myName = gullyPrefs.getString("chat_sender_name", defaultName) ?: defaultName
                     if (!myUserId.isNullOrEmpty()) {
                         val userMap = hashMapOf(
                             "userId" to myUserId,

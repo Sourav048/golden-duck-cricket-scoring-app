@@ -30,6 +30,7 @@ class ComparePageFragment : Fragment() {
     private var containerBatting: LinearLayout? = null
     private var containerBowling: LinearLayout? = null
     private var containerFielding: LinearLayout? = null
+    private var containerRecent: LinearLayout? = null
     private var containerH2H_1: LinearLayout? = null
     private var containerH2H_2: LinearLayout? = null
     private var layoutOverall: View? = null
@@ -59,6 +60,7 @@ class ComparePageFragment : Fragment() {
         containerBatting = v.findViewById(R.id.containerBatting)
         containerBowling = v.findViewById(R.id.containerBowling)
         containerFielding = v.findViewById(R.id.containerFielding)
+        containerRecent = v.findViewById(R.id.containerRecent)
         containerH2H_1 = v.findViewById(R.id.containerH2H_1)
         containerH2H_2 = v.findViewById(R.id.containerH2H_2)
         h2hHeader1 = v.findViewById(R.id.h2h_header_1)
@@ -115,6 +117,7 @@ class ComparePageFragment : Fragment() {
             containerBatting?.removeAllViews()
             containerBowling?.removeAllViews()
             containerFielding?.removeAllViews()
+            containerRecent?.removeAllViews()
 
             val c1 = act.s1_overall
             val c2 = act.s2_overall
@@ -137,7 +140,6 @@ class ComparePageFragment : Fragment() {
                 act.addCompareRow(inflater, it, "HIGHEST SCORE", c1.highest.toDouble(), c2.highest.toDouble(), true)
                 act.addCompareRow(inflater, it, "SETTING AVG (1st)", c1.settingAvg, c2.settingAvg, true)
                 act.addCompareRow(inflater, it, "CHASING AVG (2nd)", c1.chasingAvg, c2.chasingAvg, true)
-                act.addCompareRow(inflater, it, "BATTING AVG.", c1.avg, c2.avg, true)
                 act.addCompareRow(inflater, it, "BATTING AVG.", c1.avg, c2.avg, true)
                 act.addCompareRow(inflater, it, "NOT OUTs", c1.no.toDouble(), c2.no.toDouble(), true)
                 act.addCompareRow(inflater, it, "BATTING SR", c1.sr, c2.sr, true)
@@ -174,19 +176,13 @@ class ComparePageFragment : Fragment() {
             val r1 = act.s1_recent
             val r2 = act.s2_recent
             if (r1 != null && r2 != null) {
-                val layoutRecent = LinearLayout(context).apply {
-                    orientation = LinearLayout.VERTICAL
-                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                        topMargin = 32
-                    }
+                containerRecent?.let {
+                    act.addCompareHeader(inflater, it, "Recent Form (Last 5 Games)")
+                    act.addCompareRow(inflater, it, "AVG (LAST 5)", r1.avg, r2.avg, true)
+                    act.addCompareRow(inflater, it, "SR (LAST 5)", r1.sr, r2.sr, true)
+                    act.addCompareRow(inflater, it, "WKTS (LAST 5)", r1.wickets.toDouble(), r2.wickets.toDouble(), true)
+                    act.addCompareRow(inflater, it, "ECO (LAST 5)", r1.eco, r2.eco, false)
                 }
-                containerFielding?.parent?.let { (it as ViewGroup).addView(layoutRecent) }
-                
-                act.addCompareHeader(inflater, layoutRecent, "Recent Form (Last 5 Games)")
-                act.addCompareRow(inflater, layoutRecent, "AVG (LAST 5)", r1.avg, r2.avg, true)
-                act.addCompareRow(inflater, layoutRecent, "SR (LAST 5)", r1.sr, r2.sr, true)
-                act.addCompareRow(inflater, layoutRecent, "WKTS (LAST 5)", r1.wickets.toDouble(), r2.wickets.toDouble(), true)
-                act.addCompareRow(inflater, layoutRecent, "ECO (LAST 5)", r1.eco, r2.eco, false)
             }
         } else {
             layoutOverall?.visibility = View.GONE

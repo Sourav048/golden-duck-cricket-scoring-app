@@ -111,14 +111,14 @@ object AiToolDeclarations {
 
     val getBatterVsBowlerMatchupTool = defineFunction(
         name = "getBatterVsBowlerMatchup",
-        description = "Gets micro head-to-head performance of a batter against a specific bowler (runs scored, balls faced, 4s, 6s, dots, dismissals) in 1st/2nd innings or across all matches.",
+        description = "Gets micro head-to-head performance of a batter against a specific bowler, or a complete breakdown against ALL bowlers if bowlerName is omitted or blank (runs, 6s, 4s, SR, dismissals).",
         parameters = listOf(
             Schema.str("batterName", "Name of the batter"),
-            Schema.str("bowlerName", "Name of the bowler"),
+            Schema.str("bowlerName", "Optional name of the bowler. Leave blank or omit to get breakdown against all bowlers."),
             Schema.int("inningsNumber", "Optional innings filter: 1 or 2"),
             Schema.str("matchId", "Optional match ID to restrict query to a specific match")
         ),
-        requiredParameters = listOf("batterName", "bowlerName")
+        requiredParameters = listOf("batterName")
     )
 
     val getLiveMatchStatusTool = defineFunction(
@@ -388,7 +388,7 @@ object AiToolDeclarations {
                 put("type", "function")
                 put("function", JSONObject().apply {
                     put("name", "getBatterVsBowlerMatchup")
-                    put("description", "Gets micro head-to-head performance of a batter against a specific bowler.")
+                    put("description", "Gets micro head-to-head performance of a batter against a specific bowler, or a complete breakdown against ALL bowlers if bowlerName is omitted or blank.")
                     put("parameters", JSONObject().apply {
                         put("type", "object")
                         put("properties", JSONObject().apply {
@@ -398,7 +398,7 @@ object AiToolDeclarations {
                             })
                             put("bowlerName", JSONObject().apply {
                                 put("type", "string")
-                                put("description", "Name of the bowler")
+                                put("description", "Optional name of the bowler. Leave blank or omit to get breakdown against all bowlers.")
                             })
                             put("inningsNumber", JSONObject().apply {
                                 put("type", "integer")
@@ -409,7 +409,7 @@ object AiToolDeclarations {
                                 put("description", "Optional match ID to restrict query to a specific match")
                             })
                         })
-                        put("required", JSONArray().put("batterName").put("bowlerName"))
+                        put("required", JSONArray().put("batterName"))
                     })
                 })
             })

@@ -30,11 +30,14 @@ class ScoringApp : Application() {
         val gullyPrefs = getSharedPreferences("gully_prefs", MODE_PRIVATE)
         var id = gullyPrefs.getString("chat_sender_id", null)
         if (id.isNullOrEmpty()) {
-            id = try {
+            val androidId = try {
                 Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
-                    ?: UUID.randomUUID().toString()
-            } catch (e: Exception) {
-                UUID.randomUUID().toString()
+            } catch (_: Exception) { null }
+
+            id = if (!androidId.isNullOrBlank() && androidId != "9774d56d682e549c") {
+                "user_$androidId"
+            } else {
+                "user_" + UUID.randomUUID().toString().take(12)
             }
             gullyPrefs.edit().putString("chat_sender_id", id).apply()
         }

@@ -552,11 +552,11 @@ class AiFunctionRegistry(private val db: AppDatabase) {
     }
 
     /**
-     * 9. Batter vs Bowler Head-to-Head Matchup
+     * 9. Batter vs Bowler Head-to-Head Matchup & All-Bowlers Breakdown
      */
     fun getBatterVsBowlerMatchup(
         batterName: String,
-        bowlerName: String,
+        bowlerName: String? = null,
         inningsNumber: Int? = null,
         matchId: String? = null,
         gullyId: String = "local"
@@ -567,13 +567,76 @@ class AiFunctionRegistry(private val db: AppDatabase) {
             db.matchDao().getAllMatchesByGully(gullyId)?.filterNotNull() ?: emptyList()
         }
 
-        var totalRuns = 0
-        var totalBallsFaced = 0
-        var fours = 0
-        var sixes = 0
-        var dotBalls = 0
-        var timesDismissed = 0
-        val dismissalList = mutableListOf<String>()
+        val targetBowlerName = bowlerName?.trim()
+
+        if (!targetBowlerName.isNullOrBlank()) {
+            // 1-on-1 Head-to-Head matchup
+            var totalRuns = 0
+            var totalBallsFaced = 0
+            var fours = 0
+            var sixes = 0
+            var dotBalls = 0
+            var timesDismissed = 0
+            val dismissalList = mutableListOf<String>()
+
+            for (m in matches) {
+                val ballsToInspect: List<Ball> = when (inningsNumber) {
+                    1 -> m.ballsJson1?.filterNotNull() ?: emptyList()
+                    2 -> m.ballsJson2?.filterNotNull() ?: emptyList()
+                    else -> (m.ballsJson1?.filterNotNull().orEmpty() + m.ballsJson2?.filterNotNull().orEmpty())
+                }
+
+                val matchingBalls = ballsToInspect.filter { b ->
+                    PlayerNameNormalizer.areNamesMatching(b.batsmanName, batterName) &&
+                    PlayerNameNormalizer.areNamesMatching(b.bowlerName, targetBowlerName)
+                }
+
+                for (b in matchingBalls) {
+                    totalRuns += b.batRuns
+                    if (b.type != BallType.WIDE) {
+                        totalBallsFaced++
+                    }
+                    if (b.batRuns == 4) fours++
+                    if (b.batRuns == 6) sixes++
+                    if (b.runs == 0) dotBalls++
+
+                    if (b.isWicket && PlayerNameNormalizer.areNamesMatching(b.outPlayerName, batterName)) {
+                        timesDismissed++
+                        b.dismissalInfo?.let { dismissalList.add(it) }
+                    }
+                }
+            }
+
+            val strikeRate = if (totalBallsFaced > 0) (totalRuns.toDouble() / totalBallsFaced) * 100 else 0.0
+
+            return mapOf(
+                "batter" to batterName,
+                "bowler" to targetBowlerName,
+                "inningsNumber" to (inningsNumber ?: "All"),
+                "matchId" to (matchId ?: "All Matches"),
+                "runsScored" to totalRuns,
+                "ballsFaced" to totalBallsFaced,
+                "fours" to fours,
+                "sixes" to sixes,
+                "dotBalls" to dotBalls,
+                "timesDismissed" to timesDismissed,
+                "dismissalDetails" to dismissalList,
+                "strikeRate" to String.format("%.2f", strikeRate)
+            )
+        }
+
+        // 1-vs-ALL Breakdown when bowlerName is omitted or blank
+        class BowlerStat(
+            val name: String,
+            var runsScored: Int = 0,
+            var ballsFaced: Int = 0,
+            var fours: Int = 0,
+            var sixes: Int = 0,
+            var dotBalls: Int = 0,
+            var timesDismissed: Int = 0
+        )
+
+        val bowlerMap = mutableMapOf<String, BowlerStat>()
 
         for (m in matches) {
             val ballsToInspect: List<Ball> = when (inningsNumber) {
@@ -583,41 +646,60 @@ class AiFunctionRegistry(private val db: AppDatabase) {
             }
 
             val matchingBalls = ballsToInspect.filter { b ->
-                PlayerNameNormalizer.areNamesMatching(b.batsmanName, batterName) &&
-                PlayerNameNormalizer.areNamesMatching(b.bowlerName, bowlerName)
+                PlayerNameNormalizer.areNamesMatching(b.batsmanName, batterName)
             }
 
             for (b in matchingBalls) {
-                totalRuns += b.batRuns
+                val rawBowlerName = b.bowlerName?.trim()
+                if (rawBowlerName.isNullOrBlank()) continue
+
+                val existingKey = bowlerMap.keys.firstOrNull { PlayerNameNormalizer.areNamesMatching(it, rawBowlerName) } ?: rawBowlerName
+                val stat = bowlerMap.getOrPut(existingKey) { BowlerStat(existingKey) }
+
+                stat.runsScored += b.batRuns
                 if (b.type != BallType.WIDE) {
-                    totalBallsFaced++
+                    stat.ballsFaced++
                 }
-                if (b.batRuns == 4) fours++
-                if (b.batRuns == 6) sixes++
-                if (b.runs == 0) dotBalls++
+                if (b.batRuns == 4) stat.fours++
+                if (b.batRuns == 6) stat.sixes++
+                if (b.runs == 0) stat.dotBalls++
 
                 if (b.isWicket && PlayerNameNormalizer.areNamesMatching(b.outPlayerName, batterName)) {
-                    timesDismissed++
-                    b.dismissalInfo?.let { dismissalList.add(it) }
+                    stat.timesDismissed++
                 }
             }
         }
 
-        val strikeRate = if (totalBallsFaced > 0) (totalRuns.toDouble() / totalBallsFaced) * 100 else 0.0
+        val breakdownList = bowlerMap.values.map { s ->
+            val sr = if (s.ballsFaced > 0) (s.runsScored.toDouble() / s.ballsFaced) * 100 else 0.0
+            mapOf(
+                "bowler" to s.name,
+                "sixes" to s.sixes,
+                "fours" to s.fours,
+                "runsScored" to s.runsScored,
+                "ballsFaced" to s.ballsFaced,
+                "dotBalls" to s.dotBalls,
+                "timesDismissed" to s.timesDismissed,
+                "strikeRate" to String.format("%.2f", sr)
+            )
+        }.sortedWith(compareByDescending<Map<String, Any>> { it["sixes"] as Int }
+            .thenByDescending { it["runsScored"] as Int })
+
+        val totalSixes = breakdownList.sumOf { it["sixes"] as Int }
+        val totalFours = breakdownList.sumOf { it["fours"] as Int }
+        val totalRuns = breakdownList.sumOf { it["runsScored"] as Int }
+        val totalBalls = breakdownList.sumOf { it["ballsFaced"] as Int }
 
         return mapOf(
             "batter" to batterName,
-            "bowler" to bowlerName,
             "inningsNumber" to (inningsNumber ?: "All"),
             "matchId" to (matchId ?: "All Matches"),
-            "runsScored" to totalRuns,
-            "ballsFaced" to totalBallsFaced,
-            "fours" to fours,
-            "sixes" to sixes,
-            "dotBalls" to dotBalls,
-            "timesDismissed" to timesDismissed,
-            "dismissalDetails" to dismissalList,
-            "strikeRate" to String.format("%.2f", strikeRate)
+            "totalBowlersFaced" to breakdownList.size,
+            "totalSixesHit" to totalSixes,
+            "totalFoursHit" to totalFours,
+            "totalRunsScored" to totalRuns,
+            "totalBallsFaced" to totalBalls,
+            "bowlerBreakdown" to breakdownList
         )
     }
 
@@ -801,10 +883,21 @@ class AiFunctionRegistry(private val db: AppDatabase) {
             val commUnified = match.commentaryJson ?: emptyList()
 
             val allCommEntries = mutableListOf<Pair<Int, CommentaryEntry>>()
-            comm1.forEach { allCommEntries.add(1 to it) }
-            comm2.forEach { allCommEntries.add(2 to it) }
+            val seenComm = mutableSetOf<String>()
+
+            comm1.forEach { 
+                val key = "1-${it.over}-${it.text?.trim()}"
+                if (seenComm.add(key)) allCommEntries.add(1 to it) 
+            }
+            comm2.forEach { 
+                val key = "2-${it.over}-${it.text?.trim()}"
+                if (seenComm.add(key)) allCommEntries.add(2 to it) 
+            }
             if (comm1.isEmpty() && comm2.isEmpty()) {
-                commUnified.filterNotNull().forEach { allCommEntries.add(1 to it) }
+                commUnified.filterNotNull().forEach { 
+                    val key = "1-${it.over}-${it.text?.trim()}"
+                    if (seenComm.add(key)) allCommEntries.add(1 to it) 
+                }
             }
 
             for ((inningsNum, entry) in allCommEntries) {
@@ -828,11 +921,8 @@ class AiFunctionRegistry(private val db: AppDatabase) {
                     }
                 }
 
-                if (playerQuery.isNotBlank()) {
-                    val playerMatched = fullText.contains(playerQuery)
-                    if (!playerMatched && cleanQuery.isBlank()) {
-                        isMatch = false
-                    }
+                if (playerQuery.isNotBlank() && !fullText.contains(playerQuery)) {
+                    isMatch = false
                 }
 
                 if (isMatch) {
@@ -920,7 +1010,7 @@ class AiFunctionRegistry(private val db: AppDatabase) {
                 )
                 "getBatterVsBowlerMatchup" -> getBatterVsBowlerMatchup(
                     batterName = args["batterName"] as? String ?: "",
-                    bowlerName = args["bowlerName"] as? String ?: "",
+                    bowlerName = args["bowlerName"] as? String,
                     inningsNumber = (args["inningsNumber"] as? Number)?.toInt(),
                     matchId = args["matchId"] as? String,
                     gullyId = gullyId

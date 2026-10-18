@@ -72,7 +72,16 @@ class PlayerCompareActivity : BaseActivity() {
         updatePlayerSlot(1, null)
         updatePlayerSlot(2, null)
 
-        loadAllPlayers()
+        val restoredP1Id = savedInstanceState?.getString("p1_id")
+        val restoredP2Id = savedInstanceState?.getString("p2_id")
+
+        loadAllPlayers(restoredP1Id, restoredP2Id)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        p1?.id?.let { outState.putString("p1_id", it) }
+        p2?.id?.let { outState.putString("p2_id", it) }
     }
 
     private fun setupSwipeNavigation() {
@@ -93,10 +102,26 @@ class PlayerCompareActivity : BaseActivity() {
         tabLayout?.visibility = View.GONE
     }
 
-    private fun loadAllPlayers() {
+    private fun loadAllPlayers(restoredP1Id: String? = null, restoredP2Id: String? = null) {
         val gId = GullySyncManager.getCurrentGullyId(this) ?: "local"
         AppDatabase.ioExecutor.execute {
-            allPlayers = db?.playerDao()?.getAllPlayersByGully(gId)?.toMutableList()
+            val players = db?.playerDao()?.getAllPlayersByGully(gId)?.toMutableList()
+            allPlayers = players
+            if (restoredP1Id != null || restoredP2Id != null) {
+                val foundP1 = players?.find { it?.id == restoredP1Id }
+                val foundP2 = players?.find { it?.id == restoredP2Id }
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    if (foundP1 != null) {
+                        p1 = foundP1
+                        updatePlayerSlot(1, foundP1)
+                    }
+                    if (foundP2 != null) {
+                        p2 = foundP2
+                        updatePlayerSlot(2, foundP2)
+                    }
+                }
+            }
         }
     }
 
@@ -264,8 +289,8 @@ class PlayerCompareActivity : BaseActivity() {
         enableHighlight: Boolean = true
     ) {
         val row = inflater.inflate(R.layout.item_compare_row, container, false)
-        val tvV1 = row.findViewById<TextView>(R.id.tvCompareVal1)
-        val tvV2 = row.findViewById<TextView>(R.id.tvCompareVal2)
+        val tvV1 = row.findViewById<TextView>(R.id.tvCompareVal1).apply { tag = "custom_color" }
+        val tvV2 = row.findViewById<TextView>(R.id.tvCompareVal2).apply { tag = "custom_color" }
         row.findViewById<TextView>(R.id.tvCompareLabel).text = label
         
         val sv1 = if (v1 == v1.toLong().toDouble()) String.format(Locale.US, "%d", v1.toLong()) else String.format(Locale.US, "%.1f", v1)

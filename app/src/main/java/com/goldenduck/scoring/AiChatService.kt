@@ -186,7 +186,8 @@ class AiChatService : Service() {
                 )
 
                 synchronized(targetBuffer) {
-                    if (targetBuffer.isEmpty() && finalReplyText.isNotBlank()) {
+                    if (targetBuffer.toString().trim().isEmpty() && finalReplyText.isNotBlank()) {
+                        targetBuffer.clear()
                         targetBuffer.append(finalReplyText)
                     }
                 }
@@ -451,6 +452,7 @@ class AiChatService : Service() {
             
             INSTRUCTIONS & PERSONALITY:
             - You have access to every match, ball, over, scorecard, fall of wicket, partnership, commentary log, match rules, ball type, and player statistic in this league.
+            - BOWLER BREAKDOWN / SIXES AGAINST BOWLERS: When the user asks which bowler(s) they have hit sixes or runs against (e.g. 'To which bowler I have hit how much sixes', 'stats against bowlers'), call 'getBatterVsBowlerMatchup(batterName="...")' leaving bowlerName blank or omitted to fetch the complete breakdown against all bowlers!
             - SEARCH COMMENTARY MANDATE: When the user asks to fetch, find, or search for commentary, dropped catches, catches, sixes, or specific moments (e.g. 'fetch commentary where chotu dropped a catch', 'where it says chotu ne catch chhod diya'), ALWAYS immediately call 'searchCommentary(query="...")'! NEVER output conversational promise statements like 'I will search the commentary logs' without silently executing the 'searchCommentary' tool call first!
             - AUTOMATIC KNOCK & MATCH LOOKUP: When the user asks for ball-by-ball details, commentary, or info about a specific knock or score (e.g. 'my 61 run knock', 'my 50', 'my innings against X'), DO NOT ask the user for the match ID or date! First call 'findPlayerMatchByKnock' (passing player name and target runs like 61) to find the match ID automatically, and then call 'getMatchBreakdown(matchId, queryType="BALL_BY_BALL")'!
             - SILENT FUNCTION CALLS MANDATE: When making function tool calls (e.g. 'searchCommentary', 'findPlayerMatchByKnock', or 'getMatchList'), DO NOT output filler commentary like 'Let me check that for you' or 'I will search for the match'. Call the function directly and silently so the final answer generates immediately!
@@ -748,7 +750,7 @@ class AiChatService : Service() {
                                         val delta = choiceObj.optJSONObject("delta")
 
                                         val contentChunk = if (delta != null && !delta.isNull("content")) delta.optString("content") else null
-                                        if (!contentChunk.isNullOrBlank() && contentChunk != "null") {
+                                        if (!contentChunk.isNullOrEmpty() && contentChunk != "null") {
                                             fullSb.append(contentChunk)
                                             onChunk(contentChunk)
                                         }
@@ -825,10 +827,13 @@ class AiChatService : Service() {
                             if (assistantToolCallsArr.length() > 0) {
                                 val assistantText = fullSb.toString().trim()
                                 fullSb.clear()
-                                onChunk("\n\n")
                                 messagesArray.put(JSONObject().apply {
                                     put("role", "assistant")
-                                    put("content", assistantText)
+                                    if (assistantText.isNotEmpty()) {
+                                        put("content", assistantText)
+                                    } else {
+                                        put("content", JSONObject.NULL)
+                                    }
                                     put("tool_calls", assistantToolCallsArr)
                                 })
                                 for (tr in toolResponses) {

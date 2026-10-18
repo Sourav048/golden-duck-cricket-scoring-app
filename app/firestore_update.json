@@ -1,7 +1,7 @@
 {
   "fields": {
     "latest_version_code": {
-      "integerValue": "12"
+      "integerValue": "15"
     },
     "version_name": {
       "stringValue": "7.0"
@@ -10,7 +10,7 @@
       "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v7.0.apk"
     },
     "release_notes": {
-      "stringValue": "• Faster & More Responsive Live Scoring: Snappy ball-by-ball updates and instant scorecard refresh\n• Redesigned Squad & Player Selector: Effortlessly pick players and manage team rosters\n• Modern Material 3 UI: Polished dialogs, match history cards, and seamless dark mode\n• Reliable Cloud Sync: Instant match backup and real-time score updates across league members\n• Performance & Bug Fixes: Smoother app startup, lower memory usage, and improved overall stability"
+      "stringValue": "• Advanced Player Comparison: Side-by-side head-to-head stats comparison for batting, bowling, and fielding performance\n• Faster Live Scoring & Scorecards: Snappy ball-by-ball scoring updates and real-time scorecard refresh\n• Enhanced League Chat & Media: Smoother messaging, video sharing, and real-time league updates\n• Reliable Cloud & Gully Sync: Instant match backups, global player stats reconciliation, and multi-device sync\n• Material 3 UI & Stability: Polished UI dialogs, smoother app startup, and overall performance bug fixes"
     },
     "force_update": {
       "booleanValue": false
