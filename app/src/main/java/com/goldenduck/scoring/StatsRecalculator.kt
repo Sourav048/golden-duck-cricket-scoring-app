@@ -21,21 +21,27 @@ object StatsRecalculator {
                 val existingStats = db.statsDao().getStatsByMatch(matchId) ?: emptyList()
                 val existingStatsMap = existingStats.filterNotNull().associateBy { it.playerName?.trim() }
 
-                val playerMap = mutableMapOf<String, Player>()
                 val nameToId = entity.nameToIdMap ?: emptyMap<String, String>()
                 val gId = entity.gullyId // Preserve gully isolation during recalculation
+                val nameNormalizedMap = mutableMapOf<String, Player>()
 
                 fun getP(name: String?): Player {
-                    val n = name?.trim() ?: "Unknown"
-                    return playerMap.getOrPut(n) { 
-                        Player(n).apply { 
-                            val resolvedId = nameToId[n]
-                                ?: db.playerDao().getPlayerByNameByGully(n, gId)?.id
-                                ?: db.playerDao().getPlayerByName(n)?.id
+                    val rawN = name?.trim() ?: "Unknown"
+                    val normKey = PlayerNameNormalizer.normalize(rawN)
+                    return nameNormalizedMap.getOrPut(normKey) { 
+                        Player(rawN).apply { 
+                            val existingRec = existingStatsMap[rawN] ?: existingStatsMap.values.find { 
+                                PlayerNameNormalizer.normalize(it.playerName) == normKey 
+                            }
+                            val resolvedId: String? = existingRec?.playerId
+                                ?: nameToId[rawN]
+                                ?: nameToId.entries.find { PlayerNameNormalizer.normalize(it.key) == normKey }?.value
+                                ?: db.playerDao().getPlayerByNameByGully(rawN, gId)?.id
+                                ?: db.playerDao().getPlayerByName(rawN)?.id
                             this.id = resolvedId
                             this.gullyId = gId
                             // Restore time data from existing record if available
-                            existingStatsMap[n]?.let { old ->
+                            existingRec?.let { old ->
                                 this.minutesPlayed = old.minutesPlayed
                                 this.entryTime = old.entryTime
                                 this.exitTime = old.exitTime
@@ -78,29 +84,53 @@ object StatsRecalculator {
 
                         if (b.isWicket) {
                             val outP = getP(b.outPlayerName ?: b.batsmanName)
-                            outP.isOut = true
-                            outP.dismissalInfo = b.dismissalInfo ?: "out"
                             
-                            val isBowlerWicket = b.isWicket && 
-                                               !b.dismissalInfo.toString().contains("Run Out", ignoreCase = true) &&
-                                               !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true)
+                            val rawDInfo = (b.dismissalInfo ?: "").trim()
+                            val commText = inn.commentary.filterNotNull().find { c ->
+                                val t = (c.text ?: c.baseText ?: "").lowercase()
+                                (t.contains("run out") || t.contains("caught") || t.contains("bowled") || t.contains("out")) &&
+                                (b.batsmanName != null && t.contains(b.batsmanName.toString().lowercase()))
+                            }?.let { it.text ?: it.baseText } ?: ""
                             
+                            val effectiveDismissal = if (rawDInfo.isNotEmpty() && rawDInfo != "out") rawDInfo else commText
+                            outP.dismissalInfo = if (rawDInfo.isNotEmpty()) rawDInfo else "out"
+
+                            val isRO = effectiveDismissal.contains("Run Out", ignoreCase = true) || (b.fielderName?.contains(" / ") == true)
+                            val isObstruct = effectiveDismissal.contains("Obstruct", ignoreCase = true)
+                            val isRetiredHurt = effectiveDismissal.contains("retired hurt", ignoreCase = true)
+                            val isRetiredOut = effectiveDismissal.contains("retired out", ignoreCase = true) || (effectiveDismissal.contains("retired", ignoreCase = true) && !isRetiredHurt)
+
+                            outP.isOut = !isRetiredHurt
+
+                            val isBowlerWicket = b.isWicket && !isRO && !isObstruct && !isRetiredHurt && !isRetiredOut
                             if (isBowlerWicket) bowler.wicketsTaken++
 
                             // Fielding
-                            b.fielderName?.let { fList ->
-                                val fielders = fList.split(" / ")
-                                fielders.forEach { fName ->
-                                    val f = getP(fName.trim())
-                                    val dInfo = outP.dismissalInfo
-                                    val isRO = dInfo.contains("Run Out", ignoreCase = true)
-                                    if (dInfo.contains("Caught", ignoreCase = true) || dInfo.startsWith("c ", ignoreCase = true) || dInfo.contains("c & b", ignoreCase = true)) {
-                                        f.catches++
-                                    } else if (dInfo.contains("Stumped", ignoreCase = true) || dInfo.startsWith("st ", ignoreCase = true)) {
-                                        f.stumpings++
-                                    } else if (isRO) {
-                                        f.runOuts++
-                                    }
+                            val isStumped = effectiveDismissal.contains("Stumped", ignoreCase = true) || effectiveDismissal.startsWith("st ", ignoreCase = true)
+                            val isCatch = !isRO && !isStumped && (effectiveDismissal.contains("Caught", ignoreCase = true) || effectiveDismissal.startsWith("c ", ignoreCase = true) || effectiveDismissal.contains("c & b", ignoreCase = true))
+
+                            var fielderNames = b.fielderName?.split(" / ")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+                            if (fielderNames.isEmpty() && b.isWicket) {
+                                if (effectiveDismissal.contains("c & b ", ignoreCase = true) || effectiveDismissal.contains("c & b", ignoreCase = true)) {
+                                    bowler.name?.let { fielderNames = listOf(it) }
+                                } else if (effectiveDismissal.contains("Caught by ", ignoreCase = true)) {
+                                    val fName = effectiveDismissal.substringAfter("Caught by ").substringBefore("\n").substringBefore(" b ").trim()
+                                    if (fName.isNotEmpty()) fielderNames = listOf(fName)
+                                } else if (effectiveDismissal.startsWith("c ", ignoreCase = true) || effectiveDismissal.contains(" c ")) {
+                                    val afterC = if (effectiveDismissal.startsWith("c ")) effectiveDismissal.substringAfter("c ") else effectiveDismissal.substringAfter(" c ")
+                                    val fName = afterC.substringBefore(" b ").substringBefore("\n").trim()
+                                    if (fName.isNotEmpty() && fName != "b") fielderNames = listOf(fName)
+                                }
+                            }
+
+                            fielderNames.forEach { fName ->
+                                val f = getP(fName)
+                                if (isCatch) {
+                                    f.catches++
+                                } else if (isStumped) {
+                                    f.stumpings++
+                                } else if (isRO) {
+                                    f.runOuts++
                                 }
                             }
                         }
@@ -118,7 +148,7 @@ object StatsRecalculator {
                     var bestPlayerName: String? = entity.playerOfTheMatchName
                     if (bestPlayerName.isNullOrEmpty() || bestPlayerName == "TBD") {
                         var maxPts = -1.0
-                        for (p in playerMap.values) {
+                        for (p in nameNormalizedMap.values) {
                             val pts = PointsCalculator.calculatePlayerPoints(p)
                             if (pts > maxPts && pts > 0) {
                                 maxPts = pts
@@ -135,7 +165,7 @@ object StatsRecalculator {
                 // Save back to DB (Delete old stats for this match first to avoid duplicate records)
                 db.runInTransaction {
                     db.statsDao().deleteStatsByMatch(matchId)
-                    for (p in playerMap.values) {
+                    for (p in nameNormalizedMap.values) {
                         val teamName = if (entity.teamANames?.contains(p.name) == true) entity.teamAName else entity.teamBName
                         val s = PlayerMatchStatEntity.fromPlayer(p, matchId, teamName)
                         s.gullyId = gId
@@ -156,10 +186,11 @@ object StatsRecalculator {
         val balls = inn.balls
         var currentOverRuns = 0
         var legalBallsInOver = 0
-        var currentBowler: String? = null
+        val overBowlers = mutableSetOf<String>()
 
         balls.forEach { b ->
-            if (currentBowler == null) currentBowler = b.bowlerName
+            val bName = b.bowlerName?.trim()
+            if (!bName.isNullOrEmpty()) overBowlers.add(bName)
             
             if (b.type == BallType.NORMAL || b.type == BallType.WIDE || b.type == BallType.NO_BALL) {
                 currentOverRuns += b.runs
@@ -170,13 +201,13 @@ object StatsRecalculator {
             }
 
             if (legalBallsInOver == 6) {
-                if (currentOverRuns == 0) {
-                    getP(currentBowler).maidens++
+                if (currentOverRuns == 0 && overBowlers.size == 1) {
+                    getP(overBowlers.first()).maidens++
                 }
                 // Reset for next over
                 currentOverRuns = 0
                 legalBallsInOver = 0
-                currentBowler = null 
+                overBowlers.clear()
             }
         }
 
@@ -186,7 +217,8 @@ object StatsRecalculator {
             val bowler = b.bowlerName ?: return@forEach
             val isBowlerWicket = b.isWicket && 
                                  !b.dismissalInfo.toString().contains("Run Out", ignoreCase = true) &&
-                                 !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true)
+                                 !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true) &&
+                                 !b.dismissalInfo.toString().contains("Retired", ignoreCase = true)
             
             if (isBowlerWicket) {
                 val s = (bowlerStreaks[bowler] ?: 0) + 1

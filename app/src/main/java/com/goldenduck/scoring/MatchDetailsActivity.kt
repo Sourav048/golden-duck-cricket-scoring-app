@@ -666,7 +666,8 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                                         val bowlerWickets = currentInnings.balls.count { b ->
                                             b.bowlerName == bowlerName && b.isWicket &&
                                             !b.dismissalInfo.toString().contains("Run Out", ignoreCase = true) &&
-                                            !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true)
+                                            !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true) &&
+                                            !b.dismissalInfo.toString().contains("Retired", ignoreCase = true)
                                         }
                                         if (bowlerWickets == 3 || bowlerWickets == 5) {
                                             triggerConfetti(colorsMatchWin)
@@ -679,13 +680,15 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                                             val allWickets = last3.all { b ->
                                                 b.isWicket &&
                                                 !b.dismissalInfo.toString().contains("Run Out", ignoreCase = true) &&
-                                                !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true)
+                                                !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true) &&
+                                                !b.dismissalInfo.toString().contains("Retired", ignoreCase = true)
                                             }
                                             // Only fire if the 4th-last was NOT a wicket (true hat-trick start)
                                             val fourthLast = bowlerBalls.getOrNull(bowlerBalls.size - 4)
                                             val fourthWasWicket = fourthLast?.isWicket == true &&
                                                 !fourthLast.dismissalInfo.toString().contains("Run Out", ignoreCase = true) &&
-                                                !fourthLast.dismissalInfo.toString().contains("Obstruct", ignoreCase = true)
+                                                !fourthLast.dismissalInfo.toString().contains("Obstruct", ignoreCase = true) &&
+                                                !fourthLast.dismissalInfo.toString().contains("Retired", ignoreCase = true)
                                             if (allWickets && !fourthWasWicket) {
                                                 triggerConfetti(colorsMatchWin)
                                             }

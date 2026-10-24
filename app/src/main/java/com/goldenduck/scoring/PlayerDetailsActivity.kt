@@ -107,9 +107,29 @@ class PlayerDetailsActivity : BaseActivity() {
             } else null
 
             val combinedStatsMap = mutableMapOf<String, PlayerMatchStatEntity>()
-            statsByPid?.forEach { stat -> stat.matchId?.let { mId -> combinedStatsMap[mId] = stat } }
-            statsByGlobal?.forEach { stat -> stat.matchId?.let { mId -> combinedStatsMap[mId] = stat } }
-            statsByName?.forEach { stat -> stat.matchId?.let { mId -> combinedStatsMap[mId] = stat } }
+            fun mergeStat(stat: PlayerMatchStatEntity) {
+                val mId = stat.matchId ?: return
+                val existing = combinedStatsMap[mId]
+                if (existing == null) {
+                    combinedStatsMap[mId] = stat
+                } else {
+                    val existingHasPid = !existing.playerId.isNullOrBlank()
+                    val newHasPid = !stat.playerId.isNullOrBlank()
+                    if (newHasPid && !existingHasPid) {
+                        combinedStatsMap[mId] = stat
+                    } else if (newHasPid == existingHasPid) {
+                        val existingScore = existing.runsScored + existing.wicketsTaken * 20 + existing.catches * 10
+                        val newScore = stat.runsScored + stat.wicketsTaken * 20 + stat.catches * 10
+                        if (newScore > existingScore) {
+                            combinedStatsMap[mId] = stat
+                        }
+                    }
+                }
+            }
+
+            statsByPid?.forEach { mergeStat(it) }
+            statsByGlobal?.forEach { mergeStat(it) }
+            statsByName?.forEach { mergeStat(it) }
 
             val stats = combinedStatsMap.values.toList()
             

@@ -60,3 +60,10 @@ app_icon.png
 temp_*
 *.artifact.md
 
+# Audit and script dumps
+audit_results.json
+comparison_summary.json
+forensic_audit_full.json
+recalculate_firebase_stats.py
+
+

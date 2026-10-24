@@ -1254,7 +1254,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
                         bowlerBallsCount++
                         val isBowlerWicket = b.isWicket && 
                                             !b.dismissalInfo.toString().contains("Run Out", ignoreCase = true) &&
-                                            !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true)
+                                            !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true) &&
+                                            !b.dismissalInfo.toString().contains("Retired", ignoreCase = true)
                         
                         if (bowlerBallsCount <= 3) {
                             if (isBowlerWicket) {

@@ -557,6 +557,28 @@ object GullySyncManager {
     }
 
     /**
+     * Re-aggregates exact career stats for a global player from all match records and updates Firebase Firestore.
+     */
+    fun syncGlobalPlayerCareerStats(globalId: String, totalRuns: Long, totalWickets: Long, totalMatches: Long, catches: Long = 0) {
+        if (globalId.isEmpty()) return
+        
+        val globalRef = db.collection("global_players").document(globalId)
+        val updates = hashMapOf<String, Any>(
+            "totalRuns" to totalRuns,
+            "totalWickets" to totalWickets,
+            "totalMatches" to totalMatches,
+            "catches" to catches,
+            "lastUpdated" to System.currentTimeMillis()
+        )
+
+        globalRef.set(updates, SetOptions.merge()).addOnSuccessListener {
+            Log.d(TAG, "Global stats updated for $globalId: Wickets=$totalWickets, Catches=$catches")
+        }.addOnFailureListener { e ->
+            Log.e(TAG, "Failed to update global stats for $globalId: ${e.message}")
+        }
+    }
+
+    /**
      * Searches for players globally by name prefix.
      */
     fun searchGlobalPlayers(query: String, callback: (List<PlayerEntity>) -> Unit) {
