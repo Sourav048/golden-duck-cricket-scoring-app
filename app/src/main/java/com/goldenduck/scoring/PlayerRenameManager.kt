@@ -7,13 +7,14 @@ import com.goldenduck.scoring.AppDatabase.Companion.getInstance
 /**
  * The "Global Rename Engine".
  * Ensures that editing a player's name propagates through all past matches and the cloud,
- * including fielder/keeper names in dismissal strings.
+ * including Fall of Wickets, Partnerships, Commentary, and Fielder/Keeper dismissal strings.
  */
 object PlayerRenameManager {
     private const val TAG = "RenameEngine"
 
     fun renamePlayer(context: Context, player: PlayerEntity, oldNameRaw: String, newName: String, onComplete: () -> Unit) {
         val oldNameTrimmed = oldNameRaw.trim()
+        val newNameTrimmed = newName.trim()
         val playerId = player.id
         val gId = player.gullyId
 
@@ -21,15 +22,15 @@ object PlayerRenameManager {
             try {
                 val db = getInstance(context)
                 
-                // 1. Update Player Profile
-                db.playerDao().updatePlayerName(playerId, newName)
-                player.name = newName
+                // 1. Update Primary Player Profile
+                db.playerDao().updatePlayerName(playerId, newNameTrimmed)
+                player.name = newNameTrimmed
                 GullySyncManager.syncPlayerToCloud(gId, player)
 
                 // 2. Update player_match_stats table for this playerId
-                db.statsDao().updatePlayerNameInStats(playerId, newName)
+                db.statsDao().updatePlayerNameInStats(playerId, newNameTrimmed)
 
-                // 3. Find ALL matches in database that might involve this player or oldName
+                // 3. Find ALL matches in database that involve this player or oldName
                 val allMatches = db.matchDao().getAllMatches()?.filterNotNull() ?: emptyList()
                 val targetMatches = allMatches.filter { match ->
                     (match.nameToIdMap?.containsValue(playerId) == true) ||
@@ -46,38 +47,38 @@ object PlayerRenameManager {
                     val mId = match.id
 
                     // A. Team Names & Innings Teams
-                    if (match.teamAName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.teamAName = newName
-                    if (match.teamBName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.teamBName = newName
-                    if (match.firstInningsTeam?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.firstInningsTeam = newName
-                    if (match.secondInningsTeam?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.secondInningsTeam = newName
+                    if (match.teamAName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.teamAName = newNameTrimmed
+                    if (match.teamBName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.teamBName = newNameTrimmed
+                    if (match.firstInningsTeam?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.firstInningsTeam = newNameTrimmed
+                    if (match.secondInningsTeam?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.secondInningsTeam = newNameTrimmed
 
                     // B. Squad Lists
-                    match.teamANames = match.teamANames?.map { if (it?.trim().equals(oldNameTrimmed, ignoreCase = true)) newName else it }?.distinct()
-                    match.teamBNames = match.teamBNames?.map { if (it?.trim().equals(oldNameTrimmed, ignoreCase = true)) newName else it }?.distinct()
+                    match.teamANames = match.teamANames?.map { if (it?.trim().equals(oldNameTrimmed, ignoreCase = true)) newNameTrimmed else it }?.distinct()
+                    match.teamBNames = match.teamBNames?.map { if (it?.trim().equals(oldNameTrimmed, ignoreCase = true)) newNameTrimmed else it }?.distinct()
 
                     // C. Mappings
                     val newPhotoMap = HashMap<String?, String?>()
                     match.photoMap?.forEach { (k, v) ->
-                        val newKey = if (k?.trim().equals(oldNameTrimmed, ignoreCase = true)) newName else k
+                        val newKey = if (k?.trim().equals(oldNameTrimmed, ignoreCase = true) || v == playerId) newNameTrimmed else k
                         newPhotoMap[newKey] = v
                     }
                     match.photoMap = newPhotoMap
 
                     val newIdMap = HashMap<String?, String?>()
                     match.nameToIdMap?.forEach { (k, v) ->
-                        val newKey = if (k?.trim().equals(oldNameTrimmed, ignoreCase = true)) newName else k
+                        val newKey = if (k?.trim().equals(oldNameTrimmed, ignoreCase = true) || v == playerId) newNameTrimmed else k
                         newIdMap[newKey] = v
                     }
                     match.nameToIdMap = newIdMap
 
                     // D. Resumption State
-                    if (match.currentStrikerName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.currentStrikerName = newName
-                    if (match.currentNonStrikerName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.currentNonStrikerName = newName
-                    if (match.currentBowlerName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.currentBowlerName = newName
-                    if (match.playerOfTheMatchName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.playerOfTheMatchName = newName
+                    if (match.currentStrikerName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.currentStrikerName = newNameTrimmed
+                    if (match.currentNonStrikerName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.currentNonStrikerName = newNameTrimmed
+                    if (match.currentBowlerName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.currentBowlerName = newNameTrimmed
+                    if (match.playerOfTheMatchName?.trim().equals(oldNameTrimmed, ignoreCase = true)) match.playerOfTheMatchName = newNameTrimmed
 
-                    // E. JSON Blobs (The regex-based fuzzy swap)
-                    renameInJson(match, oldNameTrimmed, newName)
+                    // E. JSON Blobs (Balls, Commentary, Fall of Wickets, Partnerships)
+                    renameInJson(match, oldNameTrimmed, newNameTrimmed)
 
                     // 4. Save and Sync Match
                     db.matchDao().insertMatch(match)
@@ -86,12 +87,12 @@ object PlayerRenameManager {
                     val matchStats = db.statsDao().getStatsByMatch(mId) ?: emptyList()
                     for (stat in matchStats.filterNotNull()) {
                         var modified = false
-                        if (stat.playerName?.trim().equals(oldNameTrimmed, ignoreCase = true)) {
-                            stat.playerName = newName
+                        if (stat.playerName?.trim().equals(oldNameTrimmed, ignoreCase = true) || stat.playerId == playerId) {
+                            stat.playerName = newNameTrimmed
                             modified = true
                         }
                         if (stat.dismissalInfo?.contains(oldNameTrimmed, ignoreCase = true) == true) {
-                            stat.dismissalInfo = stat.dismissalInfo?.replace(regex, newName)
+                            stat.dismissalInfo = stat.dismissalInfo?.replace(regex, newNameTrimmed)
                             modified = true
                         }
                         if (modified) {
@@ -105,11 +106,12 @@ object PlayerRenameManager {
                 // Clean up any lingering historical dismissal strings across all matches
                 sanitizeAllMatchDismissals(db)
 
-                Log.d(TAG, "Renamed '$oldNameTrimmed' to '$newName' in ${targetMatches.size} matches.")
+                Log.d(TAG, "Renamed '$oldNameTrimmed' to '$newNameTrimmed' in ${targetMatches.size} matches.")
                 onComplete()
 
             } catch (e: Exception) {
-                Log.e(TAG, "Rename failed: ${e.message}")
+                Log.e(TAG, "Rename failed: ${e.message}", e)
+                onComplete()
             }
         }
     }
@@ -127,7 +129,20 @@ object PlayerRenameManager {
                 )
             } == true
         }
-        return ballsContain(match.ballsJson1) || ballsContain(match.ballsJson2)
+        fun fowContain(list: List<FowEvent?>?): Boolean {
+            return list?.any { f -> f?.playerName?.trim().equals(name, ignoreCase = true) } == true
+        }
+        fun pshipContain(list: List<PartnershipEvent?>?): Boolean {
+            return list?.any { p -> p?.batter1?.trim().equals(name, ignoreCase = true) || p?.batter2?.trim().equals(name, ignoreCase = true) } == true
+        }
+        fun commContain(list: List<CommentaryEntry?>?): Boolean {
+            return list?.any { c -> c?.text?.contains(name, ignoreCase = true) == true || c?.baseText?.contains(name, ignoreCase = true) == true } == true
+        }
+
+        return ballsContain(match.ballsJson1) || ballsContain(match.ballsJson2) ||
+               fowContain(match.fowJson1) || fowContain(match.fowJson2) ||
+               pshipContain(match.pshipJson1) || pshipContain(match.pshipJson2) ||
+               commContain(match.commentaryJson1) || commContain(match.commentaryJson2) || commContain(match.commentaryJson)
     }
 
     private fun renameInJson(match: MatchEntity, oldName: String, newName: String) {
