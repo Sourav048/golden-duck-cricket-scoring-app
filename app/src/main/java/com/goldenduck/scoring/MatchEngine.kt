@@ -117,18 +117,23 @@ object MatchEngine {
         val isLegalBall = ball.type != BallType.WIDE && ball.type != BallType.NO_BALL
         val isOverEnded = isLegalBall && (innings.legalBalls % 6 == 0)
 
-        // Only rotate strike if there is an active, distinct non-striker present
-        if (newNonStriker != null && newStriker != null) {
-            if (isOddRuns) {
-                val temp = newStriker
-                newStriker = newNonStriker
-                newNonStriker = temp
-            }
+        // 1. Odd runs swap (requires both active batsmen present)
+        if (isOddRuns && newNonStriker != null && newStriker != null) {
+            val temp = newStriker
+            newStriker = newNonStriker
+            newNonStriker = temp
+        }
 
-            if (isOverEnded) {
+        // 2. Over completion swap (unconditional — ends change for the new over!)
+        if (isOverEnded) {
+            if (newStriker != null && newNonStriker != null) {
                 val temp = newStriker
                 newStriker = newNonStriker
                 newNonStriker = temp
+            } else if (newStriker == null && newNonStriker != null) {
+                // Striker got out on ball 6: Non-striker becomes striker for Over 2
+                newStriker = newNonStriker
+                newNonStriker = null
             }
         }
 
@@ -189,6 +194,7 @@ object MatchEngine {
 
     private fun cloneInnings(source: Innings): Innings {
         val copy = Innings(source.battingTeam, source.bowlingTeam, source.maxOvers, source.maxWickets)
+        copy.revisedMaxOvers = source.revisedMaxOvers
         copy.balls.addAll(source.balls)
         copy.totalRuns = source.totalRuns
         copy.totalWickets = source.totalWickets

@@ -1,0 +1,343 @@
+{
+  "player": "Manish Balai",
+  "player_id": "dd2f26ad-d62b-46d1-993d-3a6887c28e79",
+  "total_matches_analyzed": 34,
+  "total_commentary_wickets": 9,
+  "total_commentary_catches": 10,
+  "wickets_detail": [
+    {
+      "match_id": "12e487d7-e20a-4e88-9857-458ad426d7a4",
+      "teams": "Krishna Strikers vs Aditya Warriors",
+      "over": "3.4",
+      "text": "Manish Balai to Harsh Singh, OUT, HIT OUT OF THE GROUND\n<b>Harsh Singh Hit Out Of The Ground b Manish Balai 12(10) [4s-1 6s-1]</b>"
+    },
+    {
+      "match_id": "1df34284-0caa-4e7a-b97e-e33f62944f66",
+      "teams": "Gobi revengers vs Chotu avengers",
+      "over": "3.0",
+      "text": "Manish Balai to Ansh Sharma, BOWLED OUT"
+    },
+    {
+      "match_id": "501d5380-830f-4870-8ef6-e72390c72f06",
+      "teams": "Gobi revengers vs Chotu avengers",
+      "over": "1.2",
+      "text": "Manish Balai to Sourav Sharma, CAUGHT OUT, Caught by Sushant Agrawal"
+    },
+    {
+      "match_id": "5f52f89c-261f-4981-801c-6350b2f51556",
+      "teams": "Pankaj Fuddu's vs Vishnu lover's",
+      "over": "5.5",
+      "text": "Manish Balai to Sushant Agrawal, CAUGHT OUT, Caught by Aakash Sharma"
+    },
+    {
+      "match_id": "5f52f89c-261f-4981-801c-6350b2f51556",
+      "teams": "Pankaj Fuddu's vs Vishnu lover's",
+      "over": "5.1",
+      "text": "Manish Balai to Sourav Sharma, BOWLED OUT"
+    },
+    {
+      "match_id": "6285f4e9-1cfd-4f15-81ad-cc31335be641",
+      "teams": "Krishna Chodus vs Harsh Fuddus",
+      "over": "7.2",
+      "text": "Manish Balai to Aditya Singh, CAUGHT OUT, Caught by Manoj Tanwar"
+    },
+    {
+      "match_id": "7addfb3c-f53b-4f15-8219-0169e9036e87",
+      "teams": "Krishna Warriors vs Harsh Hurricanes",
+      "over": "1.4",
+      "text": "Manish Balai to Kundan Singh, CAUGHT OUT, Caught by Harsh Singh\n<b>Kundan Singh c Harsh Singh b Manish Balai 10(10) [4s-2]</b>"
+    },
+    {
+      "match_id": "e9aa31e1-6388-4c74-b998-aa10a6d3baa6",
+      "teams": "lovely premium vs gobi associates",
+      "over": "1.0",
+      "text": "Manish Balai to Harkesh Gurjar, CAUGHT OUT, Caught by Manish Balai"
+    },
+    {
+      "match_id": "ffc3dc2d-99ea-43d8-a989-c7a6e3002088",
+      "teams": "gobi avengers vs lovely rangers",
+      "over": "1.4",
+      "text": "Manish Balai to Lavish Sain, CAUGHT OUT, Caught by Manish Balai"
+    }
+  ],
+  "catches_detail": [
+    {
+      "match_id": "5d8c3504-7b48-43ea-9057-e4e1a1848ac7",
+      "teams": "Harry Strikers vs Krishna Chodus",
+      "over": "7.1",
+      "text": "Lavish Sain to Aakash Sharma, CAUGHT OUT, Caught by Manish Balai"
+    },
+    {
+      "match_id": "5d8c3504-7b48-43ea-9057-e4e1a1848ac7",
+      "teams": "Harry Strikers vs Krishna Chodus",
+      "over": "2.2",
+      "text": "Harkesh Gurjar to Jalebi Bai, CAUGHT OUT, Caught by Manish Balai"
+    },
+    {
+      "match_id": "7addfb3c-f53b-4f15-8219-0169e9036e87",
+      "teams": "Krishna Warriors vs Harsh Hurricanes",
+      "over": "5.1",
+      "text": "Harsh Singh to Vishnu Agrawal, CAUGHT OUT, Caught by Manish Balai\n<b>Vishnu Agrawal c Manish Balai b Harsh Singh 11(6) [4s-2]</b>"
+    },
+    {
+      "match_id": "a8bda269-5c85-4ce1-a3a0-03f1ff8a988d",
+      "teams": "gobi avengers vs lovely rangers",
+      "over": "4.0",
+      "text": "Sourav Sharma to Pankaj, CAUGHT OUT, Caught by Manish Balai"
+    },
+    {
+      "match_id": "a8bda269-5c85-4ce1-a3a0-03f1ff8a988d",
+      "teams": "gobi avengers vs lovely rangers",
+      "over": "2.5",
+      "text": "Sushant Agrawal to Lavish Sain, CAUGHT OUT, Caught by Manish Balai"
+    },
+    {
+      "match_id": "de615831-f790-411b-a29d-a2676f008b4b",
+      "teams": "Harry Strikers vs Yash Galgotias",
+      "over": "1.0",
+      "text": "Harsh Singh to Aditya Singh, CAUGHT OUT, Caught by Manish Balai"
+    },
+    {
+      "match_id": "e9aa31e1-6388-4c74-b998-aa10a6d3baa6",
+      "teams": "lovely premium vs gobi associates",
+      "over": "1.4",
+      "text": "Sushant Agrawal to Lavish Sain, CAUGHT OUT, Caught by Manish Balai"
+    },
+    {
+      "match_id": "e9aa31e1-6388-4c74-b998-aa10a6d3baa6",
+      "teams": "lovely premium vs gobi associates",
+      "over": "1.0",
+      "text": "Manish Balai to Harkesh Gurjar, CAUGHT OUT, Caught by Manish Balai"
+    },
+    {
+      "match_id": "ffc3dc2d-99ea-43d8-a989-c7a6e3002088",
+      "teams": "gobi avengers vs lovely rangers",
+      "over": "3.3",
+      "text": "Sushant Agrawal to Sourav Sharma, CAUGHT OUT, Caught by Manish Balai"
+    },
+    {
+      "match_id": "ffc3dc2d-99ea-43d8-a989-c7a6e3002088",
+      "teams": "gobi avengers vs lovely rangers",
+      "over": "1.4",
+      "text": "Manish Balai to Lavish Sain, CAUGHT OUT, Caught by Manish Balai"
+    }
+  ],
+  "matches_breakdown": [
+    {
+      "match_id": "12e487d7-e20a-4e88-9857-458ad426d7a4",
+      "teams": "Krishna Strikers vs Aditya Warriors",
+      "wickets_count": 1,
+      "catches_count": 0,
+      "wickets": [
+        {
+          "match_id": "12e487d7-e20a-4e88-9857-458ad426d7a4",
+          "teams": "Krishna Strikers vs Aditya Warriors",
+          "over": "3.4",
+          "text": "Manish Balai to Harsh Singh, OUT, HIT OUT OF THE GROUND\n<b>Harsh Singh Hit Out Of The Ground b Manish Balai 12(10) [4s-1 6s-1]</b>"
+        }
+      ],
+      "catches": []
+    },
+    {
+      "match_id": "1df34284-0caa-4e7a-b97e-e33f62944f66",
+      "teams": "Gobi revengers vs Chotu avengers",
+      "wickets_count": 1,
+      "catches_count": 0,
+      "wickets": [
+        {
+          "match_id": "1df34284-0caa-4e7a-b97e-e33f62944f66",
+          "teams": "Gobi revengers vs Chotu avengers",
+          "over": "3.0",
+          "text": "Manish Balai to Ansh Sharma, BOWLED OUT"
+        }
+      ],
+      "catches": []
+    },
+    {
+      "match_id": "501d5380-830f-4870-8ef6-e72390c72f06",
+      "teams": "Gobi revengers vs Chotu avengers",
+      "wickets_count": 1,
+      "catches_count": 0,
+      "wickets": [
+        {
+          "match_id": "501d5380-830f-4870-8ef6-e72390c72f06",
+          "teams": "Gobi revengers vs Chotu avengers",
+          "over": "1.2",
+          "text": "Manish Balai to Sourav Sharma, CAUGHT OUT, Caught by Sushant Agrawal"
+        }
+      ],
+      "catches": []
+    },
+    {
+      "match_id": "5d8c3504-7b48-43ea-9057-e4e1a1848ac7",
+      "teams": "Harry Strikers vs Krishna Chodus",
+      "wickets_count": 0,
+      "catches_count": 2,
+      "wickets": [],
+      "catches": [
+        {
+          "match_id": "5d8c3504-7b48-43ea-9057-e4e1a1848ac7",
+          "teams": "Harry Strikers vs Krishna Chodus",
+          "over": "7.1",
+          "text": "Lavish Sain to Aakash Sharma, CAUGHT OUT, Caught by Manish Balai"
+        },
+        {
+          "match_id": "5d8c3504-7b48-43ea-9057-e4e1a1848ac7",
+          "teams": "Harry Strikers vs Krishna Chodus",
+          "over": "2.2",
+          "text": "Harkesh Gurjar to Jalebi Bai, CAUGHT OUT, Caught by Manish Balai"
+        }
+      ]
+    },
+    {
+      "match_id": "5f52f89c-261f-4981-801c-6350b2f51556",
+      "teams": "Pankaj Fuddu's vs Vishnu lover's",
+      "wickets_count": 2,
+      "catches_count": 0,
+      "wickets": [
+        {
+          "match_id": "5f52f89c-261f-4981-801c-6350b2f51556",
+          "teams": "Pankaj Fuddu's vs Vishnu lover's",
+          "over": "5.5",
+          "text": "Manish Balai to Sushant Agrawal, CAUGHT OUT, Caught by Aakash Sharma"
+        },
+        {
+          "match_id": "5f52f89c-261f-4981-801c-6350b2f51556",
+          "teams": "Pankaj Fuddu's vs Vishnu lover's",
+          "over": "5.1",
+          "text": "Manish Balai to Sourav Sharma, BOWLED OUT"
+        }
+      ],
+      "catches": []
+    },
+    {
+      "match_id": "6285f4e9-1cfd-4f15-81ad-cc31335be641",
+      "teams": "Krishna Chodus vs Harsh Fuddus",
+      "wickets_count": 1,
+      "catches_count": 0,
+      "wickets": [
+        {
+          "match_id": "6285f4e9-1cfd-4f15-81ad-cc31335be641",
+          "teams": "Krishna Chodus vs Harsh Fuddus",
+          "over": "7.2",
+          "text": "Manish Balai to Aditya Singh, CAUGHT OUT, Caught by Manoj Tanwar"
+        }
+      ],
+      "catches": []
+    },
+    {
+      "match_id": "7addfb3c-f53b-4f15-8219-0169e9036e87",
+      "teams": "Krishna Warriors vs Harsh Hurricanes",
+      "wickets_count": 1,
+      "catches_count": 1,
+      "wickets": [
+        {
+          "match_id": "7addfb3c-f53b-4f15-8219-0169e9036e87",
+          "teams": "Krishna Warriors vs Harsh Hurricanes",
+          "over": "1.4",
+          "text": "Manish Balai to Kundan Singh, CAUGHT OUT, Caught by Harsh Singh\n<b>Kundan Singh c Harsh Singh b Manish Balai 10(10) [4s-2]</b>"
+        }
+      ],
+      "catches": [
+        {
+          "match_id": "7addfb3c-f53b-4f15-8219-0169e9036e87",
+          "teams": "Krishna Warriors vs Harsh Hurricanes",
+          "over": "5.1",
+          "text": "Harsh Singh to Vishnu Agrawal, CAUGHT OUT, Caught by Manish Balai\n<b>Vishnu Agrawal c Manish Balai b Harsh Singh 11(6) [4s-2]</b>"
+        }
+      ]
+    },
+    {
+      "match_id": "a8bda269-5c85-4ce1-a3a0-03f1ff8a988d",
+      "teams": "gobi avengers vs lovely rangers",
+      "wickets_count": 0,
+      "catches_count": 2,
+      "wickets": [],
+      "catches": [
+        {
+          "match_id": "a8bda269-5c85-4ce1-a3a0-03f1ff8a988d",
+          "teams": "gobi avengers vs lovely rangers",
+          "over": "4.0",
+          "text": "Sourav Sharma to Pankaj, CAUGHT OUT, Caught by Manish Balai"
+        },
+        {
+          "match_id": "a8bda269-5c85-4ce1-a3a0-03f1ff8a988d",
+          "teams": "gobi avengers vs lovely rangers",
+          "over": "2.5",
+          "text": "Sushant Agrawal to Lavish Sain, CAUGHT OUT, Caught by Manish Balai"
+        }
+      ]
+    },
+    {
+      "match_id": "de615831-f790-411b-a29d-a2676f008b4b",
+      "teams": "Harry Strikers vs Yash Galgotias",
+      "wickets_count": 0,
+      "catches_count": 1,
+      "wickets": [],
+      "catches": [
+        {
+          "match_id": "de615831-f790-411b-a29d-a2676f008b4b",
+          "teams": "Harry Strikers vs Yash Galgotias",
+          "over": "1.0",
+          "text": "Harsh Singh to Aditya Singh, CAUGHT OUT, Caught by Manish Balai"
+        }
+      ]
+    },
+    {
+      "match_id": "e9aa31e1-6388-4c74-b998-aa10a6d3baa6",
+      "teams": "lovely premium vs gobi associates",
+      "wickets_count": 1,
+      "catches_count": 2,
+      "wickets": [
+        {
+          "match_id": "e9aa31e1-6388-4c74-b998-aa10a6d3baa6",
+          "teams": "lovely premium vs gobi associates",
+          "over": "1.0",
+          "text": "Manish Balai to Harkesh Gurjar, CAUGHT OUT, Caught by Manish Balai"
+        }
+      ],
+      "catches": [
+        {
+          "match_id": "e9aa31e1-6388-4c74-b998-aa10a6d3baa6",
+          "teams": "lovely premium vs gobi associates",
+          "over": "1.4",
+          "text": "Sushant Agrawal to Lavish Sain, CAUGHT OUT, Caught by Manish Balai"
+        },
+        {
+          "match_id": "e9aa31e1-6388-4c74-b998-aa10a6d3baa6",
+          "teams": "lovely premium vs gobi associates",
+          "over": "1.0",
+          "text": "Manish Balai to Harkesh Gurjar, CAUGHT OUT, Caught by Manish Balai"
+        }
+      ]
+    },
+    {
+      "match_id": "ffc3dc2d-99ea-43d8-a989-c7a6e3002088",
+      "teams": "gobi avengers vs lovely rangers",
+      "wickets_count": 1,
+      "catches_count": 2,
+      "wickets": [
+        {
+          "match_id": "ffc3dc2d-99ea-43d8-a989-c7a6e3002088",
+          "teams": "gobi avengers vs lovely rangers",
+          "over": "1.4",
+          "text": "Manish Balai to Lavish Sain, CAUGHT OUT, Caught by Manish Balai"
+        }
+      ],
+      "catches": [
+        {
+          "match_id": "ffc3dc2d-99ea-43d8-a989-c7a6e3002088",
+          "teams": "gobi avengers vs lovely rangers",
+          "over": "3.3",
+          "text": "Sushant Agrawal to Sourav Sharma, CAUGHT OUT, Caught by Manish Balai"
+        },
+        {
+          "match_id": "ffc3dc2d-99ea-43d8-a989-c7a6e3002088",
+          "teams": "gobi avengers vs lovely rangers",
+          "over": "1.4",
+          "text": "Manish Balai to Lavish Sain, CAUGHT OUT, Caught by Manish Balai"
+        }
+      ]
+    }
+  ]
+}

@@ -3605,7 +3605,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
             val initBowler1 = firstBallI1?.bowlerName
 
             val i1State = MatchState(
-                innings = Innings(i1.battingTeam, i1.bowlingTeam, i1.maxOvers, i1.maxWickets),
+                innings = Innings(i1.battingTeam, i1.bowlingTeam, i1.maxOvers, i1.maxWickets).apply {
+                    revisedMaxOvers = i1.revisedMaxOvers
+                },
                 playerStats = runningPlayerStats,
                 currentStrikerName = initStriker1,
                 currentNonStrikerName = initNonStriker1,
@@ -3653,7 +3655,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
             val initBowler2 = firstBallI2?.bowlerName ?: bowler?.name
 
             val i2State = MatchState(
-                innings = Innings(i2.battingTeam, i2.bowlingTeam, i2.maxOvers, i2.maxWickets),
+                innings = Innings(i2.battingTeam, i2.bowlingTeam, i2.maxOvers, i2.maxWickets).apply {
+                    revisedMaxOvers = i2.revisedMaxOvers
+                },
                 playerStats = runningPlayerStats,
                 currentStrikerName = initStriker2,
                 currentNonStrikerName = initNonStriker2,
@@ -4709,12 +4713,32 @@ class MainActivity : BaseActivity(), ScoringProvider {
                             val formatted = text.replace("FACT:", "").trim()
                             standard.tvFactText?.text = fromHtml("<b>$formatted</b>")
                         }
+                        text.contains("Match Paused", ignoreCase = true) || text.contains("Paused at", ignoreCase = true) -> {
+                            standard.ivFactIcon?.setImageResource(R.drawable.ic_info)
+                            standard.tvFactTag?.text = "MATCH PAUSED"
+                            val formatted = if (text.contains("Match Paused", ignoreCase = true)) {
+                                text.replace("Match Paused", "<b>Match Paused</b>", ignoreCase = true)
+                            } else {
+                                "<b>$text</b>"
+                            }
+                            standard.tvFactText?.text = fromHtml(formatted)
+                        }
+                        text.contains("Match Resumed", ignoreCase = true) || text.contains("Resumed at", ignoreCase = true) -> {
+                            standard.ivFactIcon?.setImageResource(R.drawable.ic_info)
+                            standard.tvFactTag?.text = "MATCH RESUMED"
+                            val formatted = if (text.contains("Match Resumed", ignoreCase = true)) {
+                                text.replace("Match Resumed", "<b>Match Resumed</b>", ignoreCase = true)
+                            } else {
+                                "<b>$text</b>"
+                            }
+                            standard.tvFactText?.text = fromHtml(formatted)
+                        }
                         text.contains("Abandoned", ignoreCase = true) -> {
                             standard.ivFactIcon?.setImageResource(R.drawable.ic_info)
                             standard.tvFactTag?.text = "MATCH ABANDONED"
                             standard.tvFactText?.text = fromHtml("<b>$text</b>")
                         }
-                        text.contains(":") && ("SQUAD_FACT" == entry.type || text.contains("squad", ignoreCase = true) || (!text.contains("Venue") && !text.contains("Toss") && !text.contains("Started") && !text.contains("crease"))) -> {
+                        text.contains(":") && ("SQUAD_FACT" == entry.type || text.contains("squad", ignoreCase = true)) -> {
                             standard.ivFactIcon?.setImageResource(R.drawable.ic_card_players)
                             val parts = text.split(":", limit = 2)
                             val teamName = parts[0].trim()

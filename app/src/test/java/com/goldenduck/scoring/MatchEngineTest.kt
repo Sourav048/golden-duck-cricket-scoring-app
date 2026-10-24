@@ -734,4 +734,42 @@ class MatchEngineTest {
         assertTrue(stateAfterUndo.isFreeHitActive)
         assertEquals("Bowler F", stateAfterUndo.currentBowlerName)
     }
+
+    @Test
+    fun testWicketOnLastBallOfOver_movesNonStrikerToStrikerForNextOver() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            currentStrikerName = "Batter A",
+            currentNonStrikerName = "Batter B",
+            currentBowlerName = "Bowler F"
+        )
+
+        // 5 normal balls
+        val b1 = Ball(0, BallType.NORMAL, false, "Batter A", "Bowler F", 0, "Batter B")
+        val b2 = Ball(0, BallType.NORMAL, false, "Batter A", "Bowler F", 0, "Batter B")
+        val b3 = Ball(0, BallType.NORMAL, false, "Batter A", "Bowler F", 0, "Batter B")
+        val b4 = Ball(0, BallType.NORMAL, false, "Batter A", "Bowler F", 0, "Batter B")
+        val b5 = Ball(0, BallType.NORMAL, false, "Batter A", "Bowler F", 0, "Batter B")
+
+        // 6th ball is a Wicket of Batter A
+        val b6Wicket = Ball(0, BallType.NORMAL, true, "Batter A", "Bowler F", 0, "Batter B").apply {
+            dismissalInfo = "b Bowler F"
+            outPlayerName = "Batter A"
+        }
+
+        val over1Events = listOf(
+            ScoringEvent.BallBowled(b1, "Batter A", "Bowler F"),
+            ScoringEvent.BallBowled(b2, "Batter A", "Bowler F"),
+            ScoringEvent.BallBowled(b3, "Batter A", "Bowler F"),
+            ScoringEvent.BallBowled(b4, "Batter A", "Bowler F"),
+            ScoringEvent.BallBowled(b5, "Batter A", "Bowler F"),
+            ScoringEvent.BallBowled(b6Wicket, "Batter A", "Bowler F", outPlayerName = "Batter A")
+        )
+
+        val stateAfterOver1 = MatchEngine.rebuildState(initialState, over1Events)
+
+        // At end of Over 1, Batter B MUST become currentStrikerName for Over 2
+        assertEquals("Batter B", stateAfterOver1.currentStrikerName)
+        assertNull(stateAfterOver1.currentNonStrikerName)
+    }
 }
