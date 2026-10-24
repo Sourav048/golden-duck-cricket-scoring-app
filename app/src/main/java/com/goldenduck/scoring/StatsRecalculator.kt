@@ -6,6 +6,11 @@ import android.util.Log
 object StatsRecalculator {
 
     fun recalculateAndSave(context: Context, matchId: String, onComplete: () -> Unit) {
+        if (!RemoteConfigManager.isFeatureEnabled(RemoteConfigManager.KEY_ENABLE_STATS_RECALCULATE)) {
+            Log.w("RECALC", "Stats recalculation is currently disabled via Remote Config.")
+            onComplete()
+            return
+        }
         AppDatabase.ioExecutor.execute {
             try {
                 val db = AppDatabase.getInstance(context)

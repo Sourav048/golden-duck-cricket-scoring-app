@@ -254,6 +254,13 @@ class InningsScorecardFragment : Fragment() {
         // --- Partnerships ---
         val pshipData: MutableList<PartnershipItem> = ArrayList()
         innings?.let {
+            // Auto-rebuild partnerships if any corrupt "N/A" partnership entries exist alongside valid balls with partners
+            val hasDistinctPartners = it.balls.mapNotNull { b -> b.nonStrikerName }.distinct().isNotEmpty()
+            val hasCorruptNAs = it.partnerships.any { p -> p.batter2 == "N/A" || p.batter1 == "N/A" }
+            if (hasCorruptNAs && hasDistinctPartners) {
+                it.rebuildPartnerships()
+            }
+
             for (i in it.partnerships.indices) {
                 val event = it.partnerships[i]
                 

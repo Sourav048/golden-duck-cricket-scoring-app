@@ -48,6 +48,9 @@ class ScoringApp : Application() {
         super.onCreate()
         instance = this
         
+        // Initialize Firebase Remote Config
+        RemoteConfigManager.init()
+
         // Verbose logging for setup (remove for production)
         OneSignal.Debug.logLevel = LogLevel.VERBOSE
 

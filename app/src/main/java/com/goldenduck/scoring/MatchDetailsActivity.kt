@@ -875,8 +875,12 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
 
         val isMaiden = overRuns == 0
         if (isMaiden) {
-            view.findViewById<View>(R.id.tvMaidenBadge).visibility = View.VISIBLE
-            view.findViewById<TextView>(R.id.tvOverLabel).setTextColor("#B71C1C".toColorInt())
+            val maidenBadge = view.findViewById<TextView>(R.id.tvMaidenBadge)
+            maidenBadge?.tag = "custom_color"
+            maidenBadge?.visibility = View.VISIBLE
+            val overLabel = view.findViewById<TextView>(R.id.tvOverLabel)
+            overLabel?.tag = "custom_color"
+            overLabel?.setTextColor("#B71C1C".toColorInt())
         }
 
         val ballsContainer = view.findViewById<LinearLayout>(R.id.layoutBallsContainer)

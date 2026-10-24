@@ -24,6 +24,9 @@ object GullySyncManager {
     private var draftListener: ListenerRegistration? = null
     private var gullyExistenceListener: ListenerRegistration? = null
 
+    @Volatile
+    var isMigrating = false
+
     interface SyncCallback {
         fun onSuccess(message: String)
         fun onFailure(error: String)
@@ -161,7 +164,7 @@ object GullySyncManager {
                                 localPlayers.forEach { localP ->
                                     if (localP != null && !cloudPlayerIds.contains(localP.id)) {
                                         // SAFEGUARD: Do NOT delete local players that haven't been synced to cloud yet (lastSyncedAt == 0)
-                                        if (localP.lastSyncedAt > 0L) {
+                                        if (localP.lastSyncedAt > 0L && !isMigrating) {
                                             localDb.playerDao().deletePlayer(localP)
                                         }
                                     }
@@ -211,8 +214,10 @@ object GullySyncManager {
                                 val localMatches = localDb.matchDao().getAllMatchesByGully(gullyId) ?: emptyList()
                                 localMatches.forEach { localM ->
                                     if (localM != null && !cloudMatchIds.contains(localM.id)) {
-                                        localDb.matchDao().deleteMatch(localM)
-                                        localDb.statsDao().deleteStatsByMatch(localM.id)
+                                        if (!isMigrating && localM.lastSyncedAt > 0L) {
+                                            localDb.matchDao().deleteMatch(localM)
+                                            localDb.statsDao().deleteStatsByMatch(localM.id)
+                                        }
                                     }
                                 }
 

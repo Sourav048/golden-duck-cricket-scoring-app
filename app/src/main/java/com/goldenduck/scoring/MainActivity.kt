@@ -793,7 +793,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             totalLegalBalls - legalBallsInOver
         }
 
-        val targetLegalCount = if (legalBallsInOver == 0 && showLastCompletedIfBoundary) 6 else legalBallsInOver
+        val maxLegalInOver = if (legalBallsInOver == 0 && showLastCompletedIfBoundary) 6 else Int.MAX_VALUE
 
         var legalBallsFound = 0
         var skipCount = 0
@@ -806,19 +806,14 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 if (isLegal) skipCount++
                 continue
             }
-            
+
             // Now we are in the balls for the current/target over
             currentOverBalls.add(b)
-            if (isLegal) legalBallsFound++
-            
-            if (targetLegalCount > 0 && legalBallsFound == targetLegalCount) {
-                break
-            }
-            
-            // If targetLegalCount is 0, we only want trailing extras
-            if (targetLegalCount == 0 && isLegal) {
-                currentOverBalls.removeAt(currentOverBalls.size - 1)
-                break
+            if (isLegal) {
+                legalBallsFound++
+                if (legalBallsFound == maxLegalInOver) {
+                    break
+                }
             }
         }
 
@@ -906,6 +901,15 @@ class MainActivity : BaseActivity(), ScoringProvider {
         return cachedP
     }
 
+    private fun isInMiddleOfOver(innings: Innings): Boolean {
+        if (innings.balls.isEmpty()) return false
+        val legalInOver = innings.legalBalls % 6
+        if (legalInOver > 0) return true
+        val lastBall = innings.balls.last()
+        val isLastBallLegal = (lastBall.type == BallType.NORMAL || lastBall.type == BallType.BYE || lastBall.type == BallType.LEG_BYE)
+        return !isLastBallLegal
+    }
+
     private fun initPlayers() {
         val battingList = if (teamABatting) teamANames else teamBNames
         val bowlingList = if (teamABatting) teamBNames else teamANames
@@ -953,6 +957,29 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val currentNonStrikerForRecord = if (batsmanForRecord == striker) nonStriker else striker
 
         val actualOut = outPlayer ?: batsmanForRecord
+
+        // Check for new bowler attack message BEFORE recording the ball
+        bowler?.let { b ->
+            if (b.name != currentBowlerInSpell) {
+                val isMidOverReplacement = currentBowlerInSpell != null && isInMiddleOfOver(innings)
+                val oldBowlerObj = if (isMidOverReplacement) getPlayerFromCache(currentBowlerInSpell) else null
+
+                val attackMsg = if (isMidOverReplacement && oldBowlerObj != null) {
+                    val newBowlerStr = "${b.name} [${b.oversBowledDisplay}-${b.maidens}-${b.runsConceded}-${b.wicketsTaken}]"
+                    val oldBowlerStr = "${oldBowlerObj.name} [${oldBowlerObj.oversBowledDisplay}-${oldBowlerObj.maidens}-${oldBowlerObj.runsConceded}-${oldBowlerObj.wicketsTaken}]"
+                    "$newBowlerStr replaces $oldBowlerStr"
+                } else if (b.ballsBowled > 0) {
+                    "${b.name} [${b.oversBowledDisplay}-${b.maidens}-${b.runsConceded}-${b.wicketsTaken}] is back into the attack"
+                } else {
+                    "${b.name} comes to the attack"
+                }
+
+                currentBowlerInSpell = b.name
+                innings.addCommentary(innings.oversDisplay, attackMsg, null, "FACT")
+                innings.commentary[0]?.let { commentary.add(0, it) }
+            }
+        }
+
         bowler?.let { b ->
             innings.addBall(runs, type, isWicket, batsmanForRecord, b, fielder, manualBatRuns, outPlayer, currentNonStrikerForRecord)
         } ?: return
@@ -977,14 +1004,6 @@ class MainActivity : BaseActivity(), ScoringProvider {
         // Bowling Stats Sync
         if (runs == 6 && (type == BallType.NORMAL || type == BallType.NO_BALL)) {
             bowler?.sixesConceded = (bowler?.sixesConceded ?: 0) + 1
-        }
-
-        // Check for new bowler attack message
-        if (bowler?.name != currentBowlerInSpell) {
-            currentBowlerInSpell = bowler?.name
-            val attackMsg = "$currentBowlerInSpell comes to the attack"
-            innings.addCommentary(innings.oversDisplay, attackMsg, null, "FACT")
-            innings.commentary[0]?.let { commentary.add(0, it) }
         }
 
         val event: String = when {
@@ -1091,7 +1110,27 @@ class MainActivity : BaseActivity(), ScoringProvider {
             else -> "$runs Run(s)"
         }
 
-        val comment = "$bowlerName to $batsmanName, $desc"
+        val baseComment = "$bowlerName to $batsmanName, $desc"
+        val comment = if (isWicket) {
+            val fours = actualOut.fours
+            val sixes = actualOut.sixes
+            val boundarySuffix = when {
+                fours > 0 && sixes > 0 -> " [4s-$fours 6s-$sixes]"
+                fours > 0 && sixes == 0 -> " [4s-$fours]"
+                fours == 0 && sixes > 0 -> " [6s-$sixes]"
+                else -> ""
+            }
+            val dInfo = if (actualOut.dismissalInfo.isNotEmpty() && actualOut.dismissalInfo != "not out") {
+                actualOut.dismissalInfo
+            } else {
+                "out"
+            }
+            val wicketSummary = "<b>${actualOut.name} $dInfo ${actualOut.runsScored}(${actualOut.ballsFaced})$boundarySuffix</b>"
+            "$baseComment\n$wicketSummary"
+        } else {
+            baseComment
+        }
+
         val badgeText = when {
             isWicket -> {
                 val widePenalty = if (isRuleRunsOnWide) 1 else 0
@@ -1426,8 +1465,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
         view.findViewById<TextView>(R.id.tvOverRuns).text = overRuns.toString()
         
         if (isMaiden) {
-            view.findViewById<View>(R.id.tvMaidenBadge).visibility = View.VISIBLE
-            view.findViewById<TextView>(R.id.tvOverLabel).setTextColor("#B71C1C".toColorInt())
+            val maidenBadge = view.findViewById<TextView>(R.id.tvMaidenBadge)
+            maidenBadge?.tag = "custom_color"
+            maidenBadge?.visibility = View.VISIBLE
+            val overLabel = view.findViewById<TextView>(R.id.tvOverLabel)
+            overLabel?.tag = "custom_color"
+            overLabel?.setTextColor("#B71C1C".toColorInt())
         }
 
         val ballsContainer = view.findViewById<LinearLayout>(R.id.layoutBallsContainer)
@@ -3071,15 +3114,22 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
         if (available.isEmpty()) {
             // Handle "Last Man Stand" transition
-            if (isStrikerReplacing && nonStriker != null && !nonStriker!!.isOut) {
+            val lastBatter = if (isStrikerReplacing && nonStriker != null && !nonStriker!!.isOut) {
                 striker = nonStriker
                 nonStriker = null
-                updateUI()
-                saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
-                return
-            }
-            if (!isStrikerReplacing && striker != null && !striker!!.isOut) {
+                striker
+            } else if (!isStrikerReplacing && striker != null && !striker!!.isOut) {
                 nonStriker = null
+                striker
+            } else null
+
+            if (lastBatter != null) {
+                val innings = match?.currentInnings
+                if (innings != null) {
+                    val lastMsg = "${lastBatter.name} is the last Batter Standing"
+                    innings.addCommentary(innings.oversDisplay, lastMsg, null, "FACT")
+                    innings.commentary.firstOrNull()?.let { commentary.add(0, it) }
+                }
                 updateUI()
                 saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
                 return
@@ -3105,23 +3155,95 @@ class MainActivity : BaseActivity(), ScoringProvider {
             setItems(array) { d, w ->
                 val selection = array[w]
                 if (selection == "None (Play Alone)") {
-                    if (isStrikerReplacing) {
+                    val oldBatter = if (isStrikerReplacing) striker else nonStriker
+                    if (oldBatter != null && oldBatter.entryTime > 0L) {
+                        val elapsedMs = System.currentTimeMillis() - oldBatter.entryTime
+                        val secsToAdd = (elapsedMs / 1000).toInt()
+                        if (secsToAdd > 0) {
+                            oldBatter.minutesPlayed += secsToAdd
+                        }
+                        oldBatter.entryTime = 0L
+                    }
+
+                    val lastBatter = if (isStrikerReplacing) {
                         striker = nonStriker
                         nonStriker = null
+                        striker
                     } else {
                         nonStriker = null
+                        striker
+                    }
+                    if (lastBatter != null) {
+                        val innings = match?.currentInnings
+                        if (innings != null) {
+                            val lastMsg = "${lastBatter.name} is the last Batter Standing"
+                            innings.addCommentary(innings.oversDisplay, lastMsg, null, "FACT")
+                            innings.commentary.firstOrNull()?.let { commentary.add(0, it) }
+                        }
                     }
                 } else {
                     val p = getPlayerFromCache(selection)
-                    if (p?.dismissalInfo == "retired hurt") {
-                        match?.currentInnings?.playerReturned(p)
-                        p.dismissalInfo = "not out"
-                    }
-                    p?.entryTime = System.currentTimeMillis()
-                    if (isStrikerReplacing) {
-                        striker = p
-                    } else {
-                        nonStriker = p
+                    if (p != null) {
+                        val oldBatter = if (isStrikerReplacing) striker else nonStriker
+                        val isMidInningsReplacement = oldBatter != null && !oldBatter.isOut && oldBatter.name != p.name
+
+                        if (oldBatter != null && oldBatter != p && oldBatter.entryTime > 0L) {
+                            val elapsedMs = System.currentTimeMillis() - oldBatter.entryTime
+                            val secsToAdd = (elapsedMs / 1000).toInt()
+                            if (secsToAdd > 0) {
+                                oldBatter.minutesPlayed += secsToAdd
+                            }
+                            oldBatter.entryTime = 0L
+                        }
+
+                        if (p.dismissalInfo == "retired hurt") {
+                            match?.currentInnings?.playerReturned(p)
+                            p.dismissalInfo = "not out"
+                        }
+                        p.entryTime = System.currentTimeMillis()
+                        if (isStrikerReplacing) {
+                            striker = p
+                        } else {
+                            nonStriker = p
+                        }
+
+                        // Add commentary for batsman entry or replacement
+                        val innings = match?.currentInnings
+                        if (innings != null) {
+                            val roleStr = if (isStrikerReplacing) "a Striker" else "a Non-Striker"
+
+                            fun formatBatterStats(player: Player): String {
+                                val fours = player.fours
+                                val sixes = player.sixes
+                                val boundaryStr = when {
+                                    fours > 0 && sixes > 0 -> "[4s-$fours, 6s-$sixes]"
+                                    fours > 0 && sixes == 0 -> "[4s-$fours]"
+                                    fours == 0 && sixes > 0 -> "[6s-$sixes]"
+                                    else -> ""
+                                }
+                                return "${player.runsScored}(${player.ballsFaced})$boundaryStr"
+                            }
+
+                            val entryMsg = if (isMidInningsReplacement && oldBatter != null) {
+                                val oldStats = formatBatterStats(oldBatter)
+                                if (p.ballsFaced > 0) {
+                                    val newStats = formatBatterStats(p)
+                                    "${p.name} $newStats Replacing ${oldBatter.name} $oldStats as $roleStr"
+                                } else {
+                                    "${p.name}, comes to the crease, Replacing ${oldBatter.name} $oldStats as $roleStr"
+                                }
+                            } else {
+                                if (p.ballsFaced > 0) {
+                                    val newStats = formatBatterStats(p)
+                                    "${p.name} $newStats comes to the crease"
+                                } else {
+                                    "${p.name} comes to the crease"
+                                }
+                            }
+
+                            innings.addCommentary(innings.oversDisplay, entryMsg, null, "FACT")
+                            innings.commentary.firstOrNull()?.let { commentary.add(0, it) }
+                        }
                     }
                 }
                 updateUI()
@@ -3652,7 +3774,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
             val bowlingTeam = if (teamABatting) teamBNames else teamANames
             val hasMultipleBowlers = (bowlingTeam?.filterNotNull()?.size ?: 0) > 1
 
-            if (remainingBalls.size % 6 == 0 && remainingBalls.isNotEmpty()) {
+            val isOverBoundary = newState.innings.legalBalls > 0 && newState.innings.legalBalls % 6 == 0
+
+            if (isOverBoundary) {
                 if (last.bowlerName != null && last.bowlerName != previousOverBowler) {
                     bowler = getPlayerFromCache(last.bowlerName)
                 } else if (hasMultipleBowlers) {
@@ -4301,11 +4425,15 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 entry.userNote = newUserNote
                 
                 // Reconstruct the display text
-                val base = entry.baseText ?: ""
+                val raw = entry.baseText ?: entry.text ?: ""
+                val hasWicketSummary = raw.contains("\n<b>")
+                val actionPart = if (hasWicketSummary) raw.substringBefore("\n<b>") else raw
+                val wicketPart = if (hasWicketSummary) "\n<b>" + raw.substringAfter("\n<b>") else ""
+
                 if (newUserNote.isNotEmpty()) {
-                    entry.text = "$base, $newUserNote"
+                    entry.text = "$actionPart\n$newUserNote$wicketPart"
                 } else {
-                    entry.text = base
+                    entry.text = "$actionPart$wicketPart"
                 }
                 
                 commentaryFragment?.updateUI()
@@ -4595,19 +4723,115 @@ class MainActivity : BaseActivity(), ScoringProvider {
                             standard.tvFactTag?.text = "TEAM SQUAD - $teamName"
                             standard.tvFactText?.text = players
                         }
+                        text.contains(" Replacing ", ignoreCase = true) -> {
+                            standard.ivFactIcon?.setImageResource(R.drawable.ic_stat_bat)
+                            standard.tvFactTag?.text = "BATTER REPLACEMENT"
+                            val formatted = if (text.contains(" Replacing ")) {
+                                val parts = text.split(" Replacing ", limit = 2)
+                                val p1 = parts[0].trim()
+                                val p2 = parts[1].trim()
+
+                                fun formatNameAndStats(str: String): String {
+                                    val trimmed = str.trim()
+                                    return if (trimmed.contains("(")) {
+                                        val beforeParen = trimmed.substringBefore("(")
+                                        val name = beforeParen.substringBeforeLast(" ", beforeParen).trim()
+                                        val stats = trimmed.substring(name.length).trim()
+                                        "<b>$name</b> $stats"
+                                    } else {
+                                        "<b>$trimmed</b>"
+                                    }
+                                }
+
+                                "${formatNameAndStats(p1)} Replacing ${formatNameAndStats(p2)}"
+                            } else {
+                                text
+                            }
+                            standard.tvFactText?.text = fromHtml(formatted)
+                        }
+                        text.contains("last Batter Standing", ignoreCase = true) || text.contains("last batter standing", ignoreCase = true) -> {
+                            standard.ivFactIcon?.setImageResource(R.drawable.ic_stat_bat)
+                            standard.tvFactTag?.text = "LAST BATTER STANDING"
+                            val formatted = if (text.contains(" is ")) {
+                                val parts = text.split(" is ", limit = 2)
+                                "<b>${parts[0].trim()}</b> is ${parts[1]}"
+                            } else {
+                                text
+                            }
+                            standard.tvFactText?.text = fromHtml(formatted)
+                        }
+                        text.contains("comes to the crease", ignoreCase = true) -> {
+                            standard.ivFactIcon?.setImageResource(R.drawable.ic_stat_bat)
+                            standard.tvFactTag?.text = "BATSMAN ENTRY"
+                            val formatted = if (text.contains(" comes ")) {
+                                val parts = text.split(" comes ", limit = 2)
+                                val p1 = parts[0].trim()
+                                val rest = parts[1]
+
+                                fun formatNameAndStats(str: String): String {
+                                    val trimmed = str.trim()
+                                    return if (trimmed.contains("(")) {
+                                        val beforeParen = trimmed.substringBefore("(")
+                                        val name = beforeParen.substringBeforeLast(" ", beforeParen).trim()
+                                        val stats = trimmed.substring(name.length).trim()
+                                        "<b>$name</b> $stats"
+                                    } else {
+                                        "<b>$trimmed</b>"
+                                    }
+                                }
+
+                                "${formatNameAndStats(p1)} comes $rest"
+                            } else {
+                                text
+                            }
+                            standard.tvFactText?.text = fromHtml(formatted)
+                        }
                         text.contains("at the crease", ignoreCase = true) || text.contains("open the attack", ignoreCase = true) -> {
                             standard.ivFactIcon?.setImageResource(R.drawable.ic_stat_bat)
                             standard.tvFactTag?.text = "OPENING ATTACK"
                             standard.tvFactText?.text = fromHtml(text)
                         }
-                        text.contains("comes to the attack", ignoreCase = true) || text.contains("into the attack", ignoreCase = true) || text.contains("comes to bowl", ignoreCase = true) -> {
+                        text.contains("comes to the attack", ignoreCase = true) || text.contains("into the attack", ignoreCase = true) || text.contains("comes to bowl", ignoreCase = true) || text.contains(" replaces ", ignoreCase = true) -> {
                             standard.ivFactIcon?.setImageResource(R.drawable.ic_cricket_ball)
                             standard.tvFactTag?.text = "BOWLING CHANGE"
-                            val formatted = if (text.contains(" comes ")) {
-                                val parts = text.split(" comes ", limit = 2)
-                                "<b>${parts[0].trim()}</b> comes ${parts[1]}"
-                            } else {
-                                text
+                            val formatted = when {
+                                text.contains(" replaces ") -> {
+                                    val parts = text.split(" replaces ", limit = 2)
+                                    val p1 = parts[0].trim()
+                                    val p2 = parts[1].trim()
+                                    val b1Formatted = if (p1.contains(" [")) {
+                                        val name = p1.substringBefore(" [").trim()
+                                        val stats = p1.substring(p1.indexOf(" [")).trim()
+                                        "<b>$name</b> $stats"
+                                    } else {
+                                        "<b>$p1</b>"
+                                    }
+                                    val b2Formatted = if (p2.contains(" [")) {
+                                        val name = p2.substringBefore(" [").trim()
+                                        val stats = p2.substring(p2.indexOf(" [")).trim()
+                                        "<b>$name</b> $stats"
+                                    } else {
+                                        "<b>$p2</b>"
+                                    }
+                                    "$b1Formatted replaces $b2Formatted"
+                                }
+                                text.contains(" comes ") -> {
+                                    val parts = text.split(" comes ", limit = 2)
+                                    "<b>${parts[0].trim()}</b> comes ${parts[1]}"
+                                }
+                                text.contains(" is back ") -> {
+                                    val parts = text.split(" is back ", limit = 2)
+                                    val bowlerPart = parts[0].trim()
+                                    val rest = parts[1]
+                                    if (bowlerPart.contains(" [")) {
+                                        val name = bowlerPart.substringBefore(" [").trim()
+                                        val stats = bowlerPart.substring(bowlerPart.indexOf(" [")).trim()
+                                        "<b>$name</b> $stats is back $rest"
+                                    } else {
+                                        "<b>$bowlerPart</b> is back $rest"
+                                    }
+                                }
+                                else -> text
                             }
                             standard.tvFactText?.text = fromHtml(formatted)
                         }
@@ -4739,34 +4963,47 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
         private fun formatBallCommentary(rawText: String, highlight: String?): CharSequence {
             if (rawText.isEmpty()) return ""
-            if (!rawText.contains(" to ")) {
-                return fromHtml("<b>$rawText</b>")
+
+            val lines = rawText.split("\n")
+            val formattedLines = mutableListOf<String>()
+
+            for (i in lines.indices) {
+                val line = lines[i]
+                if (i == 0) {
+                    if (!line.contains(" to ")) {
+                        formattedLines.add("<b>$line</b>")
+                    } else {
+                        val parts = line.split(", ", limit = 2)
+                        val playersPart = parts[0]
+                        val outcomePart = if (parts.size > 1) parts[1] else ""
+
+                        val p = playersPart.split(" to ", limit = 2)
+                        val bowler = p[0].trim()
+                        val batter = if (p.size > 1) p[1].trim() else ""
+
+                        val formattedPlayers = "<b>$bowler</b> to <b>$batter</b>"
+
+                        val formattedOutcome = when {
+                            outcomePart.isEmpty() -> ""
+                            highlight == "4" -> ", <font color='#EF6C00'><b>$outcomePart</b></font>"
+                            highlight == "6" -> ", <font color='#2E7D32'><b>$outcomePart</b></font>"
+                            highlight?.endsWith("WD") == true || highlight?.endsWith("Wd") == true || outcomePart.contains("WIDE", ignoreCase = true) -> 
+                                ", <font color='#E6A100'><b>$outcomePart</b></font>"
+                            highlight?.endsWith("NB") == true || outcomePart.contains("NO BALL", ignoreCase = true) -> 
+                                ", <font color='#7B1FA2'><b>$outcomePart</b></font>"
+                            highlight?.endsWith("W") == true || outcomePart.contains("OUT", ignoreCase = true) -> 
+                                ", <font color='#D32F2F'><b>$outcomePart</b></font>"
+                            else -> ", $outcomePart"
+                        }
+
+                        formattedLines.add("$formattedPlayers$formattedOutcome")
+                    }
+                } else {
+                    formattedLines.add(line)
+                }
             }
 
-            val parts = rawText.split(", ", limit = 2)
-            val playersPart = parts[0]
-            val outcomePart = if (parts.size > 1) parts[1] else ""
-
-            val p = playersPart.split(" to ", limit = 2)
-            val bowler = p[0].trim()
-            val batter = if (p.size > 1) p[1].trim() else ""
-
-            val formattedPlayers = "<b>$bowler</b> to <b>$batter</b>"
-
-            val formattedOutcome = when {
-                outcomePart.isEmpty() -> ""
-                highlight == "4" -> ", <font color='#EF6C00'><b>$outcomePart</b></font>"
-                highlight == "6" -> ", <font color='#2E7D32'><b>$outcomePart</b></font>"
-                highlight?.endsWith("WD") == true || highlight?.endsWith("Wd") == true || outcomePart.contains("WIDE", ignoreCase = true) -> 
-                    ", <font color='#E6A100'><b>$outcomePart</b></font>"
-                highlight?.endsWith("NB") == true || outcomePart.contains("NO BALL", ignoreCase = true) -> 
-                    ", <font color='#7B1FA2'><b>$outcomePart</b></font>"
-                highlight?.endsWith("W") == true || outcomePart.contains("OUT", ignoreCase = true) -> 
-                    ", <font color='#D32F2F'><b>$outcomePart</b></font>"
-                else -> ", $outcomePart"
-            }
-
-            return fromHtml("$formattedPlayers$formattedOutcome")
+            return fromHtml(formattedLines.joinToString("<br/>"))
         }
 
         private fun bindSummary(holder: SummaryHolder, entry: CommentaryEntry) {
@@ -4789,7 +5026,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 
                 // Maiden Check
                 if (parts.size > 15 && parts[15] == "1") {
+                    holder.tvMaidenBadge.tag = "custom_color"
                     holder.tvMaidenBadge.visibility = View.VISIBLE
+                    holder.tvOverNum.tag = "custom_color"
                     holder.tvOverNum.setTextColor("#B71C1C".toColorInt())
                 } else {
                     holder.tvMaidenBadge.visibility = View.GONE

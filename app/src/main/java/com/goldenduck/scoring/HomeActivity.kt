@@ -341,9 +341,9 @@ class HomeActivity : BaseActivity() {
         }
 
         val targetSubDir = "Golden Duck - A Cricket Scoring App"
-        
+
         if (checkIfFileExistsInDownloads(fileName, targetSubDir)) {
-            Toast.makeText(this, "Records already saved in Downloads/$targetSubDir", Toast.LENGTH_LONG).show()
+            showInstantImportPrompt(uri, fileName)
         } else {
             copyUriToDownloads(uri, fileName, targetSubDir)
         }

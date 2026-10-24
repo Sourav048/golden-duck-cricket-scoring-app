@@ -674,7 +674,9 @@ class PlayerListActivity : BaseActivity() {
         private fun addBadgeIfRanked(container: LinearLayout, pid: String?, top3: List<String?>, badgeColor: Int) {
             val rank = top3.indexOf(pid) + 1
             if (rank > 0) {
-                val tv = TextView(container.context)
+                val tv = TextView(container.context).apply {
+                    tag = "custom_color"
+                }
                 val size = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24f, container.resources.displayMetrics).toInt()
                 val lp = LinearLayout.LayoutParams(size, size).apply { setMargins(4, 0, 4, 0) }
                 tv.layoutParams = lp

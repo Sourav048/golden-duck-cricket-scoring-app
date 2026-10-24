@@ -451,7 +451,7 @@ class MatchListFragment : Fragment() {
                 v.post {
                     val popup = PopupMenu(v.context, v)
                     popup.menu.add("Start Match with Same Setup")
-                    if (isFinished || isAbandoned) {
+                    if ((isFinished || isAbandoned) && RemoteConfigManager.isFeatureEnabled(RemoteConfigManager.KEY_ENABLE_STATS_RECALCULATE)) {
                         popup.menu.add("Recalculate Player Stats")
                     }
                     popup.setOnMenuItemClickListener { item ->
@@ -466,6 +466,10 @@ class MatchListFragment : Fragment() {
                             }
                             "Recalculate Player Stats" -> {
                                 val ctx = v.context
+                                if (!RemoteConfigManager.isFeatureEnabled(RemoteConfigManager.KEY_ENABLE_STATS_RECALCULATE)) {
+                                    Toast.makeText(ctx, "Stats recalculation is currently disabled", Toast.LENGTH_SHORT).show()
+                                    return@setOnMenuItemClickListener true
+                                }
                                 StatsRecalculator.recalculateAndSave(ctx, matchId) {
                                     activity?.runOnUiThread {
                                         Toast.makeText(ctx, "Stats Recalculated!", Toast.LENGTH_SHORT).show()

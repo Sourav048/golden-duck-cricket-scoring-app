@@ -197,6 +197,78 @@ class Innings {
         partnerships.add(PartnershipEvent(b1, b2))
     }
 
+    fun rebuildPartnerships() {
+        if (balls.isEmpty()) return
+        val savedBalls = ArrayList(balls)
+        val savedCommentary = ArrayList(commentary)
+
+        balls.clear()
+        partnerships.clear()
+        fallOfWickets.clear()
+        commentary.clear()
+
+        totalRuns = 0
+        totalWickets = 0
+        legalBalls = 0
+        battingRuns = 0
+        wides = 0
+        noBalls = 0
+        byes = 0
+        legByes = 0
+        penalties = 0
+        retiredHurtCount = 0
+
+        var currentStrikerName: String? = null
+        var currentNonStrikerName: String? = null
+
+        for (b in savedBalls) {
+            val facingName = b.batsmanName ?: "Batsman"
+
+            var nsName = b.nonStrikerName
+            if (nsName.isNullOrEmpty()) {
+                nsName = if (!currentNonStrikerName.isNullOrEmpty() && currentNonStrikerName != facingName) {
+                    currentNonStrikerName
+                } else if (!currentStrikerName.isNullOrEmpty() && currentStrikerName != facingName) {
+                    currentStrikerName
+                } else {
+                    null
+                }
+            }
+
+            val b1 = Player(facingName)
+            val b2 = nsName?.let { Player(it) }
+            val bowler = Player(b.bowlerName ?: "Bowler")
+            val outP = b.outPlayerName?.let { Player(it) } ?: if (b.isWicket) b1 else null
+
+            addBall(
+                runs = b.runs,
+                type = b.type ?: BallType.NORMAL,
+                isWicket = b.isWicket,
+                batsman = b1,
+                bowler = bowler,
+                fielder = b.fielderName,
+                manualBatRuns = b.batRuns,
+                outPlayer = outP,
+                nonStriker = b2
+            )
+
+            var newS: String? = facingName
+            var newNS: String? = nsName
+
+            if (b.isWicket) {
+                val outName = b.outPlayerName ?: facingName
+                if (newS == outName) newS = null
+                if (newNS == outName) newNS = null
+            }
+
+            currentStrikerName = newS ?: newNS
+            currentNonStrikerName = newNS ?: newS
+        }
+
+        commentary.clear()
+        commentary.addAll(savedCommentary)
+    }
+
     fun addCommentary(over: String?, text: String?, highlight: String?, type: String?) {
         val entry = CommentaryEntry(over, text, highlight, type)
         entry.baseText = text // Explicitly set baseText to match text
@@ -272,7 +344,11 @@ class Innings {
         val isPairSame = lastP != null && 
             ((lastP.batter1 == b1 && lastP.batter2 == b2) || (lastP.batter1 == b2 && lastP.batter2 == b1))
             
-        val activeP = if (isPairSame) {
+        val activeP = if (lastP != null && isPairSame) {
+            lastP
+        } else if (lastP != null && lastP.runs <= 0 && lastP.balls <= 0) {
+            lastP.batter1 = b1
+            lastP.batter2 = b2
             lastP
         } else {
             val newP = PartnershipEvent(b1, b2)

@@ -170,6 +170,7 @@
         <!-- True Legend Style Maiden Badge (Matching Dialog Style) -->
         <TextView
             android:id="@+id/tvSummaryMaidenBadge"
+            android:tag="custom_color"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="MAIDEN"

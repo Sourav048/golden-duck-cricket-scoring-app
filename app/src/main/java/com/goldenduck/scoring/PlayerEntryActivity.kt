@@ -706,7 +706,9 @@ class PlayerEntryActivity : BaseActivity() {
             ivPhoto.setImageResource(android.R.drawable.ic_menu_gallery)
         }
 
-        card.findViewById<View>(R.id.btnRemove).setOnClickListener {
+        val btnRemove = card.findViewById<View>(R.id.btnRemove)
+        btnRemove.visibility = View.VISIBLE
+        btnRemove.setOnClickListener {
             container.removeView(card)
             playerList.remove(player)
             refreshStartButton()

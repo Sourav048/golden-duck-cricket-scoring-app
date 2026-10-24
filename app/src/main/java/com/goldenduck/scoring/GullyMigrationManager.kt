@@ -25,6 +25,8 @@ object GullyMigrationManager {
             return
         }
 
+        GullySyncManager.isMigrating = true
+
         AppDatabase.ioExecutor.execute {
             try {
                 val db = getInstance(context)
@@ -93,6 +95,7 @@ object GullyMigrationManager {
                         } else {
                             // NO MATCH: Simply move the player to the new Gully
                             localP.gullyId = targetGId
+                            localP.lastSyncedAt = 0L
                             db.playerDao().insertPlayer(localP)
                         }
                     }
@@ -100,17 +103,20 @@ object GullyMigrationManager {
                     // 2. MOVE REMAINING LOCAL DATA
                     db.matchDao().migrateLocalMatches(targetGId)
                     db.statsDao().migrateLocalStats(targetGId)
+                    db.statsDao().fixOrphanMatchStats()
                 }
 
                 // 3. PUSH EVERYTHING TO CLOUD
                 val migratedMatches = db.matchDao().getAllMatchesByGully(targetGId) ?: emptyList()
-                migratedMatches.filterNotNull().forEach {
-                    GullySyncManager.performSyncMatchToCloudInternal(targetGId, it)
+                migratedMatches.filterNotNull().forEach { m ->
+                    m.lastSyncedAt = 0L
+                    GullySyncManager.performSyncMatchToCloudInternal(targetGId, m)
                 }
                 
                 // Final Player Sync
-                db.playerDao().getAllPlayersByGully(targetGId)?.filterNotNull()?.forEach {
-                    GullySyncManager.syncPlayerToCloud(targetGId, it)
+                db.playerDao().getAllPlayersByGully(targetGId)?.filterNotNull()?.forEach { p ->
+                    p.lastSyncedAt = 0L
+                    GullySyncManager.syncPlayerToCloud(targetGId, p)
                 }
 
                 RankingRegistry.refresh(context, null)
@@ -119,6 +125,8 @@ object GullyMigrationManager {
             } catch (e: Exception) {
                 Log.e(TAG, "Migration failed: ${e.message}")
                 callback.onFailure(e.message ?: "Unknown Error")
+            } finally {
+                GullySyncManager.isMigrating = false
             }
         }
     }

@@ -217,6 +217,11 @@ class PlayerDetailsActivity : BaseActivity() {
         btnSave?.setTextColor(android.graphics.Color.WHITE)
         val btnClose = dialog.findViewById<View>(R.id.btnCloseFull)
 
+        if (!RemoteConfigManager.isFeatureEnabled(RemoteConfigManager.KEY_ENABLE_EDIT_OPTION)) {
+            btnRotate?.visibility = View.GONE
+            btnSave?.visibility = View.GONE
+        }
+
         var currentRotationDegrees = 0f
         var loadedBitmap: android.graphics.Bitmap? = null
 
@@ -318,7 +323,9 @@ class PlayerDetailsActivity : BaseActivity() {
         val leagueName = if (gId.isBlank() || gId.equals("local", ignoreCase = true)) "Local League" else gId
         val removeTitle = "Remove Player from $leagueName"
 
-        popup.menu.add("Edit Profile")
+        if (RemoteConfigManager.isFeatureEnabled(RemoteConfigManager.KEY_ENABLE_EDIT_OPTION)) {
+            popup.menu.add("Edit Profile")
+        }
         popup.menu.add(removeTitle)
         popup.setOnMenuItemClickListener { item ->
             when (item.title) {
@@ -331,6 +338,10 @@ class PlayerDetailsActivity : BaseActivity() {
     }
 
     private fun checkSecurityForEdit() {
+        if (!RemoteConfigManager.isFeatureEnabled(RemoteConfigManager.KEY_ENABLE_EDIT_OPTION)) {
+            Toast.makeText(this, "Editing is temporarily disabled", Toast.LENGTH_SHORT).show()
+            return
+        }
         showEditDialog()
     }
 

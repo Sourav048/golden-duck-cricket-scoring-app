@@ -3,8 +3,8 @@
 # min_api: 24
 # common_typos_disable
 # {"id":"com.android.tools.r8.mapping","version":"2.2"}
-# pg_map_id: dbaca6ef0617d5cf33d4dd136b7dfd7d6d4f1615dbdbca8a7d49b129ff17a2b5
-# pg_map_hash: SHA-256 dbaca6ef0617d5cf33d4dd136b7dfd7d6d4f1615dbdbca8a7d49b129ff17a2b5
+# pg_map_id: 55501c0b5811b4f87683a5bfea7737526bccc1b71ab7a9c1e872ca913e2f0b8c
+# pg_map_hash: SHA-256 55501c0b5811b4f87683a5bfea7737526bccc1b71ab7a9c1e872ca913e2f0b8c
 _COROUTINE.ArtificialStackFrames -> R8$$REMOVED$$CLASS$$0:
 # {"id":"sourceFile","fileName":"CoroutineDebugging.kt"}
 _COROUTINE.ArtificialStackFramesUnsafe -> ua:
@@ -186740,101 +186740,101 @@ com.goldenduck.scoring.PlayerEntryActivity -> com.goldenduck.scoring.PlayerEntry
     44:45:void commitOrUpdatePlayer$lambda$53$lambda$52(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.PlayerEntity,java.lang.String,java.util.List,android.widget.LinearLayout,androidx.appcompat.app.AlertDialog):675:675 -> commitOrUpdatePlayer$lambda$53$lambda$52
     46:49:void commitOrUpdatePlayer$lambda$53$lambda$52(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.PlayerEntity,java.lang.String,java.util.List,android.widget.LinearLayout,androidx.appcompat.app.AlertDialog):676:676 -> commitOrUpdatePlayer$lambda$53$lambda$52
     50:53:void commitOrUpdatePlayer$lambda$53$lambda$52(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.PlayerEntity,java.lang.String,java.util.List,android.widget.LinearLayout,androidx.appcompat.app.AlertDialog):677:677 -> commitOrUpdatePlayer$lambda$53$lambda$52
-    1:18:java.io.File createImageFile():813:813 -> createImageFile
-    19:24:java.io.File createImageFile():814:814 -> createImageFile
-    25:53:java.io.File createImageFile():815:815 -> createImageFile
-    1:5:void finish():795:795 -> finish
-    6:14:void finish():796:796 -> finish
-    15:16:void finish():797:797 -> finish
+    1:18:java.io.File createImageFile():815:815 -> createImageFile
+    19:24:java.io.File createImageFile():816:816 -> createImageFile
+    25:53:java.io.File createImageFile():817:817 -> createImageFile
+    1:5:void finish():797:797 -> finish
+    6:14:void finish():798:798 -> finish
+    15:16:void finish():799:799 -> finish
     17:27:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> finish
-    17:27:void finish():797 -> finish
+    17:27:void finish():799 -> finish
     28:43:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> finish
-    28:43:void finish():797 -> finish
+    28:43:void finish():799 -> finish
     44:45:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    44:45:void finish():797 -> finish
-    46:53:void finish():797:797 -> finish
+    44:45:void finish():799 -> finish
+    46:53:void finish():799:799 -> finish
     54:57:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    54:57:void finish():797 -> finish
-    58:67:void finish():797:797 -> finish
-    68:69:void finish():798:798 -> finish
+    54:57:void finish():799 -> finish
+    58:67:void finish():799:799 -> finish
+    68:69:void finish():800:800 -> finish
     70:78:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> finish
-    70:78:void finish():798 -> finish
+    70:78:void finish():800 -> finish
     79:92:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> finish
-    79:92:void finish():798 -> finish
+    79:92:void finish():800 -> finish
     93:94:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    93:94:void finish():798 -> finish
-    95:101:void finish():798:798 -> finish
+    93:94:void finish():800 -> finish
+    95:101:void finish():800:800 -> finish
     102:105:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    102:105:void finish():798 -> finish
-    106:115:void finish():798:798 -> finish
-    116:117:void finish():799:799 -> finish
+    102:105:void finish():800 -> finish
+    106:115:void finish():800:800 -> finish
+    116:117:void finish():801:801 -> finish
     118:126:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> finish
-    118:126:void finish():799 -> finish
+    118:126:void finish():801 -> finish
     127:142:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> finish
-    127:142:void finish():799 -> finish
+    127:142:void finish():801 -> finish
     143:144:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    143:144:void finish():799 -> finish
-    145:152:void finish():799:799 -> finish
+    143:144:void finish():801 -> finish
+    145:152:void finish():801:801 -> finish
     153:156:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    153:156:void finish():799 -> finish
-    157:166:void finish():799:799 -> finish
-    167:168:void finish():800:800 -> finish
+    153:156:void finish():801 -> finish
+    157:166:void finish():801:801 -> finish
+    167:168:void finish():802:802 -> finish
     169:177:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> finish
-    169:177:void finish():800 -> finish
+    169:177:void finish():802 -> finish
     178:191:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> finish
-    178:191:void finish():800 -> finish
+    178:191:void finish():802 -> finish
     192:193:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    192:193:void finish():800 -> finish
-    194:200:void finish():800:800 -> finish
+    192:193:void finish():802 -> finish
+    194:200:void finish():802:802 -> finish
     201:204:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    201:204:void finish():800 -> finish
-    205:214:void finish():800:800 -> finish
-    215:216:void finish():802:802 -> finish
+    201:204:void finish():802 -> finish
+    205:214:void finish():802:802 -> finish
+    215:216:void finish():804:804 -> finish
     217:225:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> finish
-    217:225:void finish():802 -> finish
+    217:225:void finish():804 -> finish
     226:239:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> finish
-    226:239:void finish():802 -> finish
+    226:239:void finish():804 -> finish
     240:241:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    240:241:void finish():802 -> finish
-    242:248:void finish():802:802 -> finish
+    240:241:void finish():804 -> finish
+    242:248:void finish():804:804 -> finish
     249:252:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    249:252:void finish():802 -> finish
-    253:262:void finish():802:802 -> finish
-    263:264:void finish():803:803 -> finish
+    249:252:void finish():804 -> finish
+    253:262:void finish():804:804 -> finish
+    263:264:void finish():805:805 -> finish
     265:273:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> finish
-    265:273:void finish():803 -> finish
+    265:273:void finish():805 -> finish
     274:287:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> finish
-    274:287:void finish():803 -> finish
+    274:287:void finish():805 -> finish
     288:289:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    288:289:void finish():803 -> finish
-    290:296:void finish():803:803 -> finish
+    288:289:void finish():805 -> finish
+    290:296:void finish():805:805 -> finish
     297:300:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    297:300:void finish():803 -> finish
-    301:310:void finish():803:803 -> finish
-    311:312:void finish():804:804 -> finish
+    297:300:void finish():805 -> finish
+    301:310:void finish():805:805 -> finish
+    311:312:void finish():806:806 -> finish
     313:321:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> finish
-    313:321:void finish():804 -> finish
+    313:321:void finish():806 -> finish
     322:335:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> finish
-    322:335:void finish():804 -> finish
+    322:335:void finish():806 -> finish
     336:337:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    336:337:void finish():804 -> finish
-    338:344:void finish():804:804 -> finish
+    336:337:void finish():806 -> finish
+    338:344:void finish():806:806 -> finish
     345:348:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    345:348:void finish():804 -> finish
-    349:358:void finish():804:804 -> finish
-    359:360:void finish():805:805 -> finish
+    345:348:void finish():806 -> finish
+    349:358:void finish():806:806 -> finish
+    359:360:void finish():807:807 -> finish
     361:369:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> finish
-    361:369:void finish():805 -> finish
+    361:369:void finish():807 -> finish
     370:383:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> finish
-    370:383:void finish():805 -> finish
+    370:383:void finish():807 -> finish
     384:385:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    384:385:void finish():805 -> finish
-    386:392:void finish():805:805 -> finish
+    384:385:void finish():807 -> finish
+    386:392:void finish():807:807 -> finish
     393:396:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> finish
-    393:396:void finish():805 -> finish
-    397:407:void finish():805:805 -> finish
-    408:410:void finish():807:807 -> finish
-    411:414:void finish():808:808 -> finish
+    393:396:void finish():807 -> finish
+    397:407:void finish():807:807 -> finish
+    408:410:void finish():809:809 -> finish
+    411:414:void finish():810:810 -> finish
     1:4:void $r8$lambda$-YAL5v98rPK_iLAY1X-JH44fIrE(com.goldenduck.scoring.PlayerEntryActivity):0:0 -> g
       # {"id":"com.android.tools.r8.synthesized"}
     1:4:void $r8$lambda$10KPfhzKRMBjpd5q_lKLGbLa1m0(com.goldenduck.scoring.PlayerEntryActivity,Ref$ObjectRef,android.os.Handler,com.goldenduck.scoring.PlayerEntryActivity$SelectSquadPlayerAdapter,android.widget.ProgressBar,androidx.recyclerview.widget.RecyclerView,android.widget.TextView):0:0 -> h
@@ -187082,9 +187082,9 @@ com.goldenduck.scoring.PlayerEntryActivity -> com.goldenduck.scoring.PlayerEntry
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Landroid/view/View;Ldl1;)Lcz2;"}
     1:4:void $r8$lambda$QDN4MPTEbrBk3OeZGQ1bwU0JFN8(com.goldenduck.scoring.PlayerEntryActivity,android.view.View):0:0 -> r
       # {"id":"com.android.tools.r8.synthesized"}
-    1:19:void refreshStartButton():719:719 -> refreshStartButton
-    20:26:void refreshStartButton():720:720 -> refreshStartButton
-    27:41:void refreshStartButton():721:721 -> refreshStartButton
+    1:19:void refreshStartButton():721:721 -> refreshStartButton
+    20:26:void refreshStartButton():722:722 -> refreshStartButton
+    27:41:void refreshStartButton():723:723 -> refreshStartButton
     1:11:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):684:684 -> renderPlayerCard
     12:19:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):685:685 -> renderPlayerCard
     20:27:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):686:686 -> renderPlayerCard
@@ -187108,12 +187108,14 @@ com.goldenduck.scoring.PlayerEntryActivity -> com.goldenduck.scoring.PlayerEntry
     227:232:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):703:703 -> renderPlayerCard
     233:236:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):704:704 -> renderPlayerCard
     237:239:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):706:706 -> renderPlayerCard
-    240:258:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):709:709 -> renderPlayerCard
-    259:261:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):714:714 -> renderPlayerCard
-    262:265:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):715:715 -> renderPlayerCard
-    1:3:void renderPlayerCard$lambda$54(android.widget.LinearLayout,android.view.View,java.util.List,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,com.goldenduck.scoring.PlayerEntryActivity,android.view.View):710:710 -> renderPlayerCard$lambda$54
-    4:6:void renderPlayerCard$lambda$54(android.widget.LinearLayout,android.view.View,java.util.List,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,com.goldenduck.scoring.PlayerEntryActivity,android.view.View):711:711 -> renderPlayerCard$lambda$54
-    7:10:void renderPlayerCard$lambda$54(android.widget.LinearLayout,android.view.View,java.util.List,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,com.goldenduck.scoring.PlayerEntryActivity,android.view.View):712:712 -> renderPlayerCard$lambda$54
+    240:245:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):709:709 -> renderPlayerCard
+    246:248:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):710:710 -> renderPlayerCard
+    249:261:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):711:711 -> renderPlayerCard
+    262:264:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):716:716 -> renderPlayerCard
+    265:268:void renderPlayerCard(android.widget.LinearLayout,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,java.util.List):717:717 -> renderPlayerCard
+    1:3:void renderPlayerCard$lambda$54(android.widget.LinearLayout,android.view.View,java.util.List,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,com.goldenduck.scoring.PlayerEntryActivity,android.view.View):712:712 -> renderPlayerCard$lambda$54
+    4:6:void renderPlayerCard$lambda$54(android.widget.LinearLayout,android.view.View,java.util.List,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,com.goldenduck.scoring.PlayerEntryActivity,android.view.View):713:713 -> renderPlayerCard$lambda$54
+    7:10:void renderPlayerCard$lambda$54(android.widget.LinearLayout,android.view.View,java.util.List,com.goldenduck.scoring.PlayerEntryActivity$TempPlayer,com.goldenduck.scoring.PlayerEntryActivity,android.view.View):714:714 -> renderPlayerCard$lambda$54
     1:4:void $r8$lambda$RagV_PVn3UNL1TRxU54ayywnCPY(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.PlayerEntity,java.lang.String,java.util.List,android.widget.LinearLayout,AlertDialog):0:0 -> s
       # {"id":"com.android.tools.r8.synthesized"}
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Lcom/goldenduck/scoring/PlayerEntryActivity;Lcom/goldenduck/scoring/PlayerEntity;Ljava/lang/String;Ljava/util/List;Landroid/widget/LinearLayout;Ll5;)V"}
@@ -187384,178 +187386,178 @@ com.goldenduck.scoring.PlayerEntryActivity -> com.goldenduck.scoring.PlayerEntry
     83:83:void showAddNewPlayerSingleDialog$lambda$40(android.widget.EditText,android.widget.EditText,com.goldenduck.scoring.PlayerEntryActivity,androidx.appcompat.app.AlertDialog,android.view.View):429:429 -> showAddNewPlayerSingleDialog$lambda$40
     86:86:void showAddNewPlayerSingleDialog$lambda$40(android.widget.EditText,android.widget.EditText,com.goldenduck.scoring.PlayerEntryActivity,androidx.appcompat.app.AlertDialog,android.view.View):429:429 -> showAddNewPlayerSingleDialog$lambda$40
     90:90:void showAddNewPlayerSingleDialog$lambda$40(android.widget.EditText,android.widget.EditText,com.goldenduck.scoring.PlayerEntryActivity,androidx.appcompat.app.AlertDialog,android.view.View):429:429 -> showAddNewPlayerSingleDialog$lambda$40
-    1:17:void startMatch():725:725 -> startMatch
-    18:44:void startMatch():730:730 -> startMatch
-    45:46:void startMatch():731:731 -> startMatch
-    47:58:void startMatch():733:733 -> startMatch
-    59:69:void startMatch():726:726 -> startMatch
-    1:11:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):734:734 -> startMatch$lambda$70
-    12:17:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):735:735 -> startMatch$lambda$70
-    18:35:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):736:736 -> startMatch$lambda$70
-    36:38:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):737:737 -> startMatch$lambda$70
-    39:43:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):738:738 -> startMatch$lambda$70
-    44:48:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):739:739 -> startMatch$lambda$70
-    49:53:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):740:740 -> startMatch$lambda$70
-    54:58:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):741:741 -> startMatch$lambda$70
-    59:63:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):742:742 -> startMatch$lambda$70
-    64:68:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):743:743 -> startMatch$lambda$70
-    69:73:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):744:744 -> startMatch$lambda$70
-    74:78:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):745:745 -> startMatch$lambda$70
-    79:83:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):746:746 -> startMatch$lambda$70
-    84:88:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):747:747 -> startMatch$lambda$70
-    89:90:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):749:749 -> startMatch$lambda$70
+    1:17:void startMatch():727:727 -> startMatch
+    18:44:void startMatch():732:732 -> startMatch
+    45:46:void startMatch():733:733 -> startMatch
+    47:58:void startMatch():735:735 -> startMatch
+    59:69:void startMatch():728:728 -> startMatch
+    1:11:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):736:736 -> startMatch$lambda$70
+    12:17:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):737:737 -> startMatch$lambda$70
+    18:35:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):738:738 -> startMatch$lambda$70
+    36:38:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):739:739 -> startMatch$lambda$70
+    39:43:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):740:740 -> startMatch$lambda$70
+    44:48:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):741:741 -> startMatch$lambda$70
+    49:53:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):742:742 -> startMatch$lambda$70
+    54:58:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):743:743 -> startMatch$lambda$70
+    59:63:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):744:744 -> startMatch$lambda$70
+    64:68:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):745:745 -> startMatch$lambda$70
+    69:73:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):746:746 -> startMatch$lambda$70
+    74:78:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):747:747 -> startMatch$lambda$70
+    79:83:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):748:748 -> startMatch$lambda$70
+    84:88:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):749:749 -> startMatch$lambda$70
+    89:90:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751:751 -> startMatch$lambda$70
     91:101:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70
-    91:101:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):749 -> startMatch$lambda$70
+    91:101:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751 -> startMatch$lambda$70
     102:117:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70
-    102:117:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):749 -> startMatch$lambda$70
+    102:117:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751 -> startMatch$lambda$70
     118:119:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    118:119:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):749 -> startMatch$lambda$70
-    120:127:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):749:749 -> startMatch$lambda$70
+    118:119:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751 -> startMatch$lambda$70
+    120:127:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751:751 -> startMatch$lambda$70
     128:131:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    128:131:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):749 -> startMatch$lambda$70
-    132:139:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):749:749 -> startMatch$lambda$70
-    140:141:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):750:750 -> startMatch$lambda$70
+    128:131:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751 -> startMatch$lambda$70
+    132:139:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751:751 -> startMatch$lambda$70
+    140:141:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):752:752 -> startMatch$lambda$70
     142:150:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70
-    142:150:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):750 -> startMatch$lambda$70
+    142:150:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):752 -> startMatch$lambda$70
     151:166:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70
-    151:166:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):750 -> startMatch$lambda$70
+    151:166:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):752 -> startMatch$lambda$70
     167:168:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    167:168:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):750 -> startMatch$lambda$70
-    169:176:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):750:750 -> startMatch$lambda$70
+    167:168:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):752 -> startMatch$lambda$70
+    169:176:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):752:752 -> startMatch$lambda$70
     177:180:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    177:180:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):750 -> startMatch$lambda$70
-    181:188:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):750:750 -> startMatch$lambda$70
-    189:190:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751:751 -> startMatch$lambda$70
+    177:180:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):752 -> startMatch$lambda$70
+    181:188:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):752:752 -> startMatch$lambda$70
+    189:190:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753:753 -> startMatch$lambda$70
     191:199:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70
-    191:199:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751 -> startMatch$lambda$70
+    191:199:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753 -> startMatch$lambda$70
     200:213:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70
-    200:213:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751 -> startMatch$lambda$70
+    200:213:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753 -> startMatch$lambda$70
     214:215:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    214:215:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751 -> startMatch$lambda$70
-    216:232:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751:751 -> startMatch$lambda$70
+    214:215:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753 -> startMatch$lambda$70
+    216:232:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753:753 -> startMatch$lambda$70
     233:236:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    233:236:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751 -> startMatch$lambda$70
-    237:244:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):751:751 -> startMatch$lambda$70
-    245:246:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753:753 -> startMatch$lambda$70
+    233:236:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753 -> startMatch$lambda$70
+    237:244:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753:753 -> startMatch$lambda$70
+    245:246:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755:755 -> startMatch$lambda$70
     247:255:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70
-    247:255:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753 -> startMatch$lambda$70
+    247:255:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755 -> startMatch$lambda$70
     256:269:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70
-    256:269:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753 -> startMatch$lambda$70
+    256:269:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755 -> startMatch$lambda$70
     270:271:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    270:271:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753 -> startMatch$lambda$70
-    272:278:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753:753 -> startMatch$lambda$70
+    270:271:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755 -> startMatch$lambda$70
+    272:278:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755:755 -> startMatch$lambda$70
     279:282:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    279:282:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753 -> startMatch$lambda$70
-    283:290:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):753:753 -> startMatch$lambda$70
-    291:292:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):754:754 -> startMatch$lambda$70
+    279:282:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755 -> startMatch$lambda$70
+    283:290:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755:755 -> startMatch$lambda$70
+    291:292:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):756:756 -> startMatch$lambda$70
     293:301:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70
-    293:301:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):754 -> startMatch$lambda$70
+    293:301:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):756 -> startMatch$lambda$70
     302:315:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70
-    302:315:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):754 -> startMatch$lambda$70
+    302:315:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):756 -> startMatch$lambda$70
     316:317:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    316:317:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):754 -> startMatch$lambda$70
-    318:324:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):754:754 -> startMatch$lambda$70
+    316:317:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):756 -> startMatch$lambda$70
+    318:324:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):756:756 -> startMatch$lambda$70
     325:328:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    325:328:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):754 -> startMatch$lambda$70
-    329:336:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):754:754 -> startMatch$lambda$70
-    337:338:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755:755 -> startMatch$lambda$70
+    325:328:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):756 -> startMatch$lambda$70
+    329:336:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):756:756 -> startMatch$lambda$70
+    337:338:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):757:757 -> startMatch$lambda$70
     339:347:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70
-    339:347:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755 -> startMatch$lambda$70
+    339:347:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):757 -> startMatch$lambda$70
     348:361:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70
-    348:361:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755 -> startMatch$lambda$70
+    348:361:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):757 -> startMatch$lambda$70
     362:363:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    362:363:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755 -> startMatch$lambda$70
-    364:380:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755:755 -> startMatch$lambda$70
+    362:363:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):757 -> startMatch$lambda$70
+    364:380:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):757:757 -> startMatch$lambda$70
     381:384:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70
-    381:384:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755 -> startMatch$lambda$70
-    385:392:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):755:755 -> startMatch$lambda$70
-    393:399:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):757:757 -> startMatch$lambda$70
+    381:384:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):757 -> startMatch$lambda$70
+    385:392:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):757:757 -> startMatch$lambda$70
+    393:399:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):759:759 -> startMatch$lambda$70
     400:405:boolean kotlin.jvm.internal.Intrinsics.areEqual(java.lang.Object,java.lang.Object):169:169 -> startMatch$lambda$70
-    400:405:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):760 -> startMatch$lambda$70
-    406:410:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):761:761 -> startMatch$lambda$70
-    411:420:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):764:764 -> startMatch$lambda$70
-    1:7:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):765:765 -> startMatch$lambda$70$lambda$69
-    8:14:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):766:766 -> startMatch$lambda$70$lambda$69
-    15:23:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):767:767 -> startMatch$lambda$70$lambda$69
-    24:30:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):768:768 -> startMatch$lambda$70$lambda$69
-    31:37:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):769:769 -> startMatch$lambda$70$lambda$69
-    38:44:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):770:770 -> startMatch$lambda$70$lambda$69
-    45:51:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):771:771 -> startMatch$lambda$70$lambda$69
-    52:58:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):772:772 -> startMatch$lambda$70$lambda$69
-    59:65:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):773:773 -> startMatch$lambda$70$lambda$69
-    66:72:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):774:774 -> startMatch$lambda$70$lambda$69
-    73:79:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):775:775 -> startMatch$lambda$70$lambda$69
-    80:86:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):776:776 -> startMatch$lambda$70$lambda$69
-    87:93:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):777:777 -> startMatch$lambda$70$lambda$69
-    94:100:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):778:778 -> startMatch$lambda$70$lambda$69
-    101:107:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):779:779 -> startMatch$lambda$70$lambda$69
-    108:109:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):781:781 -> startMatch$lambda$70$lambda$69
+    400:405:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):762 -> startMatch$lambda$70
+    406:410:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):763:763 -> startMatch$lambda$70
+    411:420:void startMatch$lambda$70(com.goldenduck.scoring.PlayerEntryActivity,java.lang.String):766:766 -> startMatch$lambda$70
+    1:7:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):767:767 -> startMatch$lambda$70$lambda$69
+    8:14:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):768:768 -> startMatch$lambda$70$lambda$69
+    15:23:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):769:769 -> startMatch$lambda$70$lambda$69
+    24:30:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):770:770 -> startMatch$lambda$70$lambda$69
+    31:37:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):771:771 -> startMatch$lambda$70$lambda$69
+    38:44:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):772:772 -> startMatch$lambda$70$lambda$69
+    45:51:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):773:773 -> startMatch$lambda$70$lambda$69
+    52:58:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):774:774 -> startMatch$lambda$70$lambda$69
+    59:65:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):775:775 -> startMatch$lambda$70$lambda$69
+    66:72:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):776:776 -> startMatch$lambda$70$lambda$69
+    73:79:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):777:777 -> startMatch$lambda$70$lambda$69
+    80:86:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):778:778 -> startMatch$lambda$70$lambda$69
+    87:93:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):779:779 -> startMatch$lambda$70$lambda$69
+    94:100:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):780:780 -> startMatch$lambda$70$lambda$69
+    101:107:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):781:781 -> startMatch$lambda$70$lambda$69
+    108:109:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783:783 -> startMatch$lambda$70$lambda$69
     110:120:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70$lambda$69
-    110:120:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):781 -> startMatch$lambda$70$lambda$69
+    110:120:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783 -> startMatch$lambda$70$lambda$69
     121:136:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70$lambda$69
-    121:136:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):781 -> startMatch$lambda$70$lambda$69
+    121:136:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783 -> startMatch$lambda$70$lambda$69
     137:138:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    137:138:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):781 -> startMatch$lambda$70$lambda$69
-    139:146:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):781:781 -> startMatch$lambda$70$lambda$69
+    137:138:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783 -> startMatch$lambda$70$lambda$69
+    139:146:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783:783 -> startMatch$lambda$70$lambda$69
     147:150:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    147:150:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):781 -> startMatch$lambda$70$lambda$69
-    151:160:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):781:781 -> startMatch$lambda$70$lambda$69
-    161:162:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):782:782 -> startMatch$lambda$70$lambda$69
+    147:150:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783 -> startMatch$lambda$70$lambda$69
+    151:160:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783:783 -> startMatch$lambda$70$lambda$69
+    161:162:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):784:784 -> startMatch$lambda$70$lambda$69
     163:171:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70$lambda$69
-    163:171:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):782 -> startMatch$lambda$70$lambda$69
+    163:171:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):784 -> startMatch$lambda$70$lambda$69
     172:187:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70$lambda$69
-    172:187:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):782 -> startMatch$lambda$70$lambda$69
+    172:187:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):784 -> startMatch$lambda$70$lambda$69
     188:189:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    188:189:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):782 -> startMatch$lambda$70$lambda$69
-    190:197:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):782:782 -> startMatch$lambda$70$lambda$69
+    188:189:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):784 -> startMatch$lambda$70$lambda$69
+    190:197:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):784:784 -> startMatch$lambda$70$lambda$69
     198:201:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    198:201:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):782 -> startMatch$lambda$70$lambda$69
-    202:211:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):782:782 -> startMatch$lambda$70$lambda$69
-    212:213:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783:783 -> startMatch$lambda$70$lambda$69
+    198:201:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):784 -> startMatch$lambda$70$lambda$69
+    202:211:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):784:784 -> startMatch$lambda$70$lambda$69
+    212:213:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785:785 -> startMatch$lambda$70$lambda$69
     214:222:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70$lambda$69
-    214:222:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783 -> startMatch$lambda$70$lambda$69
+    214:222:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785 -> startMatch$lambda$70$lambda$69
     223:236:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70$lambda$69
-    223:236:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783 -> startMatch$lambda$70$lambda$69
+    223:236:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785 -> startMatch$lambda$70$lambda$69
     237:238:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    237:238:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783 -> startMatch$lambda$70$lambda$69
-    239:245:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783:783 -> startMatch$lambda$70$lambda$69
+    237:238:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785 -> startMatch$lambda$70$lambda$69
+    239:245:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785:785 -> startMatch$lambda$70$lambda$69
     246:249:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    246:249:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783 -> startMatch$lambda$70$lambda$69
-    250:259:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):783:783 -> startMatch$lambda$70$lambda$69
-    260:261:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785:785 -> startMatch$lambda$70$lambda$69
+    246:249:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785 -> startMatch$lambda$70$lambda$69
+    250:259:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785:785 -> startMatch$lambda$70$lambda$69
+    260:261:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787:787 -> startMatch$lambda$70$lambda$69
     262:270:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70$lambda$69
-    262:270:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785 -> startMatch$lambda$70$lambda$69
+    262:270:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787 -> startMatch$lambda$70$lambda$69
     271:284:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70$lambda$69
-    271:284:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785 -> startMatch$lambda$70$lambda$69
+    271:284:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787 -> startMatch$lambda$70$lambda$69
     285:286:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    285:286:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785 -> startMatch$lambda$70$lambda$69
-    287:293:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785:785 -> startMatch$lambda$70$lambda$69
+    285:286:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787 -> startMatch$lambda$70$lambda$69
+    287:293:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787:787 -> startMatch$lambda$70$lambda$69
     294:297:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    294:297:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785 -> startMatch$lambda$70$lambda$69
-    298:307:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):785:785 -> startMatch$lambda$70$lambda$69
-    308:309:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):786:786 -> startMatch$lambda$70$lambda$69
+    294:297:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787 -> startMatch$lambda$70$lambda$69
+    298:307:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787:787 -> startMatch$lambda$70$lambda$69
+    308:309:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):788:788 -> startMatch$lambda$70$lambda$69
     310:318:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70$lambda$69
-    310:318:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):786 -> startMatch$lambda$70$lambda$69
+    310:318:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):788 -> startMatch$lambda$70$lambda$69
     319:332:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70$lambda$69
-    319:332:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):786 -> startMatch$lambda$70$lambda$69
+    319:332:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):788 -> startMatch$lambda$70$lambda$69
     333:334:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    333:334:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):786 -> startMatch$lambda$70$lambda$69
-    335:341:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):786:786 -> startMatch$lambda$70$lambda$69
+    333:334:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):788 -> startMatch$lambda$70$lambda$69
+    335:341:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):788:788 -> startMatch$lambda$70$lambda$69
     342:345:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    342:345:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):786 -> startMatch$lambda$70$lambda$69
-    346:355:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):786:786 -> startMatch$lambda$70$lambda$69
-    356:357:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787:787 -> startMatch$lambda$70$lambda$69
+    342:345:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):788 -> startMatch$lambda$70$lambda$69
+    346:355:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):788:788 -> startMatch$lambda$70$lambda$69
+    356:357:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):789:789 -> startMatch$lambda$70$lambda$69
     358:366:java.util.List kotlin.collections.CollectionsKt___CollectionsKt.map(java.lang.Iterable,kotlin.jvm.functions.Function1):1563:1563 -> startMatch$lambda$70$lambda$69
-    358:366:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787 -> startMatch$lambda$70$lambda$69
+    358:366:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):789 -> startMatch$lambda$70$lambda$69
     367:380:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1634:1634 -> startMatch$lambda$70$lambda$69
-    367:380:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787 -> startMatch$lambda$70$lambda$69
+    367:380:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):789 -> startMatch$lambda$70$lambda$69
     381:382:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    381:382:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787 -> startMatch$lambda$70$lambda$69
-    383:389:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787:787 -> startMatch$lambda$70$lambda$69
+    381:382:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):789 -> startMatch$lambda$70$lambda$69
+    383:389:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):789:789 -> startMatch$lambda$70$lambda$69
     390:393:java.util.Collection kotlin.collections.CollectionsKt___CollectionsKt.mapTo(java.lang.Iterable,java.util.Collection,kotlin.jvm.functions.Function1):1635:1635 -> startMatch$lambda$70$lambda$69
-    390:393:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787 -> startMatch$lambda$70$lambda$69
-    394:403:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):787:787 -> startMatch$lambda$70$lambda$69
-    404:407:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):789:789 -> startMatch$lambda$70$lambda$69
+    390:393:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):789 -> startMatch$lambda$70$lambda$69
+    394:403:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):789:789 -> startMatch$lambda$70$lambda$69
+    404:407:void startMatch$lambda$70$lambda$69(com.goldenduck.scoring.PlayerEntryActivity,com.goldenduck.scoring.DraftMatchEntity):791:791 -> startMatch$lambda$70$lambda$69
     1:4:void $r8$lambda$T5mDcZuqzHTFohsk3QETHtmhqzQ(java.lang.String,java.lang.String,java.lang.String,com.goldenduck.scoring.AppDatabase,java.lang.String,com.goldenduck.scoring.PlayerEntryActivity,java.util.List,android.widget.LinearLayout,AlertDialog):0:0 -> t
       # {"id":"com.android.tools.r8.synthesized"}
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/goldenduck/scoring/AppDatabase;Ljava/lang/String;Lcom/goldenduck/scoring/PlayerEntryActivity;Ljava/util/List;Landroid/widget/LinearLayout;Ll5;)V"}
@@ -187871,7 +187873,7 @@ com.goldenduck.scoring.PlayerEntryActivity$Companion -> com.goldenduck.scoring.P
 # {"id":"sourceFile","fileName":"PlayerEntryActivity.kt"}
     1:4:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Lk30;)V"}
-    5:5:void <init>():820:820 -> <init>
+    5:5:void <init>():822:822 -> <init>
 com.goldenduck.scoring.PlayerEntryActivity$SelectSquadPlayerAdapter -> com.goldenduck.scoring.PlayerEntryActivity$SelectSquadPlayerAdapter:
 # {"id":"sourceFile","fileName":"PlayerEntryActivity.kt"}
     kotlin.jvm.functions.Function1 onSelectionChanged -> onSelectionChanged
@@ -187945,11 +187947,11 @@ com.goldenduck.scoring.PlayerEntryActivity$SelectSquadPlayerAdapter$Holder -> co
     1:3:android.widget.TextView getTvName():532:532 -> getTvName
 com.goldenduck.scoring.PlayerEntryActivity$TempPlayer -> com.goldenduck.scoring.PlayerEntryActivity$TempPlayer:
 # {"id":"sourceFile","fileName":"PlayerEntryActivity.kt"}
-    1:12:void <init>(java.lang.String,java.lang.String,java.lang.String,java.lang.String):818:818 -> <init>
-    1:3:java.lang.String getId():818:818 -> getId
-    1:3:java.lang.String getJersey():818:818 -> getJersey
-    1:3:java.lang.String getName():818:818 -> getName
-    1:3:java.lang.String getPhotoUri():818:818 -> getPhotoUri
+    1:12:void <init>(java.lang.String,java.lang.String,java.lang.String,java.lang.String):820:820 -> <init>
+    1:3:java.lang.String getId():820:820 -> getId
+    1:3:java.lang.String getJersey():820:820 -> getJersey
+    1:3:java.lang.String getName():820:820 -> getName
+    1:3:java.lang.String getPhotoUri():820:820 -> getPhotoUri
 com.goldenduck.scoring.PlayerEntryActivity$showAddDialog$4$cascadeRunnable$1 -> com.goldenduck.scoring.PlayerEntryActivity$showAddDialog$4$cascadeRunnable$1:
 # {"id":"sourceFile","fileName":"PlayerEntryActivity.kt"}
     kotlin.jvm.internal.Ref$IntRef $index -> $index

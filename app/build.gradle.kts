@@ -23,7 +23,7 @@ android {
         applicationId = "com.goldenduck.scoring"
         minSdk = 24
         targetSdk = 35
-        versionCode = 15
+        versionCode = 16
         versionName = "7.0"
 
         val onesignalRestApiKey = localProperties.getProperty("onesignal.rest.api.key") ?: ""
@@ -129,6 +129,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
+    implementation(libs.firebase.config)
     implementation(libs.firebase.crashlytics)
 
     // OneSignal

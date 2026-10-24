@@ -195,6 +195,13 @@ class MatchEntity {
                 innings.partnerships = ArrayList(pshipJson1?.filterNotNull() ?: emptyList())
                 innings.commentary = ArrayList(commentaryJson1?.filterNotNull() ?: emptyList())
                 innings.recalculateState()
+
+                val hasDistinctPartners1 = innings.balls.mapNotNull { b -> b.nonStrikerName }.distinct().isNotEmpty()
+                val hasCorruptNAs1 = innings.partnerships.any { p -> p.batter2 == "N/A" || p.batter1 == "N/A" }
+                if (hasCorruptNAs1 && hasDistinctPartners1) {
+                    innings.rebuildPartnerships()
+                }
+
                 // Fall back to summary fields for older records that had no ball-by-ball data
                 if (innings.balls.isEmpty()) {
                     innings.restoreSummary(firstInningsRuns, firstInningsWickets)
@@ -222,6 +229,13 @@ class MatchEntity {
                 innings.partnerships = ArrayList(pshipJson2?.filterNotNull() ?: emptyList())
                 innings.commentary = ArrayList(commentaryJson2?.filterNotNull() ?: emptyList())
                 innings.recalculateState()
+
+                val hasDistinctPartners2 = innings.balls.mapNotNull { b -> b.nonStrikerName }.distinct().isNotEmpty()
+                val hasCorruptNAs2 = innings.partnerships.any { p -> p.batter2 == "N/A" || p.batter1 == "N/A" }
+                if (hasCorruptNAs2 && hasDistinctPartners2) {
+                    innings.rebuildPartnerships()
+                }
+
                 // Fall back to summary fields for older records that had no ball-by-ball data
                 if (innings.balls.isEmpty()) {
                     innings.restoreSummary(secondInningsRuns, secondInningsWickets)

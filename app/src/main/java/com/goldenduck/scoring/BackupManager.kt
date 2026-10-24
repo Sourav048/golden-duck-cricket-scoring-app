@@ -121,23 +121,37 @@ object BackupManager {
                 val db = AppDatabase.getInstance(context)
                 val currentGId = GullySyncManager.getCurrentGullyId(context) ?: "local"
                 db.runInTransaction {
-                    db.playerDao().deleteAllPlayers()
-                    db.matchDao().deleteAllMatches()
-                    db.statsDao().deleteAllStats()
+                    db.playerDao().deleteAllPlayersByGully(currentGId)
+                    db.matchDao().deleteAllMatchesByGully(currentGId)
+                    db.statsDao().deleteAllStatsByGully(currentGId)
                     db.draftDao().deleteAllDraftsByGully(currentGId)
 
                     bundle.players?.forEach { it?.let { p ->
                         p.name = p.name.trim()
+                        p.gullyId = currentGId
                         if (!p.photoBase64.isNullOrEmpty()) {
                             val newPath = PhotoUtils.base64ToPath(context, p.photoBase64, p.id)
                             if (newPath != null) p.photoUri = newPath
                         }
                         db.playerDao().insertPlayer(p) 
                     } }
-                    bundle.matches?.forEach { it?.let { db.matchDao().insertMatch(it) } }
-                    bundle.stats?.forEach { it?.let { db.statsDao().insertStat(it) } }
-                    bundle.drafts?.forEach { it?.let { db.draftDao().insertDraft(it) } }
+                    bundle.matches?.forEach { it?.let { m ->
+                        m.gullyId = currentGId
+                        db.matchDao().insertMatch(m) 
+                    } }
+                    bundle.stats?.forEach { it?.let { s ->
+                        s.gullyId = currentGId
+                        db.statsDao().insertStat(s) 
+                    } }
+                    bundle.drafts?.forEach { it?.let { d ->
+                        d.gullyId = currentGId
+                        db.draftDao().insertDraft(d) 
+                    } }
+
+                    db.statsDao().fixOrphanMatchStats()
                 }
+
+                RankingRegistry.refresh(context, null)
 
                 Handler(Looper.getMainLooper()).post { callback.onSuccess() }
             } catch (e: Exception) {

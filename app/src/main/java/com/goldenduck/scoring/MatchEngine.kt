@@ -24,17 +24,21 @@ object MatchEngine {
         val ball = event.ball
         val playersMap = state.playerStats.mapValues { it.value.copy() }.toMutableMap()
 
-        val striker = playersMap.getOrPut(event.facingBatsmanName ?: "Batsman") {
-            Player(event.facingBatsmanName)
+        val facingName = event.facingBatsmanName ?: ball.batsmanName ?: "Batsman"
+        val striker = playersMap.getOrPut(facingName) {
+            Player(facingName)
         }
-        val bowler = playersMap.getOrPut(event.bowlerName ?: "Bowler") {
-            Player(event.bowlerName)
+        val bowler = playersMap.getOrPut(event.bowlerName ?: ball.bowlerName ?: "Bowler") {
+            Player(event.bowlerName ?: ball.bowlerName)
         }
-        val nonStriker = state.currentNonStrikerName?.let { name ->
-            if (name != event.facingBatsmanName) {
-                playersMap.getOrPut(name) { Player(name) }
-            } else null
-        }
+
+        val nonStrikerName = event.ball.nonStrikerName
+            ?: state.currentNonStrikerName?.takeIf { it != facingName }
+            ?: state.currentStrikerName?.takeIf { it != facingName }
+
+        val nonStriker = if (!nonStrikerName.isNullOrEmpty() && nonStrikerName != facingName) {
+            playersMap.getOrPut(nonStrikerName) { Player(nonStrikerName) }
+        } else null
 
         val outPlayer = if (event.outPlayerName != null) {
             playersMap.getOrPut(event.outPlayerName) { Player(event.outPlayerName) }
@@ -86,8 +90,8 @@ object MatchEngine {
         }
 
         // Calculate Strike Rotation
-        var newStriker = striker.name
-        var newNonStriker = if (nonStriker?.name != striker.name) nonStriker?.name else null
+        var newStriker: String? = striker.name
+        var newNonStriker: String? = nonStriker?.name
 
         if (ball.isWicket) {
             val outName = outPlayer?.name ?: striker.name

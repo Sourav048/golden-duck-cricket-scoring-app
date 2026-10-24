@@ -2170,6 +2170,10 @@ class LeagueChatActivity : BaseActivity() {
     }
 
     private fun showEditProfileDialog() {
+        if (!RemoteConfigManager.isFeatureEnabled(RemoteConfigManager.KEY_ENABLE_EDIT_OPTION)) {
+            Toast.makeText(this, "Editing is temporarily disabled", Toast.LENGTH_SHORT).show()
+            return
+        }
         val dialogView = layoutInflater.inflate(R.layout.dialog_edit_profile, null)
         val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
