@@ -32,10 +32,6 @@ object UpdateManager {
     private const val TAG = "UpdateManager"
     private const val CONFIG_COLLECTION = "app_config"
     private const val CONFIG_DOCUMENT = "update"
-    private const val PREFS_NAME = "app_update_prefs"
-    private const val KEY_SNOOZED_TIME = "snoozed_time"
-    private const val KEY_SNOOZED_VERSION = "snoozed_version"
-    private const val SNOOZE_DURATION_MS = 24 * 60 * 60 * 1000L // 24 hours
 
     /**
      * Checks Firebase Firestore for available app updates.
@@ -60,16 +56,9 @@ object UpdateManager {
                         Log.d(TAG, "Current versionCode: $currentVersionCode, Latest versionCode: $latestVersionCode")
 
                         if (latestVersionCode > currentVersionCode && downloadUrl.isNotBlank()) {
-                            // Check 24-hour snooze cooldown for non-forced updates (unless user clicked manual check)
-                            if (!isManualCheck && !forceUpdate && isSnoozed(activity, latestVersionCode)) {
-                                Log.d(TAG, "Update $latestVersionCode was snoozed by user within 24h. Skipping dialog.")
-                                return@addOnSuccessListener
-                            }
-
                             showUpdateDialog(
                                 activity = activity,
                                 versionName = versionName,
-                                versionCode = latestVersionCode,
                                 releaseNotes = releaseNotes,
                                 downloadUrl = downloadUrl,
                                 forceUpdate = forceUpdate
@@ -90,28 +79,9 @@ object UpdateManager {
         }
     }
 
-    private fun isSnoozed(context: Context, versionCode: Long): Boolean {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val snoozedTime = prefs.getLong(KEY_SNOOZED_TIME, 0L)
-        val snoozedVersion = prefs.getLong(KEY_SNOOZED_VERSION, 0L)
-
-        if (snoozedVersion != versionCode) return false
-
-        return (System.currentTimeMillis() - snoozedTime) < SNOOZE_DURATION_MS
-    }
-
-    private fun snoozeUpdate(context: Context, versionCode: Long) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit()
-            .putLong(KEY_SNOOZED_TIME, System.currentTimeMillis())
-            .putLong(KEY_SNOOZED_VERSION, versionCode)
-            .apply()
-    }
-
     private fun showUpdateDialog(
         activity: Activity,
         versionName: String,
-        versionCode: Long,
         releaseNotes: String,
         downloadUrl: String,
         forceUpdate: Boolean
@@ -133,15 +103,11 @@ object UpdateManager {
                 dialog.dismiss()
                 handleUpdateProcess(activity, downloadUrl)
             }
-            .setCancelable(!forceUpdate)
+            .setCancelable(false) // Dialog cannot be dismissed by tapping outside or pressing Back
 
         if (!forceUpdate) {
             builder.setNegativeButton("Later") { dialog, _ ->
                 dialog.dismiss()
-                snoozeUpdate(activity, versionCode)
-            }
-            builder.setOnCancelListener {
-                snoozeUpdate(activity, versionCode)
             }
         }
 
