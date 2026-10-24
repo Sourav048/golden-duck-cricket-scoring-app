@@ -1,16 +1,16 @@
 {
   "fields": {
     "latest_version_code": {
-      "integerValue": "16"
+      "integerValue": "17"
     },
     "version_name": {
-      "stringValue": "7.0"
+      "stringValue": "7.1"
     },
     "download_url": {
-      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v7.0.apk"
+      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v7.1.apk"
     },
     "release_notes": {
-      "stringValue": "• Fixed hidden 'Remove Player' button during squad setup\n• Performance, Live Scoring & Cloud Sync fixes"
+      "stringValue": "• Excluded retired dismissals from bowler wickets & hat-tricks\n• Improved player match stats deduplication across PID, Global ID, and names\n• Enhanced StatsRecalculator with exact dismissal and maiden over parsing\n• Sync global player career stats to cloud"
     },
     "force_update": {
       "booleanValue": false

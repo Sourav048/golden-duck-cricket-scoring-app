@@ -23,8 +23,8 @@ android {
         applicationId = "com.goldenduck.scoring"
         minSdk = 24
         targetSdk = 35
-        versionCode = 16
-        versionName = "7.0"
+        versionCode = 17
+        versionName = "7.1"
 
         val onesignalRestApiKey = localProperties.getProperty("onesignal.rest.api.key") ?: ""
         buildConfigField("String", "ONESIGNAL_REST_API_KEY", "\"$onesignalRestApiKey\"")
