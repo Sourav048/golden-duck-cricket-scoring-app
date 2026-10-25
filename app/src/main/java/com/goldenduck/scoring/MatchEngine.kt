@@ -50,6 +50,17 @@ object MatchEngine {
             if (!dInfo.isNullOrEmpty() && dInfo != "not out") {
                 targetOut.dismissalInfo = dInfo
             }
+
+            val effectiveDismissal = (dInfo ?: targetOut.dismissalInfo).trim()
+            val isRO = effectiveDismissal.contains("Run Out", ignoreCase = true) || (event.fielderName?.contains(" / ") == true)
+            val isObstruct = effectiveDismissal.contains("Obstruct", ignoreCase = true)
+            val isRetiredHurt = effectiveDismissal.contains("retired hurt", ignoreCase = true)
+            val isRetiredOut = effectiveDismissal.contains("retired out", ignoreCase = true) || (effectiveDismissal.contains("retired", ignoreCase = true) && !isRetiredHurt)
+
+            val isBowlerWicket = !isRO && !isObstruct && !isRetiredHurt && !isRetiredOut
+            if (isBowlerWicket) {
+                bowler.wicketsTaken++
+            }
         }
 
         // Clone Innings

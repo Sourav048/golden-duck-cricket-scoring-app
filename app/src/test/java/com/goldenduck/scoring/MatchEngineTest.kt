@@ -513,6 +513,44 @@ class MatchEngineTest {
         val stateAfterStump = MatchEngine.reduce(stateAfterCatch, ScoringEvent.BallBowled(stumpedBall, "Batter B", "Bowler 1", "Batter B", "Keeper"))
 
         assertEquals(1, stateAfterStump.getPlayer("Keeper")!!.stumpings)
+        assertEquals(2, stateAfterStump.getPlayer("Bowler 1")!!.wicketsTaken)
+    }
+
+    @Test
+    fun testBowlerWicketsAccreditedOnRebuild() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            playerStats = mutableMapOf(
+                "Batter 1" to Player("Batter 1"),
+                "Batter 2" to Player("Batter 2"),
+                "Bowler 1" to Player("Bowler 1")
+            ),
+            currentStrikerName = "Batter 1",
+            currentNonStrikerName = "Batter 2",
+            currentBowlerName = "Bowler 1"
+        )
+
+        val bowledBall = Ball(0, BallType.NORMAL, true, "Batter 1", "Bowler 1", 0).apply {
+            dismissalInfo = "b Bowler 1"
+        }
+        val caughtBall = Ball(0, BallType.NORMAL, true, "Batter 2", "Bowler 1", 0).apply {
+            dismissalInfo = "c Fielder 1 b Bowler 1"
+        }
+        val runOutBall = Ball(1, BallType.NORMAL, true, "Batter 1", "Bowler 1", 0).apply {
+            dismissalInfo = "Run Out (Fielder 1)"
+        }
+
+        val events = listOf(
+            ScoringEvent.BallBowled(bowledBall, "Batter 1", "Bowler 1", "Batter 1"),
+            ScoringEvent.BallBowled(caughtBall, "Batter 2", "Bowler 1", "Batter 2", "Fielder 1"),
+            ScoringEvent.BallBowled(runOutBall, "Batter 1", "Bowler 1", "Batter 1", "Fielder 1")
+        )
+
+        val rebuiltState = MatchEngine.rebuildState(initialState, events)
+        val bowler = rebuiltState.getPlayer("Bowler 1")!!
+
+        // Bowled & Caught = 2 bowler wickets (Run Out is excluded)
+        assertEquals(2, bowler.wicketsTaken)
     }
 
     @Test
