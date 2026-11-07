@@ -42,8 +42,18 @@
 
 ### 💾 Sync, Backup & Architecture
 - **Offline-First & Local Persistence**: Built on Room Database for zero data loss during network disruptions.
+- **Firebase Remote Config**: Dynamic cloud feature toggles for instant feature management without app updates.
 - **Cloud Sync & Compression**: Firebase Firestore integration with GZIP payload compression for fast match sync.
 - **Backup & Restore**: Export and import full app state seamlessly.
+
+---
+
+## 🚀 What's New in v7.2
+
+- **Material 3 UI Refresh**: Redesigned player list cards, stat entry layouts, and date headers for a polished look.
+- **Remote Config Controls**: Integrated Firebase Remote Config for remote feature management.
+- **Player Comparison & Stats**: Enhanced head-to-head stats comparison and cleaner POTM score formatting.
+- **Performance Optimizations**: Smoother scrolling, reduced memory overhead, and overall stability fixes.
 
 ---
 
@@ -52,6 +62,7 @@
 - **Language**: 100% Kotlin
 - **Architecture**: MVVM, Fragment-based navigation, ViewBinding
 - **Database**: Room Persistence Library (SQLite) & Firebase Firestore
+- **Cloud Config**: Firebase Remote Config
 - **Push Notifications**: OneSignal SDK (v5.x)
 - **Charts & Data Visualization**: MPAndroidChart
 - **UI Components**: Material Design 3, ViewPager2, Custom Dialogs & Drawables
@@ -62,7 +73,7 @@
 
 ## 📥 Installation & Builds
 
-Download the latest release APK (**`Golden_Duck_v7.1.apk`**) from the [Releases](https://github.com/Sourav048/golden-duck-cricket-scoring-app/releases) section.
+Download the latest release APK (**`Golden_Duck_v7.2.apk`**) from the [Releases](https://github.com/Sourav048/golden-duck-cricket-scoring-app/releases) section.
 
 ---
 
