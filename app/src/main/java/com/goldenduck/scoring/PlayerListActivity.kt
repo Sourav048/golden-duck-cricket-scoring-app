@@ -378,10 +378,11 @@ class PlayerListActivity : BaseActivity() {
             launchGallery()
         }
 
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { positiveBtn ->
             val name = nameInput.text.toString().trim()
             val jersey = jerseyInput.text.toString().trim()
             if (name.isNotEmpty() && jersey.isNotEmpty()) {
+                positiveBtn.isEnabled = false
                 checkForDuplicateAndSave(name, jersey, pendingPhotoUri, dialog)
             } else {
                 if (name.isEmpty()) nameInput.error = "Required"
@@ -397,6 +398,7 @@ class PlayerListActivity : BaseActivity() {
     private fun checkForDuplicateAndSave(name: String, jersey: String, photo: String?, mainDialog: AlertDialog) {
         if (!GullySyncManager.isNetworkAvailable(this)) {
             Toast.makeText(this, "Internet connection required to create a new player.", Toast.LENGTH_LONG).show()
+            mainDialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
             return
         }
 
@@ -414,6 +416,7 @@ class PlayerListActivity : BaseActivity() {
                         .setMessage("This player already exists in some other Gully. Change your name a little bit to create a new player.")
                         .setPositiveButton("Dismiss") { d, _ -> d.dismiss() }
                         .show()
+                    mainDialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
                 } else {
                     GullySyncManager.checkGlobalPlayerExistsByName(this@PlayerListActivity, name, gId) { existsInOtherGully ->
                         runOnUiThread {
@@ -424,6 +427,7 @@ class PlayerListActivity : BaseActivity() {
                                     .setMessage("This player already exists in some other Gully. Change your name a little bit to create a new player.")
                                     .setPositiveButton("Dismiss") { d, _ -> d.dismiss() }
                                     .show()
+                                mainDialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
                             } else {
                                 savePlayer(name, jersey, photo)
                                 mainDialog.dismiss()

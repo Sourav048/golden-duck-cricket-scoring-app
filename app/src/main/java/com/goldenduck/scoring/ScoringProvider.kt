@@ -30,6 +30,9 @@ interface ScoringProvider {
     val isFreeHitActive: Boolean
     val isFinished: Boolean
     val isAbandoned: Boolean
+    val isOverTransitionPending: Boolean get() = false
+    val isOverCompleteDialogShowing: Boolean get() = false
+    val isBatsmanReplacementPending: Boolean get() = false
 
     // Commands/Actions
     fun playBall(runs: Int, type: BallType?, isWicket: Boolean)

@@ -4,11 +4,6 @@ import kotlin.math.floor
 
 object DLSUtility {
 
-    /**
-     * Standard G50 constant (average 50-over total).
-     * Typically 245 for men's ODI.
-     */
-    private const val G50 = 245.0
 
     /**
      * Resource Percentage Table (Simplified Standard Edition).
@@ -75,20 +70,40 @@ object DLSUtility {
     }
 
     /**
+     * Standard G constant (average total for an uninterrupted match).
+     * Scaled according to match length (e.g. 245 for 50 overs, 160 for 20 overs, ~8 RPO for shorter matches).
+     */
+    fun getGConstant(totalMatchOvers: Int): Double {
+        return when {
+            totalMatchOvers >= 50 -> 245.0
+            totalMatchOvers >= 20 -> 160.0 + (245.0 - 160.0) * (totalMatchOvers - 20) / 30.0
+            totalMatchOvers > 0 -> (totalMatchOvers * 8.0).coerceAtLeast(10.0)
+            else -> 160.0
+        }
+    }
+
+    /**
      * Calculates the revised target for Team 2.
      * @param team1Score Final score of Team 1
      * @param r1 Resource % Team 1 actually had
      * @param r2 Resource % Team 2 actually had
+     * @param totalMatchOvers Original total overs of the match (used to scale G constant)
      * @return Revised target for Team 2 (to win)
      */
-    fun calculateRevisedTarget(team1Score: Int, r1: Double, r2: Double): Int {
+    fun calculateRevisedTarget(team1Score: Int, r1: Double, r2: Double, totalMatchOvers: Int = 50): Int {
+        // If both teams have equal resources (within floating-point precision), simple chase
+        if (kotlin.math.abs(r1 - r2) < 0.001) {
+            return team1Score + 1
+        }
+
         return if (r2 < r1) {
             // Team 2 has fewer resources (Formula: S * R2/R1)
             val result = (team1Score.toDouble() * (r2 / r1))
             floor(result).toInt() + 1
         } else {
-            // Team 2 has more resources (Formula: S + (R2-R1)*G50/100)
-            val result = team1Score.toDouble() + ((r2 - r1) * G50 / 100.0)
+            // Team 2 has more resources (Formula: S + (R2-R1)*G/100)
+            val g = getGConstant(totalMatchOvers)
+            val result = team1Score.toDouble() + ((r2 - r1) * g / 100.0)
             floor(result).toInt() + 1
         }
     }

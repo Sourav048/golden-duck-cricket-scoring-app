@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/layoutFormPillsRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="horizontal"
+        android:baselineAligned="false"
+        android:gravity="center">
+
+        <include
+            android:id="@+id/pillForm1"
+            layout="@layout/item_form_pill"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content" />
+
+        <include
+            android:id="@+id/pillForm2"
+            layout="@layout/item_form_pill"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content" />
+
+        <include
+            android:id="@+id/pillForm3"
+            layout="@layout/item_form_pill"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content" />
+
+        <include
+            android:id="@+id/pillForm4"
+            layout="@layout/item_form_pill"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content" />
+
+        <include
+            android:id="@+id/pillForm5"
+            layout="@layout/item_form_pill"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+</FrameLayout>

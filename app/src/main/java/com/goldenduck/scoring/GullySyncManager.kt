@@ -69,14 +69,19 @@ object GullySyncManager {
                 gullyRef.set(data).addOnSuccessListener {
                     val gullyPrefs = db.app.applicationContext.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
                     val myUserId = gullyPrefs.getString("chat_sender_id", null) ?: ScoringApp.instance?.getOrCreateUserId()
-                    val defaultName = if (!myUserId.isNullOrEmpty()) "Player-${myUserId.takeLast(4)}" else "Player"
-                    val myName = gullyPrefs.getString("chat_sender_name", defaultName) ?: defaultName
+                    val myName = gullyPrefs.getString("chat_sender_name", null)
+                    val myPic = gullyPrefs.getString("chat_sender_profile_pic", null)
                     if (!myUserId.isNullOrEmpty()) {
-                        val userMap = hashMapOf(
+                        val userMap = hashMapOf<String, Any>(
                             "userId" to myUserId,
-                            "displayName" to myName,
                             "lastActive" to System.currentTimeMillis()
                         )
+                        if (!myName.isNullOrBlank() && !myName.startsWith("Player-")) {
+                            userMap["displayName"] = myName
+                        }
+                        if (!myPic.isNullOrBlank()) {
+                            userMap["profilePic"] = myPic
+                        }
                         gullyRef.collection("chat_users").document(myUserId).set(userMap, SetOptions.merge())
                     }
                     syncLeagueMemberCount(id)
@@ -102,14 +107,19 @@ object GullySyncManager {
                 if (cloudPass == pass) {
                     val gullyPrefs = db.app.applicationContext.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
                     val myUserId = gullyPrefs.getString("chat_sender_id", null) ?: ScoringApp.instance?.getOrCreateUserId()
-                    val defaultName = if (!myUserId.isNullOrEmpty()) "Player-${myUserId.takeLast(4)}" else "Player"
-                    val myName = gullyPrefs.getString("chat_sender_name", defaultName) ?: defaultName
+                    val myName = gullyPrefs.getString("chat_sender_name", null)
+                    val myPic = gullyPrefs.getString("chat_sender_profile_pic", null)
                     if (!myUserId.isNullOrEmpty()) {
-                        val userMap = hashMapOf(
+                        val userMap = hashMapOf<String, Any>(
                             "userId" to myUserId,
-                            "displayName" to myName,
                             "lastActive" to System.currentTimeMillis()
                         )
+                        if (!myName.isNullOrBlank() && !myName.startsWith("Player-")) {
+                            userMap["displayName"] = myName
+                        }
+                        if (!myPic.isNullOrBlank()) {
+                            userMap["profilePic"] = myPic
+                        }
                         db.collection("gullies").document(id)
                             .collection("chat_users").document(myUserId)
                             .set(userMap, SetOptions.merge())
@@ -756,6 +766,7 @@ object GullySyncManager {
                 this.matchMargin = match.matchMargin
                 this.revisedTarget = match.revisedTarget
                 this.revisedOvers = match.revisedOvers
+                this.resourcesLostTeam1 = match.resourcesLostTeam1
                 this.teamANames = match.teamANames
                 this.teamBNames = match.teamBNames
                 this.photoMap = match.photoMap

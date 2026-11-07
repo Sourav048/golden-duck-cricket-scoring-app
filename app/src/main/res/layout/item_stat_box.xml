@@ -6,28 +6,29 @@
     android:layout_height="wrap_content"
     android:layout_margin="4dp"
     app:cardCornerRadius="16dp"
-    app:cardElevation="0dp"
+    app:cardElevation="1dp"
     app:cardBackgroundColor="?attr/colorSurfaceVariant"
-    app:strokeWidth="0dp">
+    app:strokeWidth="1dp"
+    app:strokeColor="#1E808080">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center"
-        android:paddingVertical="16dp"
-        android:paddingHorizontal="4dp">
+        android:paddingVertical="14dp"
+        android:paddingHorizontal="6dp">
 
         <TextView
             android:id="@+id/tvStatLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="MATCHES"
-            android:textSize="9sp"
+            android:textSize="10.5sp"
             android:textStyle="bold"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:alpha="0.6"
-            android:letterSpacing="0.1"
+            android:alpha="0.85"
+            android:letterSpacing="0.08"
             android:gravity="center"
             android:maxLines="1"
             android:ellipsize="end" />
@@ -37,10 +38,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="0"
-            android:textSize="18sp"
+            android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="?attr/colorOnSurface"
-            android:layout_marginTop="2dp"
+            android:includeFontPadding="false"
+            android:layout_marginTop="3dp"
             android:gravity="center" />
 
     </LinearLayout>

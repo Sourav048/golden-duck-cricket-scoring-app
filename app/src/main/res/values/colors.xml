@@ -14,6 +14,10 @@
     <color name="send_btn_ic">#FFFFFF</color>
     <color name="ai_chat_stop_btn_ic">#FFFFFF</color>
 
+    <!-- Profile Header Gradient -->
+    <color name="profile_header_start">#004D40</color>
+    <color name="profile_header_end">#00695C</color>
+
     <!-- Text (Light) -->
     <color name="text_primary">#1A1C1E</color>
     <color name="text_secondary">#44474E</color>
@@ -85,4 +89,32 @@
     <!-- Unranked Stat Value Pill Colors (Light Mode) -->
     <color name="unranked_pill_bg">#1A00695C</color>
     <color name="unranked_pill_stroke">#3300695C</color>
+
+    <!-- Scoring Screen Theme Colors (Light Mode) -->
+    <color name="scoring_header_bg">#004D40</color>
+    <color name="scoring_header_bg_end">#00695C</color>
+    <color name="scoring_header_text">#FFFFFF</color>
+    <color name="scoring_header_subtitle">#B2DFDB</color>
+    <color name="scoring_header_pill_bg">#26FFFFFF</color>
+    <color name="scoring_header_pill_stroke">#40FFFFFF</color>
+    <color name="scoring_header_pill_text">#FFFFFF</color>
+    <color name="tab_bg">#FFFFFF</color>
+    <color name="tab_selected_text">#00695C</color>
+    <color name="tab_unselected_text">#64748B</color>
+    <color name="score_guard_bg">#00695C</color>
+    <color name="score_guard_stroke">#004D40</color>
+    <color name="score_guard_text">#FFFFFF</color>
+    <color name="btn_stat_bg">#F1F5F9</color>
+    <color name="btn_stat_stroke">#CBD5E1</color>
+    <color name="btn_stat_text">#1E293B</color>
+
+    <!-- Category Icon Header Badge (Light Mode) -->
+    <color name="category_icon_badge_bg">#FEF3C7</color>
+    <color name="category_icon_badge_stroke">#D97706</color>
+    <color name="category_icon_tint">#B45309</color>
+
+    <!-- POTM Stat Pill Colors (Light Mode) -->
+    <color name="potm_pill_bg">#1400695C</color>
+    <color name="potm_pill_stroke">#3300695C</color>
+    <color name="potm_pill_text">#00695C</color>
 </resources>

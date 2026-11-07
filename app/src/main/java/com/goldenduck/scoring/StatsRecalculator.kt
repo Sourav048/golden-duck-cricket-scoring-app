@@ -25,8 +25,22 @@ object StatsRecalculator {
                 val gId = entity.gullyId // Preserve gully isolation during recalculation
                 val nameNormalizedMap = mutableMapOf<String, Player>()
 
+                fun resolveNameFromId(id: String?): String? {
+                    if (id.isNullOrBlank()) return null
+                    return nameToId.entries.find { it.value == id }?.key 
+                        ?: existingStats.find { it?.playerId == id }?.playerName
+                }
+
                 fun getP(name: String?): Player {
                     val rawN = name?.trim() ?: "Unknown"
+                    if (rawN.startsWith("local_") || rawN.length >= 32 || rawN.equals("None", ignoreCase = true)) {
+                        val resolved = resolveNameFromId(rawN)
+                        if (resolved != null) {
+                            return getP(resolved)
+                        }
+                        return Player("Unknown")
+                    }
+
                     val normKey = PlayerNameNormalizer.normalize(rawN)
                     return nameNormalizedMap.getOrPut(normKey) { 
                         Player(rawN).apply { 
@@ -38,8 +52,10 @@ object StatsRecalculator {
                                 ?: nameToId.entries.find { PlayerNameNormalizer.normalize(it.key) == normKey }?.value
                                 ?: db.playerDao().getPlayerByNameByGully(rawN, gId)?.id
                                 ?: db.playerDao().getPlayerByName(rawN)?.id
-                            this.id = resolvedId
+                            
+                            this.id = resolvedId ?: "local_${java.util.UUID.randomUUID()}"
                             this.gullyId = gId
+                            
                             // Restore time data from existing record if available
                             existingRec?.let { old ->
                                 this.minutesPlayed = old.minutesPlayed
@@ -54,94 +70,8 @@ object StatsRecalculator {
                 entity.teamANames?.filterNotNull()?.forEach { getP(it) }
                 entity.teamBNames?.filterNotNull()?.forEach { getP(it) }
 
-                fun processInnings(inn: Innings?) {
-                    if (inn == null) return
-                    
-                    // Reset stats that are built ball-by-ball
-                    inn.balls.forEach { b ->
-                        val batsman = getP(b.batsmanName)
-                        val bowler = getP(b.bowlerName)
-                        val nonStriker = if (b.nonStrikerName != null) getP(b.nonStrikerName) else null
-
-                        // Batting
-                        batsman.ballsFaced += if (b.type != BallType.WIDE) 1 else 0
-                        batsman.runsScored += b.batRuns
-                        if (b.batRuns == 4) batsman.fours++
-                        else if (b.batRuns == 6) {
-                            batsman.sixes++
-                            bowler.sixesConceded++
-                        }
-
-                        // Bowling
-                        bowler.runsConceded += if (b.type == BallType.NORMAL || b.type == BallType.WIDE || b.type == BallType.NO_BALL) b.runs else 0
-                        bowler.ballsBowled += if (b.type == BallType.NORMAL || b.type == BallType.BYE || b.type == BallType.LEG_BYE) 1 else 0
-                        if (b.type == BallType.NORMAL && b.runs == 0) bowler.dotBalls++
-                        if (b.type == BallType.WIDE) bowler.widesConceded += b.runs
-                        if (b.type == BallType.NO_BALL) {
-                            val extraR = b.runs - b.batRuns
-                            bowler.noBallsConceded += extraR
-                        }
-
-                        if (b.isWicket) {
-                            val outP = getP(b.outPlayerName ?: b.batsmanName)
-                            
-                            val rawDInfo = (b.dismissalInfo ?: "").trim()
-                            val commText = inn.commentary.filterNotNull().find { c ->
-                                val t = (c.text ?: c.baseText ?: "").lowercase()
-                                (t.contains("run out") || t.contains("caught") || t.contains("bowled") || t.contains("out")) &&
-                                (b.batsmanName != null && t.contains(b.batsmanName.toString().lowercase()))
-                            }?.let { it.text ?: it.baseText } ?: ""
-                            
-                            val effectiveDismissal = if (rawDInfo.isNotEmpty() && rawDInfo != "out") rawDInfo else commText
-                            outP.dismissalInfo = if (rawDInfo.isNotEmpty()) rawDInfo else "out"
-
-                            val isRO = effectiveDismissal.contains("Run Out", ignoreCase = true) || (b.fielderName?.contains(" / ") == true)
-                            val isObstruct = effectiveDismissal.contains("Obstruct", ignoreCase = true)
-                            val isRetiredHurt = effectiveDismissal.contains("retired hurt", ignoreCase = true)
-                            val isRetiredOut = effectiveDismissal.contains("retired out", ignoreCase = true) || (effectiveDismissal.contains("retired", ignoreCase = true) && !isRetiredHurt)
-
-                            outP.isOut = !isRetiredHurt
-
-                            val isBowlerWicket = b.isWicket && !isRO && !isObstruct && !isRetiredHurt && !isRetiredOut
-                            if (isBowlerWicket) bowler.wicketsTaken++
-
-                            // Fielding
-                            val isStumped = effectiveDismissal.contains("Stumped", ignoreCase = true) || effectiveDismissal.startsWith("st ", ignoreCase = true)
-                            val isCatch = !isRO && !isStumped && (effectiveDismissal.contains("Caught", ignoreCase = true) || effectiveDismissal.startsWith("c ", ignoreCase = true) || effectiveDismissal.contains("c & b", ignoreCase = true))
-
-                            var fielderNames = b.fielderName?.split(" / ")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
-                            if (fielderNames.isEmpty() && b.isWicket) {
-                                if (effectiveDismissal.contains("c & b ", ignoreCase = true) || effectiveDismissal.contains("c & b", ignoreCase = true)) {
-                                    bowler.name?.let { fielderNames = listOf(it) }
-                                } else if (effectiveDismissal.contains("Caught by ", ignoreCase = true)) {
-                                    val fName = effectiveDismissal.substringAfter("Caught by ").substringBefore("\n").substringBefore(" b ").trim()
-                                    if (fName.isNotEmpty()) fielderNames = listOf(fName)
-                                } else if (effectiveDismissal.startsWith("c ", ignoreCase = true) || effectiveDismissal.contains(" c ")) {
-                                    val afterC = if (effectiveDismissal.startsWith("c ")) effectiveDismissal.substringAfter("c ") else effectiveDismissal.substringAfter(" c ")
-                                    val fName = afterC.substringBefore(" b ").substringBefore("\n").trim()
-                                    if (fName.isNotEmpty() && fName != "b") fielderNames = listOf(fName)
-                                }
-                            }
-
-                            fielderNames.forEach { fName ->
-                                val f = getP(fName)
-                                if (isCatch) {
-                                    f.catches++
-                                } else if (isStumped) {
-                                    f.stumpings++
-                                } else if (isRO) {
-                                    f.runOuts++
-                                }
-                            }
-                        }
-                    }
-
-                    // Maidens and Hattricks require over-by-over / streak analysis
-                    processMilestones(inn, getP = { getP(it) })
-                }
-
-                processInnings(m.firstInnings)
-                processInnings(m.secondInnings)
+                processInnings(m.firstInnings, ::getP, ::resolveNameFromId)
+                processInnings(m.secondInnings, ::getP, ::resolveNameFromId)
 
                 // Auto-calculate POTM if missing or TBD on finished match
                 if (entity.isFinished && !entity.isAbandoned) {
@@ -181,7 +111,169 @@ object StatsRecalculator {
         }
     }
 
-    private fun processMilestones(inn: Innings, getP: (String?) -> Player) {
+    internal fun processInnings(
+        inn: Innings?,
+        getP: (String?) -> Player,
+        resolveNameFromId: (String?) -> String?
+    ) {
+        if (inn == null) return
+        
+        // Rebuild from ball records; typed dismissal IDs take priority over display names.
+        inn.balls.forEach { b ->
+            val wicket = b.wicketDetail
+            val isRetiredHurt = wicket?.dismissalType == DismissalType.RETIRED_HURT ||
+                (wicket == null && b.dismissalInfo.equals("retired hurt", ignoreCase = true))
+            val isRetiredOut = wicket?.dismissalType == DismissalType.RETIRED_OUT ||
+                (wicket == null && b.dismissalInfo.equals("retired out", ignoreCase = true))
+            val isRetirement = isRetiredHurt || isRetiredOut ||
+                (wicket == null && b.dismissalInfo?.contains("retired", ignoreCase = true) == true)
+
+            if (b.type == BallType.PENALTY && !isRetirement) {
+                // Administrative penalty; affects only team extras, never individual player stats
+                return@forEach
+            }
+
+            val batsman = getP(resolveNameFromId(b.batsmanId) ?: b.batsmanName ?: b.batsmanId)
+            val bowlerId = wicket?.bowlerId ?: b.bowlerId
+            val bowler = getP(resolveNameFromId(bowlerId) ?: b.bowlerName ?: bowlerId)
+
+            if (b.type != BallType.PENALTY) {
+                val nonStrikerName = resolveNameFromId(b.nonStrikerId) ?: b.nonStrikerName ?: b.nonStrikerId
+                val nonStriker = nonStrikerName?.let(getP)
+                listOfNotNull(batsman, nonStriker).forEach { activeBatter ->
+                    if (activeBatter.dismissalInfo.equals("retired hurt", ignoreCase = true)) {
+                        activeBatter.dismissalInfo = "not out"
+                        activeBatter.isOut = false
+                    }
+                }
+
+                // Batting
+                batsman.ballsFaced += if (b.type != BallType.WIDE) 1 else 0
+                batsman.runsScored += b.batRuns
+                if (b.isBoundary && b.overthrowRuns == 0) {
+                    if (b.batRuns == 4) batsman.fours++
+                    else if (b.batRuns == 6) {
+                        batsman.sixes++
+                        bowler.sixesConceded++
+                    }
+                }
+    
+                // Bowling
+                val bowlerRunsFromBall = when (b.type) {
+                    BallType.NORMAL, BallType.WIDE -> b.runs
+                    BallType.NO_BALL -> {
+                        val nbPenalty = (b.runs - b.batRuns - b.byeRuns - b.legByeRuns).coerceAtLeast(0)
+                        b.batRuns + nbPenalty
+                    }
+                    else -> 0
+                }
+                bowler.runsConceded += bowlerRunsFromBall
+                bowler.ballsBowled += if (b.type == BallType.NORMAL || b.type == BallType.BYE || b.type == BallType.LEG_BYE) 1 else 0
+                if (b.type == BallType.NORMAL && b.runs == 0) bowler.dotBalls++
+                if (b.type == BallType.WIDE) bowler.widesConceded += b.runs
+                if (b.type == BallType.NO_BALL) {
+                    val nbPenalty = (b.runs - b.batRuns - b.byeRuns - b.legByeRuns).coerceAtLeast(0)
+                    bowler.noBallsConceded += nbPenalty
+                }
+            }
+
+            if (b.isWicket || isRetiredHurt) {
+                val outName = wicket?.dismissedPlayerId?.let { resolveNameFromId(it) ?: it }
+                    ?: b.outPlayerName ?: resolveNameFromId(b.batsmanId) ?: b.batsmanName
+                val outP = getP(outName)
+                
+                if (wicket != null) {
+                    // STRONGLY-TYPED STATS RECALCULATION
+                    outP.isOut = wicket.dismissalType != DismissalType.RETIRED_HURT
+                    val generatedInfo = wicket.toDisplayString { id -> getP(resolveNameFromId(id) ?: id).name ?: id }
+                    val cleanGenerated = sanitizeDismissalString(generatedInfo, outP.name)
+                    outP.dismissalInfo = cleanGenerated.ifEmpty { "out" }
+                    
+                    if (wicket.dismissalType.isBowlerWicket) bowler.wicketsTaken++
+                    
+                    val fielderIds = when (wicket.dismissalType) {
+                        DismissalType.CAUGHT, DismissalType.STUMPED -> listOfNotNull(wicket.primaryFielderId)
+                        DismissalType.RUN_OUT -> listOfNotNull(wicket.primaryFielderId, wicket.secondaryFielderId).distinct()
+                        else -> emptyList()
+                    }
+                    fielderIds.forEach { id ->
+                        val f = getP(resolveNameFromId(id) ?: id)
+                        when (wicket.dismissalType) {
+                            DismissalType.CAUGHT -> f.catches++
+                            DismissalType.STUMPED -> f.stumpings++
+                            DismissalType.RUN_OUT -> f.runOuts++
+                            else -> {}
+                        }
+                    }
+                } else {
+                    // LEGACY STRING-BASED STATS RECALCULATION
+                    val rawDInfo = (b.dismissalInfo ?: "").trim()
+                    val cleanRaw = sanitizeDismissalString(rawDInfo, outP.name)
+
+                    val effectiveDismissal = if (cleanRaw.isNotEmpty() && cleanRaw != "out") {
+                        cleanRaw
+                    } else {
+                        val commText = inn.commentary.filterNotNull().find { c ->
+                            val t = (c.text ?: c.baseText ?: "").lowercase()
+                            (t.contains("run out") || t.contains("caught") || t.contains("bowled") || t.contains("out")) &&
+                            (outP.name != null && t.contains(outP.name.toString().lowercase()))
+                        }?.let { it.text ?: it.baseText } ?: ""
+                        extractCleanDismissalFromCommentary(commText, outP.name)
+                    }
+
+                    outP.dismissalInfo = if (effectiveDismissal.isNotEmpty()) effectiveDismissal else "out"
+    
+                    val isRO = effectiveDismissal.contains("Run Out", ignoreCase = true) || (b.fielderName?.contains(" / ") == true)
+                    val isObstruct = effectiveDismissal.contains("Obstruct", ignoreCase = true)
+                    val isRetiredHurt = effectiveDismissal.contains("retired hurt", ignoreCase = true)
+                    val isRetiredOut = effectiveDismissal.contains("retired out", ignoreCase = true) || (effectiveDismissal.contains("retired", ignoreCase = true) && !isRetiredHurt)
+    
+                    outP.isOut = !isRetiredHurt
+    
+                    val isBowlerWicket = b.isWicket && !isRO && !isObstruct && !isRetiredHurt && !isRetiredOut
+                    if (isBowlerWicket) bowler.wicketsTaken++
+    
+                    // Fielding
+                    val isStumped = effectiveDismissal.contains("Stumped", ignoreCase = true) || effectiveDismissal.startsWith("st ", ignoreCase = true)
+                    val isCatch = !isRO && !isStumped && (effectiveDismissal.contains("Caught", ignoreCase = true) || effectiveDismissal.startsWith("c ", ignoreCase = true) || effectiveDismissal.contains("c & b", ignoreCase = true))
+    
+                    var fielderNames = b.fielderName?.split(" / ")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+                    if (fielderNames.isEmpty() && b.isWicket) {
+                        if (effectiveDismissal.contains("c & b ", ignoreCase = true) || effectiveDismissal.contains("c & b", ignoreCase = true)) {
+                            bowler.name?.let { fielderNames = listOf(it) }
+                        } else if (effectiveDismissal.contains("Caught by ", ignoreCase = true)) {
+                            val fName = effectiveDismissal.substringAfter("Caught by ").substringBefore("\n").substringBefore(" b ").trim()
+                            if (fName.isNotEmpty()) fielderNames = listOf(fName)
+                        } else if (effectiveDismissal.startsWith("c ", ignoreCase = true) || effectiveDismissal.contains(" c ")) {
+                            val afterC = if (effectiveDismissal.startsWith("c ")) effectiveDismissal.substringAfter("c ") else effectiveDismissal.substringAfter(" c ")
+                            val fName = afterC.substringBefore(" b ").substringBefore("\n").trim()
+                            if (fName.isNotEmpty() && fName != "b") fielderNames = listOf(fName)
+                        }
+                    }
+    
+                    fielderNames.distinct().forEach { fName ->
+                        val f = getP(fName)
+                        if (isCatch) {
+                            f.catches++
+                        } else if (isStumped) {
+                            f.stumpings++
+                        } else if (isRO) {
+                            f.runOuts++
+                        }
+                    }
+                }
+            }
+        }
+
+        // Maidens and Hattricks require over-by-over / streak analysis
+        processMilestones(inn, getP, resolveNameFromId)
+    }
+
+    private fun processMilestones(
+        inn: Innings,
+        getP: (String?) -> Player,
+        resolveNameFromId: (String?) -> String?
+    ) {
         // Maidens
         val balls = inn.balls
         var currentOverRuns = 0
@@ -189,12 +281,19 @@ object StatsRecalculator {
         val overBowlers = mutableSetOf<String>()
 
         balls.forEach { b ->
-            val bName = b.bowlerName?.trim()
+            if (b.type == BallType.PENALTY) return@forEach
+            val bName = (resolveNameFromId(b.bowlerId) ?: b.bowlerName)?.trim()
             if (!bName.isNullOrEmpty()) overBowlers.add(bName)
             
-            if (b.type == BallType.NORMAL || b.type == BallType.WIDE || b.type == BallType.NO_BALL) {
-                currentOverRuns += b.runs
+            val bowlerRunsForOver = when (b.type) {
+                BallType.NORMAL, BallType.WIDE -> b.runs
+                BallType.NO_BALL -> {
+                    val nbPenalty = (b.runs - b.batRuns - b.byeRuns - b.legByeRuns).coerceAtLeast(0)
+                    b.batRuns + nbPenalty
+                }
+                else -> 0
             }
+            currentOverRuns += bowlerRunsForOver
             
             if (b.type == BallType.NORMAL || b.type == BallType.BYE || b.type == BallType.LEG_BYE) {
                 legalBallsInOver++
@@ -214,11 +313,13 @@ object StatsRecalculator {
         // Hattricks (3 consecutive bowler-credited wickets)
         val bowlerStreaks = mutableMapOf<String, Int>()
         balls.forEach { b ->
-            val bowler = b.bowlerName ?: return@forEach
-            val isBowlerWicket = b.isWicket && 
-                                 !b.dismissalInfo.toString().contains("Run Out", ignoreCase = true) &&
-                                 !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true) &&
-                                 !b.dismissalInfo.toString().contains("Retired", ignoreCase = true)
+            if (b.type == BallType.PENALTY) return@forEach
+            val bowlerId = b.wicketDetail?.bowlerId ?: b.bowlerId
+            val bowler = resolveNameFromId(bowlerId) ?: b.bowlerName ?: bowlerId ?: return@forEach
+            val isBowlerWicket = b.isWicket && (b.wicketDetail?.dismissalType?.isBowlerWicket
+                ?: (!b.dismissalInfo.toString().contains("Run Out", ignoreCase = true) &&
+                    !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true) &&
+                    !b.dismissalInfo.toString().contains("Retired", ignoreCase = true)))
             
             if (isBowlerWicket) {
                 val s = (bowlerStreaks[bowler] ?: 0) + 1
@@ -264,10 +365,6 @@ object StatsRecalculator {
                 val idsToDelete = mutableListOf<String>()
                 for ((_, statList) in grouped) {
                     if (statList.size > 1) {
-                        // Sort so that the best record stays first:
-                        // 1. Has non-blank playerId
-                        // 2. Highest runsScored / wicketsTaken / ballsFaced
-                        // 3. Most recent/stable ID
                         val sorted = statList.sortedWith(
                             compareByDescending<PlayerMatchStatEntity> { !it.playerId.isNullOrBlank() }
                                 .thenByDescending { it.runsScored }
@@ -296,5 +393,33 @@ object StatsRecalculator {
                 onComplete?.invoke()
             }
         }
+    }
+
+    private fun extractCleanDismissalFromCommentary(commText: String, pName: String?): String {
+        if (commText.isBlank()) return ""
+        val insideBold = if (commText.contains("<b>")) {
+            commText.substringAfter("<b>").substringBefore("</b>").trim()
+        } else {
+            commText.trim()
+        }
+        return sanitizeDismissalString(insideBold, pName)
+    }
+
+    private fun sanitizeDismissalString(raw: String, pName: String?): String {
+        var text = raw.trim()
+        if (text.isBlank() || text == "out") return "out"
+        
+        if (text.contains("\n")) {
+            text = text.substringAfterLast("\n").trim()
+        }
+        text = text.replace(Regex("<[^>]*>"), "").trim()
+
+        if (!pName.isNullOrBlank() && text.lowercase().startsWith(pName.lowercase())) {
+            text = text.substring(pName.length).trim()
+        }
+
+        text = text.replace(Regex("\\s*\\d+\\(\\d+\\).*"), "").trim()
+
+        return if (text.isNotEmpty()) text else "out"
     }
 }

@@ -4,6 +4,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -45,6 +46,7 @@ class LiveScoringFragment : Fragment() {
     private var cardStriker: View? = null
     private var cardNonStriker: View? = null
     private var cardBowler: View? = null
+    private var cardExtrasPship: View? = null
     private var lottieCelebration: LottieAnimationView? = null
     private var lastProbA = -1
 
@@ -71,6 +73,7 @@ class LiveScoringFragment : Fragment() {
 
         tvExtras = v.findViewById(R.id.tvExtras)
         tvPartnership = v.findViewById(R.id.tvPartnership)
+        cardExtrasPship = v.findViewById(R.id.cardExtrasPship)
 
         tvWinProbLabel = v.findViewById(R.id.tvWinProbLabel)
         pbWinProb = v.findViewById(R.id.pbWinProb)
@@ -286,6 +289,9 @@ class LiveScoringFragment : Fragment() {
         btnScoreGuard.setOnClickListener {
             val provider = activity as? ScoringProvider
             if (provider != null) {
+                if (provider.isOverCompleteDialogShowing || provider.isOverTransitionPending || provider.isBatsmanReplacementPending || provider.striker?.isOut == true || (provider.nonStriker != null && provider.nonStriker!!.isOut)) {
+                    return@setOnClickListener
+                }
                 val result = provider.calculateMatchResult()
                 // If a winner is declared, or it's a tie, the match is over -> LOCK GUARD
                 if (result != null && result != "IN-PROGRESS" && result != "LIVE" && !result.contains("FIRST INNINGS OVER")) {
@@ -294,6 +300,9 @@ class LiveScoringFragment : Fragment() {
             }
             btnScoreGuard.visibility = View.GONE
         }
+
+        // Extras & Partnership card: hidden for scorer to maximize vertical scoring space; visible for live viewers
+        cardExtrasPship?.visibility = if (act.isScorer) View.GONE else View.VISIBLE
 
         // VIEWER MODE: Hide the entire scoring controls block in one shot
         if (!act.isScorer) {
@@ -324,33 +333,36 @@ class LiveScoringFragment : Fragment() {
 
     private fun applyScoringButtonColors(v: View) {
         val ctx = context ?: return
-        val colorWide = "#FFB300".toColorInt() // Amber
+        val colorWide = "#FFB300".toColorInt() // Bright Golden Yellow
         val colorWicket = "#B71C1C".toColorInt() // Red
         val colorSix = "#2E7D32".toColorInt() // Deep Green
-        val colorFour = "#EF6C00".toColorInt() // Orange
-        val colorNB = "#5E35B1".toColorInt() // Purple
+        val colorFour = "#EF6C00".toColorInt() // Vibrant Orange
+        val colorNB = "#5E35B1".toColorInt() // Rich Purple
         val colorB = "#546E7A".toColorInt() // Slate
         val colorLB = "#3949AB".toColorInt() // Indigo
-        val neutral = ThemeManager.getThemeColor(ctx, com.google.android.material.R.attr.colorSurfaceVariant)
+        val neutral = androidx.core.content.ContextCompat.getColor(ctx, R.color.btn_stat_bg)
+        val neutralStroke = androidx.core.content.ContextCompat.getColor(ctx, R.color.btn_stat_stroke)
+        val neutralText = androidx.core.content.ContextCompat.getColor(ctx, R.color.btn_stat_text)
 
-        fun colorBtn(id: Int, color: Int) {
+        fun colorBtn(id: Int, color: Int, stroke: Int = color, textColor: Int = Color.WHITE) {
             val btn = v.findViewById<MaterialButton>(id) ?: return
             btn.backgroundTintList = ColorStateList.valueOf(color)
-            btn.setTextColor(ThemeManager.getContrastColor(color))
-            btn.strokeColor = ColorStateList.valueOf(color)
+            btn.setTextColor(textColor)
+            btn.strokeColor = ColorStateList.valueOf(stroke)
+            btn.strokeWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1f, resources.displayMetrics).toInt()
         }
 
-        colorBtn(R.id.btn0, neutral)
-        colorBtn(R.id.btn1, neutral)
-        colorBtn(R.id.btn2, neutral)
-        colorBtn(R.id.btn3, neutral)
-        colorBtn(R.id.btn4, colorFour)
-        colorBtn(R.id.btn6, colorSix)
-        colorBtn(R.id.btnWide, colorWide)
-        colorBtn(R.id.btnNoBall, colorNB)
-        colorBtn(R.id.btnBye, colorB)
-        colorBtn(R.id.btnLegBye, colorLB)
-        colorBtn(R.id.btnWicket, colorWicket)
+        colorBtn(R.id.btn0, neutral, neutralStroke, neutralText)
+        colorBtn(R.id.btn1, neutral, neutralStroke, neutralText)
+        colorBtn(R.id.btn2, neutral, neutralStroke, neutralText)
+        colorBtn(R.id.btn3, neutral, neutralStroke, neutralText)
+        colorBtn(R.id.btn4, colorFour, textColor = Color.WHITE)
+        colorBtn(R.id.btn6, colorSix, textColor = Color.WHITE)
+        colorBtn(R.id.btnWide, colorWide, textColor = Color.WHITE)
+        colorBtn(R.id.btnNoBall, colorNB, textColor = Color.WHITE)
+        colorBtn(R.id.btnBye, colorB, textColor = Color.WHITE)
+        colorBtn(R.id.btnLegBye, colorLB, textColor = Color.WHITE)
+        colorBtn(R.id.btnWicket, colorWicket, textColor = Color.WHITE)
     }
 
     override fun onResume() {
@@ -394,11 +406,31 @@ class LiveScoringFragment : Fragment() {
         btnScoreGuard.visibility = View.VISIBLE
 
         if ("FREE HIT" == finalLabel) {
-            btnScoreGuard.backgroundTintList = ColorStateList.valueOf(-0x39d7d8)
+            btnScoreGuard.backgroundTintList = ColorStateList.valueOf("#7C3AED".toColorInt())
+            btnScoreGuard.strokeColor = ColorStateList.valueOf("#A78BFA".toColorInt())
             btnScoreGuard.setTextColor(-0x1)
+            btnScoreGuard.iconTint = ColorStateList.valueOf(-0x1)
         } else {
-            btnScoreGuard.backgroundTintList = null
-            btnScoreGuard.setTextColor(-0x1)
+            val ctx = btnScoreGuard.context
+            val isDark = ThemeManager.isDarkMode(ctx)
+            if (isDark) {
+                // In Dark Mode: solid crisp WHITE with bold BLACK text/icon, reflecting clear tap affordance!
+                btnScoreGuard.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
+                btnScoreGuard.strokeColor = ColorStateList.valueOf(Color.WHITE)
+                btnScoreGuard.setTextColor(Color.BLACK)
+                btnScoreGuard.iconTint = ColorStateList.valueOf(Color.BLACK)
+                btnScoreGuard.rippleColor = ColorStateList.valueOf("#33000000".toColorInt())
+            } else {
+                // In Light Mode: keep exactly as it was
+                val guardBg = androidx.core.content.ContextCompat.getColor(ctx, R.color.score_guard_bg)
+                val guardStroke = androidx.core.content.ContextCompat.getColor(ctx, R.color.score_guard_stroke)
+                val guardText = androidx.core.content.ContextCompat.getColor(ctx, R.color.score_guard_text)
+                btnScoreGuard.backgroundTintList = ColorStateList.valueOf(guardBg)
+                btnScoreGuard.strokeColor = ColorStateList.valueOf(guardStroke)
+                btnScoreGuard.setTextColor(guardText)
+                btnScoreGuard.iconTint = ColorStateList.valueOf(guardText)
+                btnScoreGuard.rippleColor = ColorStateList.valueOf("#40FFFFFF".toColorInt())
+            }
         }
     }
 
@@ -440,9 +472,10 @@ class LiveScoringFragment : Fragment() {
 
         tvExtras?.text = innings.extras.toString()
         tvPartnership?.text = String.format(Locale.US, "%d(%d)", pRuns, pBalls)
+        val act = activity as? ScoringProvider
+        cardExtrasPship?.visibility = if (act?.isScorer == true) View.GONE else View.VISIBLE
 
         var prob = 50
-        val act = activity as? ScoringProvider
         val m = act?.match
         if (m != null) {
             val teamADiff = m.teamAPlayerCount - m.teamBPlayerCount
@@ -558,10 +591,10 @@ class LiveScoringFragment : Fragment() {
 
     private fun createRecentBallView(event: String): View {
         val ctx = context ?: return View(context)
-        val size = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 22f, resources.displayMetrics).toInt()
+        val size = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24f, resources.displayMetrics).toInt()
 
         val frame = FrameLayout(ctx).apply {
-            val lp = LinearLayout.LayoutParams(size, size).apply { setMargins(0, 0, 6, 0) }
+            val lp = LinearLayout.LayoutParams(size, size).apply { setMargins(0, 0, 8, 0) }
             layoutParams = lp
         }
 
@@ -573,10 +606,12 @@ class LiveScoringFragment : Fragment() {
         val colorNB = "#5E35B1".toColorInt()
         val colorB = "#546E7A".toColorInt()
         val colorLB = "#3949AB".toColorInt()
-        val neutral = ThemeManager.getThemeColor(ctx, com.google.android.material.R.attr.colorSurfaceVariant)
+        val colorPenalty = "#D81B60".toColorInt()
+        val neutral = androidx.core.content.ContextCompat.getColor(ctx, R.color.btn_stat_bg)
 
         val bgColor = when {
-            event.endsWith("W") || event == "W" -> colorWicket
+            event.startsWith("P") -> colorPenalty
+            event == "RH" || event == "RO" || event.endsWith("W") || event == "W" -> colorWicket
             event == "6" -> colorSix
             event == "4" -> colorFour
             event.contains("WD") -> colorWide
@@ -586,11 +621,10 @@ class LiveScoringFragment : Fragment() {
             else -> neutral
         }
 
-        // 2. Rounded Square Background
+        // 2. Rounded Circle Background
         val bg = View(ctx).apply {
             val shape = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4f, resources.displayMetrics)
+                shape = GradientDrawable.OVAL
                 setColor(bgColor)
             }
             background = shape
@@ -603,8 +637,11 @@ class LiveScoringFragment : Fragment() {
                 "0" -> "•"
                 else -> event
             }
-            setTextColor(ThemeManager.getContrastColor(bgColor))
-            textSize = if (text.length > 2) 8f else 10f
+            val isColoredBall = event.startsWith("P") || event == "4" || event == "6" || event.contains("WD") || event.contains("NB") ||
+                                event == "W" || event == "RO" || event == "RH" || event.endsWith("W") ||
+                                event.contains("B") || event.contains("LB")
+            setTextColor(if (isColoredBall) Color.WHITE else ThemeManager.getContrastColor(bgColor))
+            textSize = if (text.length > 2) 8.5f else 11f
             setTypeface(null, Typeface.BOLD)
             gravity = Gravity.CENTER
             isSingleLine = true

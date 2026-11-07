@@ -31,7 +31,32 @@
         app:cornerRadius="14dp"
         app:strokeColor="?attr/colorPrimary"
         android:textColor="?attr/colorPrimary"
-        android:layout_marginBottom="12dp" />
+        android:layout_marginBottom="10dp" />
+
+    <!-- Search League Players -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilSearchAvailablePlayers"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Search League Players (Name or #)"
+        app:startIconDrawable="@android:drawable/ic_menu_search"
+        app:endIconMode="clear_text"
+        app:boxCornerRadiusBottomEnd="14dp"
+        app:boxCornerRadiusBottomStart="14dp"
+        app:boxCornerRadiusTopEnd="14dp"
+        app:boxCornerRadiusTopStart="14dp"
+        android:layout_marginBottom="10dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etSearchAvailablePlayers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapWords"
+            android:maxLines="1"
+            android:imeOptions="actionDone"
+            android:textSize="14sp" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <View
         android:layout_width="match_parent"

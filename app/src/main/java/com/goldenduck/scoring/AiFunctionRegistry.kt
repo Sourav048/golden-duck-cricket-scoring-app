@@ -596,8 +596,8 @@ class AiFunctionRegistry(private val db: AppDatabase) {
                     if (b.type != BallType.WIDE) {
                         totalBallsFaced++
                     }
-                    if (b.batRuns == 4) fours++
-                    if (b.batRuns == 6) sixes++
+                    if (b.isBoundary && b.batRuns == 4) fours++
+                    if (b.isBoundary && b.batRuns == 6) sixes++
                     if (b.runs == 0) dotBalls++
 
                     if (b.isWicket && PlayerNameNormalizer.areNamesMatching(b.outPlayerName, batterName)) {
@@ -660,8 +660,10 @@ class AiFunctionRegistry(private val db: AppDatabase) {
                 if (b.type != BallType.WIDE) {
                     stat.ballsFaced++
                 }
-                if (b.batRuns == 4) stat.fours++
-                if (b.batRuns == 6) stat.sixes++
+                if (b.isBoundary && b.overthrowRuns == 0) {
+                    if (b.batRuns == 4) stat.fours++
+                    if (b.batRuns == 6) stat.sixes++
+                }
                 if (b.runs == 0) stat.dotBalls++
 
                 if (b.isWicket && PlayerNameNormalizer.areNamesMatching(b.outPlayerName, batterName)) {
@@ -1034,6 +1036,46 @@ class AiFunctionRegistry(private val db: AppDatabase) {
                     limit = (args["limit"] as? Number)?.toInt() ?: 20,
                     gullyId = gullyId
                 )
+                "getPlayerDismissalAnalysis" -> getPlayerDismissalAnalysis(
+                    playerName = args["playerName"] as? String ?: "",
+                    gullyId = gullyId
+                )
+                "getPlayerStatsAgainstTeam" -> getPlayerStatsAgainstTeam(
+                    playerName = args["playerName"] as? String ?: "",
+                    opponentTeam = (args["opponentTeam"] as? String) ?: (args["teamName"] as? String) ?: "",
+                    gullyId = gullyId
+                )
+                "getPlayerPhaseOfPlayStats" -> getPlayerPhaseOfPlayStats(
+                    playerName = args["playerName"] as? String ?: "",
+                    phase = args["phase"] as? String,
+                    gullyId = gullyId
+                )
+                "getPlayerWinImpactStats" -> getPlayerWinImpactStats(
+                    playerName = args["playerName"] as? String ?: "",
+                    gullyId = gullyId
+                )
+                "getPlayerPersonalBests" -> getPlayerPersonalBests(
+                    playerName = args["playerName"] as? String ?: "",
+                    gullyId = gullyId
+                )
+                "compareTwoPlayers" -> compareTwoPlayers(
+                    player1 = (args["player1"] as? String) ?: (args["playerOne"] as? String) ?: "",
+                    player2 = (args["player2"] as? String) ?: (args["playerTwo"] as? String) ?: "",
+                    gullyId = gullyId
+                )
+                "getPlayerBestPartnerships" -> getPlayerBestPartnerships(
+                    playerName = args["playerName"] as? String ?: "",
+                    partnerName = args["partnerName"] as? String,
+                    gullyId = gullyId
+                )
+                "getPlayerInningsSplit" -> getPlayerInningsSplit(
+                    playerName = args["playerName"] as? String ?: "",
+                    gullyId = gullyId
+                )
+                "getPlayerFormStreaks" -> getPlayerFormStreaks(
+                    playerName = args["playerName"] as? String ?: "",
+                    gullyId = gullyId
+                )
                 else -> mapOf("error" to "Unknown function: $name")
             }
         } catch (e: Exception) {
@@ -1041,4 +1083,1016 @@ class AiFunctionRegistry(private val db: AppDatabase) {
             mapOf("error" to "Execution failed: ${e.message}")
         }
     }
+
+    /**
+     * 16. Player Dismissal Analysis (Bowled, Caught, LBW, Run Out, Nemesis Bowlers & Catchers)
+     */
+    fun getPlayerDismissalAnalysis(
+        playerName: String,
+        gullyId: String = "local"
+    ): Map<String, Any> {
+        val resolved = resolvePlayerByName(playerName, gullyId)
+        val targetPlayerId = resolved.firstOrNull()?.get("playerId") as? String ?: ""
+        val actualName = resolved.firstOrNull()?.get("playerName") as? String ?: playerName
+
+        val stats = if (targetPlayerId.isNotBlank()) {
+            db.statsDao().getStatsByPlayer(targetPlayerId)?.filterNotNull() ?: emptyList()
+        } else {
+            val allStats = db.statsDao().getAllStats()?.filterNotNull() ?: emptyList()
+            allStats.filter { PlayerNameNormalizer.areNamesMatching(it.playerName, playerName) }
+        }
+
+        if (stats.isEmpty()) {
+            return mapOf(
+                "playerName" to actualName,
+                "error" to "No match stats found for player '$actualName'"
+            )
+        }
+
+        val totalInnings = stats.size
+        val outs = stats.filter { it.isOut }
+        val timesOut = outs.size
+        val notOuts = totalInnings - timesOut
+
+        val dismissalModes = mutableMapOf<String, Int>()
+        val nemesisBowlers = mutableMapOf<String, Int>()
+        val catchers = mutableMapOf<String, Int>()
+        val recentDismissals = mutableListOf<Map<String, Any>>()
+
+        val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+
+        for (st in outs) {
+            val m = st.matchId?.let { db.matchDao().getMatchById(it) }
+            val dateStr = m?.playedAt?.let { try { sdf.format(Date(it)) } catch (_: Exception) { "" } } ?: ""
+            val vsTeam = if (m != null) {
+                if (st.teamName == m.teamAName) m.teamBName ?: "Opponent" else m.teamAName ?: "Opponent"
+            } else "Opponent"
+
+            val info = st.dismissalInfo?.trim() ?: "out"
+            val infoLower = info.lowercase(Locale.getDefault())
+
+            val mode = when {
+                infoLower.startsWith("b ") || infoLower == "bowled" -> "BOWLED"
+                infoLower.startsWith("c ") || infoLower.contains("caught") -> "CAUGHT"
+                infoLower.contains("run out") -> "RUN_OUT"
+                infoLower.contains("lbw") -> "LBW"
+                infoLower.contains("stumped") || infoLower.startsWith("st ") -> "STUMPED"
+                infoLower.contains("hit wicket") -> "HIT_WICKET"
+                infoLower.contains("retired") -> "RETIRED"
+                else -> "OTHER"
+            }
+            dismissalModes[mode] = (dismissalModes[mode] ?: 0) + 1
+
+            var bowlerName = ""
+            var catcherName = ""
+            if (infoLower.contains(" b ")) {
+                val parts = info.split(" b ", ignoreCase = true)
+                bowlerName = parts.lastOrNull()?.trim() ?: ""
+                val front = parts.firstOrNull()?.trim() ?: ""
+                if (front.startsWith("c &", ignoreCase = true)) {
+                    catcherName = bowlerName
+                } else if (front.startsWith("c ", ignoreCase = true)) {
+                    catcherName = front.substring(2).trim()
+                } else if (front.startsWith("st ", ignoreCase = true)) {
+                    catcherName = front.substring(3).trim()
+                }
+            } else if (infoLower.startsWith("b ")) {
+                bowlerName = info.substring(2).trim()
+            }
+
+            if (bowlerName.isNotBlank() && !bowlerName.equals("bowler", ignoreCase = true)) {
+                val key = nemesisBowlers.keys.firstOrNull { PlayerNameNormalizer.areNamesMatching(it, bowlerName) } ?: bowlerName
+                nemesisBowlers[key] = (nemesisBowlers[key] ?: 0) + 1
+            }
+            if (catcherName.isNotBlank() && !catcherName.equals("fielder", ignoreCase = true)) {
+                val key = catchers.keys.firstOrNull { PlayerNameNormalizer.areNamesMatching(it, catcherName) } ?: catcherName
+                catchers[key] = (catchers[key] ?: 0) + 1
+            }
+
+            if (recentDismissals.size < 5) {
+                recentDismissals.add(
+                    mapOf(
+                        "matchId" to (st.matchId ?: ""),
+                        "date" to dateStr,
+                        "against" to vsTeam,
+                        "dismissal" to info,
+                        "mode" to mode,
+                        "runs" to st.runsScored,
+                        "balls" to st.ballsFaced
+                    )
+                )
+            }
+        }
+
+        val topBowlers = nemesisBowlers.entries
+            .sortedByDescending { it.value }
+            .take(5)
+            .map { mapOf("bowler" to it.key, "dismissals" to it.value) }
+
+        val topCatchers = catchers.entries
+            .sortedByDescending { it.value }
+            .take(5)
+            .map { mapOf("fielder" to it.key, "catches" to it.value) }
+
+        val notOutPercent = if (totalInnings > 0) (notOuts.toDouble() / totalInnings) * 100 else 0.0
+
+        return mapOf(
+            "playerName" to actualName,
+            "totalInnings" to totalInnings,
+            "timesOut" to timesOut,
+            "notOuts" to notOuts,
+            "notOutPercentage" to String.format("%.1f%%", notOutPercent),
+            "dismissalModes" to dismissalModes,
+            "topNemesisBowlers" to topBowlers,
+            "topCatchers" to topCatchers,
+            "recentDismissals" to recentDismissals
+        )
+    }
+
+    /**
+     * 17. Player Stats Against Specific Opponent Team
+     */
+    fun getPlayerStatsAgainstTeam(
+        playerName: String,
+        opponentTeam: String,
+        gullyId: String = "local"
+    ): Map<String, Any> {
+        val resolved = resolvePlayerByName(playerName, gullyId)
+        val targetPlayerId = resolved.firstOrNull()?.get("playerId") as? String ?: ""
+        val actualName = resolved.firstOrNull()?.get("playerName") as? String ?: playerName
+
+        val allPlayerStats = if (targetPlayerId.isNotBlank()) {
+            db.statsDao().getStatsByPlayer(targetPlayerId)?.filterNotNull() ?: emptyList()
+        } else {
+            val allStats = db.statsDao().getAllStats()?.filterNotNull() ?: emptyList()
+            allStats.filter { PlayerNameNormalizer.areNamesMatching(it.playerName, playerName) }
+        }
+
+        val targetOpponent = opponentTeam.trim().lowercase(Locale.getDefault())
+
+        val matchedStats = mutableListOf<PlayerMatchStatEntity>()
+        val matchesPlayedList = mutableListOf<Map<String, Any>>()
+        var wins = 0
+        var losses = 0
+        var drawsOrAbandoned = 0
+
+        val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+
+        for (st in allPlayerStats) {
+            val m = st.matchId?.let { db.matchDao().getMatchById(it) } ?: continue
+            val opp = if (st.teamName == m.teamAName) m.teamBName ?: "" else m.teamAName ?: ""
+            if (opp.lowercase(Locale.getDefault()).contains(targetOpponent)) {
+                matchedStats.add(st)
+
+                val res = m.result ?: ""
+                val resLower = res.lowercase(Locale.getDefault())
+                val myTeam = st.teamName?.lowercase(Locale.getDefault()) ?: ""
+
+                if (resLower.contains("won") && myTeam.isNotBlank() && resLower.contains(myTeam)) {
+                    wins++
+                } else if (resLower.contains("won") && !resLower.contains(myTeam)) {
+                    losses++
+                } else {
+                    drawsOrAbandoned++
+                }
+
+                val dateStr = try { sdf.format(Date(m.playedAt)) } catch (_: Exception) { "" }
+                matchesPlayedList.add(
+                    mapOf(
+                        "matchId" to m.id,
+                        "date" to dateStr,
+                        "runs" to st.runsScored,
+                        "balls" to st.ballsFaced,
+                        "isOut" to st.isOut,
+                        "wickets" to st.wicketsTaken,
+                        "overs" to String.format("%d.%d", st.ballsBowled / 6, st.ballsBowled % 6),
+                        "runsConceded" to st.runsConceded,
+                        "result" to res
+                    )
+                )
+            }
+        }
+
+        if (matchedStats.isEmpty()) {
+            return mapOf(
+                "playerName" to actualName,
+                "opponentTeam" to opponentTeam,
+                "matchesPlayed" to 0,
+                "message" to "No matches found for $actualName against team '$opponentTeam'"
+            )
+        }
+
+        val matchesCount = matchedStats.size
+        val runs = matchedStats.sumOf { it.runsScored }
+        val ballsFaced = matchedStats.sumOf { it.ballsFaced }
+        val fours = matchedStats.sumOf { it.fours }
+        val sixes = matchedStats.sumOf { it.sixes }
+        val timesOut = matchedStats.count { it.isOut }
+        val notOuts = matchesCount - timesOut
+        val highestScore = matchedStats.maxOfOrNull { it.runsScored } ?: 0
+
+        val battingAvg = if (timesOut > 0) runs.toDouble() / timesOut else runs.toDouble()
+        val strikeRate = if (ballsFaced > 0) (runs.toDouble() / ballsFaced) * 100 else 0.0
+
+        val wickets = matchedStats.sumOf { it.wicketsTaken }
+        val ballsBowled = matchedStats.sumOf { it.ballsBowled }
+        val runsConceded = matchedStats.sumOf { it.runsConceded }
+        val maidens = matchedStats.sumOf { it.maidens }
+        val dotBalls = matchedStats.sumOf { it.dotBalls }
+
+        val economy = if (ballsBowled > 0) (runsConceded.toDouble() / (ballsBowled / 6.0)) else 0.0
+        val bowlingAvg = if (wickets > 0) (runsConceded.toDouble() / wickets) else 0.0
+
+        val catches = matchedStats.sumOf { it.catches }
+        val runOuts = matchedStats.sumOf { it.runOuts }
+
+        return mapOf(
+            "playerName" to actualName,
+            "opponentTeam" to opponentTeam,
+            "matchesPlayed" to matchesCount,
+            "record" to mapOf("wins" to wins, "losses" to losses, "other" to drawsOrAbandoned),
+            "batting" to mapOf(
+                "runs" to runs,
+                "ballsFaced" to ballsFaced,
+                "battingAverage" to String.format("%.2f", battingAvg),
+                "strikeRate" to String.format("%.2f", strikeRate),
+                "fours" to fours,
+                "sixes" to sixes,
+                "highestScore" to highestScore,
+                "timesOut" to timesOut,
+                "notOuts" to notOuts
+            ),
+            "bowling" to mapOf(
+                "wickets" to wickets,
+                "ballsBowled" to ballsBowled,
+                "overs" to String.format("%d.%d", ballsBowled / 6, ballsBowled % 6),
+                "runsConceded" to runsConceded,
+                "economy" to String.format("%.2f", economy),
+                "bowlingAverage" to String.format("%.2f", bowlingAvg),
+                "maidens" to maidens,
+                "dotBalls" to dotBalls
+            ),
+            "fielding" to mapOf("catches" to catches, "runOuts" to runOuts),
+            "matchLog" to matchesPlayedList
+        )
+    }
+
+    /**
+     * 18. Phase of Play Performance (Powerplay vs Middle vs Death Overs)
+     */
+    fun getPlayerPhaseOfPlayStats(
+        playerName: String,
+        phase: String? = null,
+        gullyId: String = "local"
+    ): Map<String, Any> {
+        val resolved = resolvePlayerByName(playerName, gullyId)
+        val actualName = resolved.firstOrNull()?.get("playerName") as? String ?: playerName
+
+        val matches = db.matchDao().getAllMatchesByGully(gullyId)?.filterNotNull() ?: emptyList()
+
+        class PhaseStat {
+            var batRuns: Int = 0
+            var ballsFaced: Int = 0
+            var fours: Int = 0
+            var sixes: Int = 0
+            var dotBallsFaced: Int = 0
+            var dismissals: Int = 0
+
+            var runsConceded: Int = 0
+            var ballsBowled: Int = 0
+            var wickets: Int = 0
+            var dotBallsBowled: Int = 0
+        }
+
+        val powerplay = PhaseStat()
+        val middle = PhaseStat()
+        val death = PhaseStat()
+
+        for (m in matches) {
+            val totalOvers = if (m.totalOvers > 0) m.totalOvers else 10
+            val ppOversEnd = when {
+                totalOvers <= 6 -> 1
+                totalOvers <= 10 -> 2
+                totalOvers <= 15 -> 4
+                else -> 6
+            }
+            val deathOversStart = when {
+                totalOvers <= 6 -> totalOvers - 1
+                totalOvers <= 10 -> totalOvers - 2
+                totalOvers <= 15 -> totalOvers - 3
+                else -> totalOvers - 4
+            }
+
+            fun processInnings(balls: List<Ball?>?) {
+                if (balls.isNullOrEmpty()) return
+                var legalDeliveries = 0
+                for (b in balls) {
+                    if (b == null) continue
+                    val overNum = legalDeliveries / 6
+
+                    val targetPhase = when {
+                        overNum < ppOversEnd -> powerplay
+                        overNum >= deathOversStart -> death
+                        else -> middle
+                    }
+
+                    if (PlayerNameNormalizer.areNamesMatching(b.batsmanName, actualName)) {
+                        targetPhase.batRuns += b.batRuns
+                        if (b.type != BallType.WIDE) {
+                            targetPhase.ballsFaced++
+                        }
+                        if (b.isBoundary && b.overthrowRuns == 0) {
+                            if (b.batRuns == 4) targetPhase.fours++
+                            if (b.batRuns == 6) targetPhase.sixes++
+                        }
+                        if (b.runs == 0) targetPhase.dotBallsFaced++
+                        if (b.isWicket && PlayerNameNormalizer.areNamesMatching(b.outPlayerName, actualName)) {
+                            targetPhase.dismissals++
+                        }
+                    }
+
+                    if (PlayerNameNormalizer.areNamesMatching(b.bowlerName, actualName)) {
+                        targetPhase.runsConceded += b.runs
+                        if (b.type != BallType.WIDE && b.type != BallType.NO_BALL) {
+                            targetPhase.ballsBowled++
+                        }
+                        if (b.isWicket) {
+                            targetPhase.wickets++
+                        }
+                        if (b.runs == 0) targetPhase.dotBallsBowled++
+                    }
+
+                    if (b.type != BallType.WIDE && b.type != BallType.NO_BALL) {
+                        legalDeliveries++
+                    }
+                }
+            }
+
+            processInnings(m.ballsJson1)
+            processInnings(m.ballsJson2)
+        }
+
+        fun toMap(p: PhaseStat, phaseName: String): Map<String, Any> {
+            val sr = if (p.ballsFaced > 0) (p.batRuns.toDouble() / p.ballsFaced) * 100 else 0.0
+            val avg = if (p.dismissals > 0) p.batRuns.toDouble() / p.dismissals else p.batRuns.toDouble()
+            val econ = if (p.ballsBowled > 0) (p.runsConceded.toDouble() / (p.ballsBowled / 6.0)) else 0.0
+            return mapOf(
+                "phase" to phaseName,
+                "batting" to mapOf(
+                    "runs" to p.batRuns,
+                    "ballsFaced" to p.ballsFaced,
+                    "strikeRate" to String.format("%.2f", sr),
+                    "average" to String.format("%.2f", avg),
+                    "fours" to p.fours,
+                    "sixes" to p.sixes,
+                    "dotBalls" to p.dotBallsFaced,
+                    "dismissals" to p.dismissals
+                ),
+                "bowling" to mapOf(
+                    "wickets" to p.wickets,
+                    "ballsBowled" to p.ballsBowled,
+                    "overs" to String.format("%d.%d", p.ballsBowled / 6, p.ballsBowled % 6),
+                    "runsConceded" to p.runsConceded,
+                    "economy" to String.format("%.2f", econ),
+                    "dotBalls" to p.dotBallsBowled
+                )
+            )
+        }
+
+        val filterPhase = phase?.uppercase(Locale.getDefault())
+        return mapOf(
+            "playerName" to actualName,
+            "filter" to (filterPhase ?: "ALL"),
+            "phases" to when (filterPhase) {
+                "POWERPLAY" -> mapOf("POWERPLAY" to toMap(powerplay, "Powerplay"))
+                "MIDDLE" -> mapOf("MIDDLE" to toMap(middle, "Middle Overs"))
+                "DEATH" -> mapOf("DEATH" to toMap(death, "Death Overs"))
+                else -> mapOf(
+                    "POWERPLAY" to toMap(powerplay, "Powerplay (Early Overs)"),
+                    "MIDDLE" to toMap(middle, "Middle Overs"),
+                    "DEATH" to toMap(death, "Death Overs (Final Overs)")
+                )
+            }
+        )
+    }
+
+    /**
+     * 19. Player Win Impact & Match Contribution
+     */
+    fun getPlayerWinImpactStats(
+        playerName: String,
+        gullyId: String = "local"
+    ): Map<String, Any> {
+        val resolved = resolvePlayerByName(playerName, gullyId)
+        val targetPlayerId = resolved.firstOrNull()?.get("playerId") as? String ?: ""
+        val actualName = resolved.firstOrNull()?.get("playerName") as? String ?: playerName
+
+        val stats = if (targetPlayerId.isNotBlank()) {
+            db.statsDao().getStatsByPlayer(targetPlayerId)?.filterNotNull() ?: emptyList()
+        } else {
+            val allStats = db.statsDao().getAllStats()?.filterNotNull() ?: emptyList()
+            allStats.filter { PlayerNameNormalizer.areNamesMatching(it.playerName, playerName) }
+        }
+
+        if (stats.isEmpty()) {
+            return mapOf(
+                "playerName" to actualName,
+                "message" to "No matches found for player $actualName"
+            )
+        }
+
+        var totalMatches = 0
+        var totalWins = 0
+        var totalLosses = 0
+
+        var matchesScored25Plus = 0
+        var winsWhenScored25Plus = 0
+
+        var matchesTook2PlusWickets = 0
+        var winsWhenTook2PlusWickets = 0
+
+        val potmMatches = mutableListOf<Map<String, Any>>()
+        val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+
+        for (st in stats) {
+            val m = st.matchId?.let { db.matchDao().getMatchById(it) } ?: continue
+            totalMatches++
+
+            val myTeam = st.teamName?.lowercase(Locale.getDefault()) ?: ""
+            val result = m.result ?: ""
+            val resultLower = result.lowercase(Locale.getDefault())
+
+            val isWin = resultLower.contains("won") && myTeam.isNotBlank() && resultLower.contains(myTeam)
+            val isLoss = resultLower.contains("won") && !resultLower.contains(myTeam)
+
+            if (isWin) totalWins++
+            else if (isLoss) totalLosses++
+
+            if (st.runsScored >= 25) {
+                matchesScored25Plus++
+                if (isWin) winsWhenScored25Plus++
+            }
+
+            if (st.wicketsTaken >= 2) {
+                matchesTook2PlusWickets++
+                if (isWin) winsWhenTook2PlusWickets++
+            }
+
+            if (PlayerNameNormalizer.areNamesMatching(m.playerOfTheMatchName, actualName)) {
+                val dateStr = try { sdf.format(Date(m.playedAt)) } catch (_: Exception) { "" }
+                potmMatches.add(
+                    mapOf(
+                        "matchId" to m.id,
+                        "date" to dateStr,
+                        "match" to "${m.teamAName} vs ${m.teamBName}",
+                        "result" to result,
+                        "runs" to st.runsScored,
+                        "wickets" to st.wicketsTaken
+                    )
+                )
+            }
+        }
+
+        val winPct = if (totalMatches > 0) (totalWins.toDouble() / totalMatches) * 100 else 0.0
+        val winPct25Plus = if (matchesScored25Plus > 0) (winsWhenScored25Plus.toDouble() / matchesScored25Plus) * 100 else 0.0
+        val winPct2Wkts = if (matchesTook2PlusWickets > 0) (winsWhenTook2PlusWickets.toDouble() / matchesTook2PlusWickets) * 100 else 0.0
+
+        return mapOf(
+            "playerName" to actualName,
+            "totalMatches" to totalMatches,
+            "wins" to totalWins,
+            "losses" to totalLosses,
+            "winPercentage" to String.format("%.1f%%", winPct),
+            "impactWhenScoring25Plus" to mapOf(
+                "matches" to matchesScored25Plus,
+                "wins" to winsWhenScored25Plus,
+                "winPercentage" to String.format("%.1f%%", winPct25Plus)
+            ),
+            "impactWhenTaking2PlusWickets" to mapOf(
+                "matches" to matchesTook2PlusWickets,
+                "wins" to winsWhenTook2PlusWickets,
+                "winPercentage" to String.format("%.1f%%", winPct2Wkts)
+            ),
+            "playerOfTheMatchAwards" to mapOf(
+                "totalAwards" to potmMatches.size,
+                "matches" to potmMatches
+            )
+        )
+    }
+
+    /**
+     * 20. Player Personal Records and Bests
+     */
+    fun getPlayerPersonalBests(
+        playerName: String,
+        gullyId: String = "local"
+    ): Map<String, Any> {
+        val resolved = resolvePlayerByName(playerName, gullyId)
+        val targetPlayerId = resolved.firstOrNull()?.get("playerId") as? String ?: ""
+        val actualName = resolved.firstOrNull()?.get("playerName") as? String ?: playerName
+
+        val stats = if (targetPlayerId.isNotBlank()) {
+            db.statsDao().getStatsByPlayer(targetPlayerId)?.filterNotNull() ?: emptyList()
+        } else {
+            val allStats = db.statsDao().getAllStats()?.filterNotNull() ?: emptyList()
+            allStats.filter { PlayerNameNormalizer.areNamesMatching(it.playerName, playerName) }
+        }
+
+        if (stats.isEmpty()) {
+            return mapOf(
+                "playerName" to actualName,
+                "message" to "No stats found for player $actualName"
+            )
+        }
+
+        val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+
+        val bestBat = stats.maxWithOrNull(
+            compareBy<PlayerMatchStatEntity> { it.runsScored }
+                .thenByDescending { !it.isOut }
+                .thenBy { if (it.ballsFaced > 0) it.ballsFaced else 999 }
+        )
+        val bestBatMatch = bestBat?.matchId?.let { db.matchDao().getMatchById(it) }
+
+        val bowlingInnings = stats.filter { it.ballsBowled > 0 }
+        val bestBowl = bowlingInnings.maxWithOrNull(
+            compareBy<PlayerMatchStatEntity> { it.wicketsTaken }
+                .thenByDescending { -it.runsConceded }
+        )
+        val bestBowlMatch = bestBowl?.matchId?.let { db.matchDao().getMatchById(it) }
+
+        val mostSixesStat = stats.maxByOrNull { it.sixes }
+        val mostSixesMatch = mostSixesStat?.matchId?.let { db.matchDao().getMatchById(it) }
+
+        val mostFoursStat = stats.maxByOrNull { it.fours }
+        val mostCatchesStat = stats.maxByOrNull { it.catches }
+
+        return mapOf(
+            "playerName" to actualName,
+            "bestBattingInnings" to mapOf(
+                "runs" to (bestBat?.runsScored ?: 0),
+                "ballsFaced" to (bestBat?.ballsFaced ?: 0),
+                "isNotOut" to (bestBat?.isOut == false),
+                "strikeRate" to if ((bestBat?.ballsFaced ?: 0) > 0) String.format("%.2f", (bestBat!!.runsScored.toDouble() / bestBat.ballsFaced) * 100) else "0.0",
+                "fours" to (bestBat?.fours ?: 0),
+                "sixes" to (bestBat?.sixes ?: 0),
+                "vsMatch" to "${bestBatMatch?.teamAName ?: "Team A"} vs ${bestBatMatch?.teamBName ?: "Team B"}",
+                "date" to (bestBatMatch?.playedAt?.let { try { sdf.format(Date(it)) } catch (_: Exception) { "" } } ?: ""),
+                "matchId" to (bestBat?.matchId ?: "")
+            ),
+            "bestBowlingSpell" to mapOf(
+                "wickets" to (bestBowl?.wicketsTaken ?: 0),
+                "runsConceded" to (bestBowl?.runsConceded ?: 0),
+                "overs" to (bestBowl?.let { String.format("%d.%d", it.ballsBowled / 6, it.ballsBowled % 6) } ?: "0.0"),
+                "maidens" to (bestBowl?.maidens ?: 0),
+                "dotBalls" to (bestBowl?.dotBalls ?: 0),
+                "economy" to (bestBowl?.let { if (it.ballsBowled > 0) String.format("%.2f", it.runsConceded.toDouble() / (it.ballsBowled / 6.0)) else "0.0" } ?: "0.0"),
+                "vsMatch" to "${bestBowlMatch?.teamAName ?: "Team A"} vs ${bestBowlMatch?.teamBName ?: "Team B"}",
+                "date" to (bestBowlMatch?.playedAt?.let { try { sdf.format(Date(it)) } catch (_: Exception) { "" } } ?: ""),
+                "matchId" to (bestBowl?.matchId ?: "")
+            ),
+            "mostSixesInInnings" to mapOf(
+                "sixes" to (mostSixesStat?.sixes ?: 0),
+                "totalRuns" to (mostSixesStat?.runsScored ?: 0),
+                "match" to "${mostSixesMatch?.teamAName ?: "Team A"} vs ${mostSixesMatch?.teamBName ?: "Team B"}",
+                "matchId" to (mostSixesStat?.matchId ?: "")
+            ),
+            "mostFoursInInnings" to mapOf(
+                "fours" to (mostFoursStat?.fours ?: 0),
+                "totalRuns" to (mostFoursStat?.runsScored ?: 0),
+                "matchId" to (mostFoursStat?.matchId ?: "")
+            ),
+            "mostCatchesInMatch" to mapOf(
+                "catches" to (mostCatchesStat?.catches ?: 0),
+                "matchId" to (mostCatchesStat?.matchId ?: "")
+            )
+        )
+    }
+
+    /**
+     * 21. Head-to-Head Comparison of Two Players
+     */
+    fun compareTwoPlayers(
+        player1: String,
+        player2: String,
+        gullyId: String = "local"
+    ): Map<String, Any> {
+        val resolvedP1 = resolvePlayerByName(player1, gullyId)
+        val p1Id = resolvedP1.firstOrNull()?.get("playerId") as? String ?: ""
+        val p1Name = resolvedP1.firstOrNull()?.get("playerName") as? String ?: player1
+
+        val resolvedP2 = resolvePlayerByName(player2, gullyId)
+        val p2Id = resolvedP2.firstOrNull()?.get("playerId") as? String ?: ""
+        val p2Name = resolvedP2.firstOrNull()?.get("playerName") as? String ?: player2
+
+        val stats1 = if (p1Id.isNotBlank()) getPlayerStats(p1Id) else mapOf("playerName" to p1Name, "matchesPlayed" to 0)
+        val stats2 = if (p2Id.isNotBlank()) getPlayerStats(p2Id) else mapOf("playerName" to p2Name, "matchesPlayed" to 0)
+
+        val p1BatVsP2Bowl = getBatterVsBowlerMatchup(batterName = p1Name, bowlerName = p2Name, gullyId = gullyId)
+        val p2BatVsP1Bowl = getBatterVsBowlerMatchup(batterName = p2Name, bowlerName = p1Name, gullyId = gullyId)
+
+        return mapOf(
+            "comparison" to "$p1Name vs $p2Name",
+            "player1" to mapOf(
+                "name" to p1Name,
+                "id" to p1Id,
+                "stats" to stats1
+            ),
+            "player2" to mapOf(
+                "name" to p2Name,
+                "id" to p2Id,
+                "stats" to stats2
+            ),
+            "headToHead" to mapOf(
+                "${p1Name}_batting_vs_${p2Name}_bowling" to p1BatVsP2Bowl,
+                "${p2Name}_batting_vs_${p1Name}_bowling" to p2BatVsP1Bowl
+            )
+        )
+    }
+
+    /**
+     * 22. Batting Partnership Chemistry and Records
+     */
+    fun getPlayerBestPartnerships(
+        playerName: String,
+        partnerName: String? = null,
+        gullyId: String = "local"
+    ): Map<String, Any> {
+        val resolved = resolvePlayerByName(playerName, gullyId)
+        val actualName = resolved.firstOrNull()?.get("playerName") as? String ?: playerName
+
+        val matches = db.matchDao().getAllMatchesByGully(gullyId)?.filterNotNull() ?: emptyList()
+
+        class PartnershipRecord(
+            val partner: String,
+            var totalRuns: Int = 0,
+            var totalBalls: Int = 0,
+            var standsCount: Int = 0,
+            var highestStand: Int = 0,
+            var highestStandBalls: Int = 0,
+            var playerContributions: Int = 0,
+            var partnerContributions: Int = 0
+        )
+
+        val partnerMap = mutableMapOf<String, PartnershipRecord>()
+        val allStandsList = mutableListOf<Map<String, Any>>()
+        val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+
+        val targetPartner = partnerName?.trim()
+
+        for (m in matches) {
+            val dateStr = try { sdf.format(Date(m.playedAt)) } catch (_: Exception) { "" }
+            val matchTitle = "${m.teamAName ?: "Team A"} vs ${m.teamBName ?: "Team B"}"
+
+            fun inspectPartnerships(list: List<PartnershipEvent?>?, inningsNum: Int) {
+                if (list.isNullOrEmpty()) return
+                for (p in list) {
+                    if (p == null) continue
+                    val isB1 = PlayerNameNormalizer.areNamesMatching(p.batter1, actualName)
+                    val isB2 = PlayerNameNormalizer.areNamesMatching(p.batter2, actualName)
+
+                    if (!isB1 && !isB2) continue
+
+                    val partnerActual = if (isB1) p.batter2 ?: "Partner" else p.batter1 ?: "Partner"
+
+                    if (!targetPartner.isNullOrBlank() && !PlayerNameNormalizer.areNamesMatching(partnerActual, targetPartner)) {
+                        continue
+                    }
+
+                    val playerRuns = if (isB1) p.b1Runs else p.b2Runs
+                    val partnerRuns = if (isB1) p.b2Runs else p.b1Runs
+                    val playerBalls = if (isB1) p.b1Balls else p.b2Balls
+                    val partnerBalls = if (isB1) p.b2Balls else p.b1Balls
+
+                    allStandsList.add(
+                        mapOf(
+                            "runs" to p.runs,
+                            "balls" to p.balls,
+                            "partner" to partnerActual,
+                            "playerRuns" to playerRuns,
+                            "playerBalls" to playerBalls,
+                            "partnerRuns" to partnerRuns,
+                            "partnerBalls" to partnerBalls,
+                            "innings" to inningsNum,
+                            "match" to matchTitle,
+                            "date" to dateStr,
+                            "matchId" to m.id
+                        )
+                    )
+
+                    val key = partnerMap.keys.firstOrNull { PlayerNameNormalizer.areNamesMatching(it, partnerActual) } ?: partnerActual
+                    val record = partnerMap.getOrPut(key) { PartnershipRecord(key) }
+                    record.totalRuns += p.runs
+                    record.totalBalls += p.balls
+                    record.standsCount++
+                    record.playerContributions += playerRuns
+                    record.partnerContributions += partnerRuns
+                    if (p.runs > record.highestStand) {
+                        record.highestStand = p.runs
+                        record.highestStandBalls = p.balls
+                    }
+                }
+            }
+
+            inspectPartnerships(m.pshipJson1, 1)
+            inspectPartnerships(m.pshipJson2, 2)
+        }
+
+        val topStands = allStandsList.sortedByDescending { it["runs"] as Int }.take(10)
+
+        val partnerSummary = partnerMap.values.map { r ->
+            val avgStand = if (r.standsCount > 0) r.totalRuns.toDouble() / r.standsCount else 0.0
+            mapOf(
+                "partner" to r.partner,
+                "totalRunsTogether" to r.totalRuns,
+                "totalBallsTogether" to r.totalBalls,
+                "inningsTogether" to r.standsCount,
+                "averageStand" to String.format("%.1f", avgStand),
+                "highestStand" to "${r.highestStand} (${r.highestStandBalls} balls)",
+                "playerRuns" to r.playerContributions,
+                "partnerRuns" to r.partnerContributions
+            )
+        }.sortedByDescending { it["totalRunsTogether"] as Int }
+
+        return mapOf(
+            "playerName" to actualName,
+            "filterPartner" to (targetPartner ?: "ALL"),
+            "totalPartnershipsRecorded" to allStandsList.size,
+            "topPartnershipInnings" to topStands,
+            "bestPartners" to partnerSummary
+        )
+    }
+
+    /**
+     * 23. 1st Innings (Setting Target) vs 2nd Innings (Chasing Target) Split
+     */
+    fun getPlayerInningsSplit(
+        playerName: String,
+        gullyId: String = "local"
+    ): Map<String, Any> {
+        val resolved = resolvePlayerByName(playerName, gullyId)
+        val actualName = resolved.firstOrNull()?.get("playerName") as? String ?: playerName
+
+        val matches = db.matchDao().getAllMatchesByGully(gullyId)?.filterNotNull() ?: emptyList()
+
+        class InningsSplitStat {
+            var matchesPlayed: Int = 0
+            var batRuns: Int = 0
+            var ballsFaced: Int = 0
+            var fours: Int = 0
+            var sixes: Int = 0
+            var dismissals: Int = 0
+            var notOuts: Int = 0
+            var highestScore: Int = 0
+
+            var ballsBowled: Int = 0
+            var runsConceded: Int = 0
+            var wickets: Int = 0
+            var dotBalls: Int = 0
+
+            var wins: Int = 0
+            var losses: Int = 0
+        }
+
+        val firstInnings = InningsSplitStat()
+        val secondInnings = InningsSplitStat()
+
+        for (m in matches) {
+            fun processMatchInnings(balls: List<Ball?>?, statObj: InningsSplitStat, isTeamFirstInnings: Boolean) {
+                if (balls.isNullOrEmpty()) return
+                var battedOrBowledInThisInnings = false
+                var myInningsRuns = 0
+                var myInningsBalls = 0
+                var myInningsOut = false
+
+                for (b in balls) {
+                    if (b == null) continue
+                    if (PlayerNameNormalizer.areNamesMatching(b.batsmanName, actualName)) {
+                        battedOrBowledInThisInnings = true
+                        statObj.batRuns += b.batRuns
+                        myInningsRuns += b.batRuns
+                        if (b.type != BallType.WIDE) {
+                            statObj.ballsFaced++
+                            myInningsBalls++
+                        }
+                        if (b.isBoundary && b.overthrowRuns == 0) {
+                            if (b.batRuns == 4) statObj.fours++
+                            if (b.batRuns == 6) statObj.sixes++
+                        }
+                        if (b.isWicket && PlayerNameNormalizer.areNamesMatching(b.outPlayerName, actualName)) {
+                            statObj.dismissals++
+                            myInningsOut = true
+                        }
+                    }
+
+                    if (PlayerNameNormalizer.areNamesMatching(b.bowlerName, actualName)) {
+                        battedOrBowledInThisInnings = true
+                        statObj.runsConceded += b.runs
+                        if (b.type != BallType.WIDE && b.type != BallType.NO_BALL) {
+                            statObj.ballsBowled++
+                        }
+                        if (b.isWicket) {
+                            statObj.wickets++
+                        }
+                        if (b.runs == 0) {
+                            statObj.dotBalls++
+                        }
+                    }
+                }
+
+                if (battedOrBowledInThisInnings) {
+                    statObj.matchesPlayed++
+                    if (myInningsBalls > 0 && !myInningsOut) {
+                        statObj.notOuts++
+                    }
+                    if (myInningsRuns > statObj.highestScore) {
+                        statObj.highestScore = myInningsRuns
+                    }
+
+                    val res = m.result?.lowercase(Locale.getDefault()) ?: ""
+                    if (res.contains("won")) {
+                        val pBatTeam = if (isTeamFirstInnings) m.firstInningsTeam else m.secondInningsTeam
+                        if (!pBatTeam.isNullOrBlank() && res.contains(pBatTeam.lowercase(Locale.getDefault()))) {
+                            statObj.wins++
+                        } else {
+                            statObj.losses++
+                        }
+                    }
+                }
+            }
+
+            processMatchInnings(m.ballsJson1, firstInnings, true)
+            processMatchInnings(m.ballsJson2, secondInnings, false)
+        }
+
+        fun toSplitMap(s: InningsSplitStat, contextName: String): Map<String, Any> {
+            val sr = if (s.ballsFaced > 0) (s.batRuns.toDouble() / s.ballsFaced) * 100 else 0.0
+            val avg = if (s.dismissals > 0) s.batRuns.toDouble() / s.dismissals else s.batRuns.toDouble()
+            val econ = if (s.ballsBowled > 0) (s.runsConceded.toDouble() / (s.ballsBowled / 6.0)) else 0.0
+            val bowlAvg = if (s.wickets > 0) s.runsConceded.toDouble() / s.wickets else 0.0
+            val winPct = if (s.matchesPlayed > 0) (s.wins.toDouble() / s.matchesPlayed) * 100 else 0.0
+
+            return mapOf(
+                "context" to contextName,
+                "matchesInvolved" to s.matchesPlayed,
+                "winPercentage" to String.format("%.1f%%", winPct),
+                "wins" to s.wins,
+                "losses" to s.losses,
+                "batting" to mapOf(
+                    "runs" to s.batRuns,
+                    "ballsFaced" to s.ballsFaced,
+                    "strikeRate" to String.format("%.2f", sr),
+                    "average" to String.format("%.2f", avg),
+                    "highestScore" to s.highestScore,
+                    "fours" to s.fours,
+                    "sixes" to s.sixes,
+                    "dismissals" to s.dismissals,
+                    "notOuts" to s.notOuts
+                ),
+                "bowling" to mapOf(
+                    "wickets" to s.wickets,
+                    "overs" to String.format("%d.%d", s.ballsBowled / 6, s.ballsBowled % 6),
+                    "runsConceded" to s.runsConceded,
+                    "economy" to String.format("%.2f", econ),
+                    "bowlingAverage" to String.format("%.2f", bowlAvg),
+                    "dotBalls" to s.dotBalls
+                )
+            )
+        }
+
+        return mapOf(
+            "playerName" to actualName,
+            "firstInningsSettingTarget" to toSplitMap(firstInnings, "1st Innings (Setting Target / Bowling First)"),
+            "secondInningsChasingTarget" to toSplitMap(secondInnings, "2nd Innings (Chasing Target / Defending Total)")
+        )
+    }
+
+    /**
+     * 24. Player Form Streaks and Upcoming Career Milestones
+     */
+    fun getPlayerFormStreaks(
+        playerName: String,
+        gullyId: String = "local"
+    ): Map<String, Any> {
+        val resolved = resolvePlayerByName(playerName, gullyId)
+        val targetPlayerId = resolved.firstOrNull()?.get("playerId") as? String ?: ""
+        val actualName = resolved.firstOrNull()?.get("playerName") as? String ?: playerName
+
+        val stats = if (targetPlayerId.isNotBlank()) {
+            db.statsDao().getStatsByPlayer(targetPlayerId)?.filterNotNull() ?: emptyList()
+        } else {
+            val allStats = db.statsDao().getAllStats()?.filterNotNull() ?: emptyList()
+            allStats.filter { PlayerNameNormalizer.areNamesMatching(it.playerName, playerName) }
+        }
+
+        if (stats.isEmpty()) {
+            return mapOf(
+                "playerName" to actualName,
+                "message" to "No stats found for player $actualName"
+            )
+        }
+
+        val sortedStats = stats.sortedBy { st ->
+            st.matchId?.let { db.matchDao().getMatchById(it)?.playedAt } ?: 0L
+        }
+
+        var current20PlusStreak = 0
+        var best20PlusStreak = 0
+        var temp20Plus = 0
+
+        var currentWicketStreak = 0
+        var bestWicketStreak = 0
+        var tempWickets = 0
+
+        var currentBoundaryStreak = 0
+        var bestBoundaryStreak = 0
+        var tempBoundary = 0
+
+        for (st in sortedStats) {
+            if (st.runsScored >= 20) {
+                temp20Plus++
+                if (temp20Plus > best20PlusStreak) best20PlusStreak = temp20Plus
+            } else {
+                temp20Plus = 0
+            }
+
+            if (st.wicketsTaken >= 1) {
+                tempWickets++
+                if (tempWickets > bestWicketStreak) bestWicketStreak = tempWickets
+            } else if (st.ballsBowled > 0) {
+                tempWickets = 0
+            }
+
+            if (st.fours > 0 || st.sixes > 0) {
+                tempBoundary++
+                if (tempBoundary > bestBoundaryStreak) bestBoundaryStreak = tempBoundary
+            } else if (st.ballsFaced > 0) {
+                tempBoundary = 0
+            }
+        }
+
+        for (st in sortedStats.reversed()) {
+            if (st.runsScored >= 20) current20PlusStreak++ else break
+        }
+        for (st in sortedStats.reversed()) {
+            if (st.wicketsTaken >= 1) currentWicketStreak++ else if (st.ballsBowled > 0) break
+        }
+        for (st in sortedStats.reversed()) {
+            if (st.fours > 0 || st.sixes > 0) currentBoundaryStreak++ else if (st.ballsFaced > 0) break
+        }
+
+        val totalCareerRuns = sortedStats.sumOf { it.runsScored }
+        val nextBattingMilestone = when {
+            totalCareerRuns < 50 -> 50
+            totalCareerRuns < 100 -> 100
+            totalCareerRuns < 250 -> 250
+            totalCareerRuns < 500 -> 500
+            totalCareerRuns < 1000 -> 1000
+            else -> ((totalCareerRuns / 500) + 1) * 500
+        }
+        val runsNeeded = nextBattingMilestone - totalCareerRuns
+
+        val totalCareerWickets = sortedStats.sumOf { it.wicketsTaken }
+        val nextBowlingMilestone = when {
+            totalCareerWickets < 10 -> 10
+            totalCareerWickets < 25 -> 25
+            totalCareerWickets < 50 -> 50
+            totalCareerWickets < 100 -> 100
+            else -> ((totalCareerWickets / 50) + 1) * 50
+        }
+        val wicketsNeeded = nextBowlingMilestone - totalCareerWickets
+
+        return mapOf(
+            "playerName" to actualName,
+            "totalMatchesPlayed" to sortedStats.size,
+            "streaks" to mapOf(
+                "scoring20PlusRuns" to mapOf(
+                    "currentStreak" to "$current20PlusStreak matches",
+                    "bestCareerStreak" to "$best20PlusStreak matches"
+                ),
+                "takingWickets" to mapOf(
+                    "currentStreak" to "$currentWicketStreak matches",
+                    "bestCareerStreak" to "$bestWicketStreak matches"
+                ),
+                "hittingBoundaries" to mapOf(
+                    "currentStreak" to "$currentBoundaryStreak matches",
+                    "bestCareerStreak" to "$bestBoundaryStreak matches"
+                )
+            ),
+            "upcomingMilestones" to mapOf(
+                "batting" to mapOf(
+                    "currentTotalRuns" to totalCareerRuns,
+                    "targetMilestone" to "$nextBattingMilestone runs",
+                    "runsNeeded" to runsNeeded
+                ),
+                "bowling" to mapOf(
+                    "currentTotalWickets" to totalCareerWickets,
+                    "targetMilestone" to "$nextBowlingMilestone wickets",
+                    "wicketsNeeded" to wicketsNeeded
+                )
+            )
+        )
+    }
 }
+
+

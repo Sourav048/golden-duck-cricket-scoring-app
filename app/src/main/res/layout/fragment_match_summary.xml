@@ -3,11 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingHorizontal="18dp"
+    android:paddingHorizontal="16dp"
     android:paddingTop="16dp"
     android:paddingBottom="88dp"
     android:clipToPadding="false"
-    android:background="?attr/colorSurface">
+    android:background="?attr/android:windowBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -31,9 +31,9 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/bg_potm_header_pill"
-                android:paddingHorizontal="16dp"
+                android:paddingHorizontal="18dp"
                 android:paddingVertical="7dp"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="14dp">
 
                 <ImageView
                     android:layout_width="16dp"
@@ -57,12 +57,12 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="24dp"
+                app:cardCornerRadius="22dp"
                 app:cardElevation="3dp"
                 app:cardBackgroundColor="?attr/colorSurface"
                 app:strokeWidth="1.5dp"
-                app:strokeColor="#33D4AF37"
-                android:layout_marginBottom="28dp">
+                app:strokeColor="#4DD4AF37"
+                android:layout_marginBottom="24dp">
 
                 <RelativeLayout
                     android:layout_width="match_parent"
@@ -79,11 +79,11 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:paddingHorizontal="24dp"
-                        android:paddingTop="28dp"
-                        android:paddingBottom="24dp"
+                        android:paddingTop="26dp"
+                        android:paddingBottom="22dp"
                         android:gravity="center">
 
-                        <!-- Photo Frame with double ring / badge -->
+                        <!-- Photo Frame with championship ring & trophy badge -->
                         <FrameLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content">
@@ -94,29 +94,29 @@
                                 android:layout_height="116dp"
                                 app:cardCornerRadius="58dp"
                                 app:cardElevation="4dp"
-                                app:cardBackgroundColor="#FFFFFF"
-                                app:strokeWidth="0dp"
+                                app:cardBackgroundColor="?attr/colorSurfaceVariant"
+                                app:strokeWidth="2.5dp"
+                                app:strokeColor="#D4AF37"
                                 app:contentPadding="0dp">
 
                                 <com.google.android.material.imageview.ShapeableImageView
                                     android:id="@+id/ivPotmPhoto"
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
-                                    android:padding="0dp"
                                     android:scaleType="centerCrop"
                                     android:contentDescription="@null"
-                                    android:src="@android:drawable/ic_menu_gallery"
+                                    android:src="@drawable/ic_person_placeholder"
                                     app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
                             </com.google.android.material.card.MaterialCardView>
 
                             <!-- Trophy Mini Overlay Badge -->
                             <ImageView
-                                android:layout_width="28dp"
-                                android:layout_height="28dp"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
                                 android:layout_gravity="bottom|end"
                                 android:src="@drawable/ic_trophy"
                                 android:background="@drawable/bg_rank_gold"
-                                android:padding="5dp"
+                                android:padding="6dp"
                                 android:elevation="6dp"
                                 android:contentDescription="@null"
                                 app:tint="#FFFFFF" />
@@ -143,11 +143,12 @@
                             android:text="0(0) &amp; 0/0"
                             android:textSize="15sp"
                             android:textStyle="bold"
-                            android:textColor="?attr/colorPrimary"
+                            android:textColor="@color/potm_pill_text"
                             android:background="@drawable/bg_potm_stats_pill"
-                            android:paddingHorizontal="16dp"
-                            android:paddingVertical="7dp"
-                            android:layout_marginTop="12dp" />
+                            android:paddingHorizontal="20dp"
+                            android:paddingVertical="8dp"
+                            android:layout_marginTop="12dp"
+                            android:letterSpacing="0.04" />
 
                     </LinearLayout>
                 </RelativeLayout>
@@ -168,6 +169,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
+                android:layout_marginTop="4dp"
                 android:layout_marginBottom="14dp">
 
                 <TextView
@@ -177,23 +179,23 @@
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:textColor="?attr/colorOnSurfaceVariant"
-                    android:letterSpacing="0.1" />
+                    android:letterSpacing="0.12" />
 
                 <View
                     android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="14dp"
                     android:background="?attr/colorOutline"
-                    android:alpha="0.3" />
+                    android:alpha="0.25" />
             </LinearLayout>
 
             <!-- Most Sixes -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
+                android:layout_marginBottom="10dp"
+                app:cardCornerRadius="18dp"
                 app:cardElevation="2dp"
                 app:cardBackgroundColor="?attr/colorSurface"
                 app:strokeWidth="1dp"
@@ -203,7 +205,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="14dp"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="14dp"
                     android:gravity="center_vertical">
 
                     <FrameLayout
@@ -211,12 +214,13 @@
                         android:layout_height="44dp"
                         android:background="@drawable/bg_highlight_icon_sixes">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_gravity="center"
-                            android:text="🚀"
-                            android:textSize="20sp" />
+                            android:src="@drawable/ic_stat_fire"
+                            app:tint="#FF9800"
+                            android:contentDescription="@null" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -230,9 +234,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="MOST SIXES"
-                            android:textSize="10sp"
+                            android:textSize="11sp"
                             android:textStyle="bold"
-                            android:textColor="#EF6C00"
+                            android:textColor="#FF9800"
                             android:letterSpacing="0.08" />
 
                         <TextView
@@ -240,7 +244,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="-"
-                            android:textSize="15sp"
+                            android:textSize="15.5sp"
                             android:textStyle="bold"
                             android:textColor="?attr/colorOnSurface"
                             android:layout_marginTop="2dp" />
@@ -252,8 +256,8 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
+                android:layout_marginBottom="10dp"
+                app:cardCornerRadius="18dp"
                 app:cardElevation="2dp"
                 app:cardBackgroundColor="?attr/colorSurface"
                 app:strokeWidth="1dp"
@@ -263,7 +267,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="14dp"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="14dp"
                     android:gravity="center_vertical">
 
                     <FrameLayout
@@ -271,12 +276,13 @@
                         android:layout_height="44dp"
                         android:background="@drawable/bg_highlight_icon_wickets">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_gravity="center"
-                            android:text="☝️"
-                            android:textSize="20sp" />
+                            android:src="@drawable/ic_stat_ball"
+                            app:tint="#EF5350"
+                            android:contentDescription="@null" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -290,9 +296,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="MOST WICKETS"
-                            android:textSize="10sp"
+                            android:textSize="11sp"
                             android:textStyle="bold"
-                            android:textColor="#B71C1C"
+                            android:textColor="#EF5350"
                             android:letterSpacing="0.08" />
 
                         <TextView
@@ -300,7 +306,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="-"
-                            android:textSize="15sp"
+                            android:textSize="15.5sp"
                             android:textStyle="bold"
                             android:textColor="?attr/colorOnSurface"
                             android:layout_marginTop="2dp" />
@@ -312,8 +318,8 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
+                android:layout_marginBottom="10dp"
+                app:cardCornerRadius="18dp"
                 app:cardElevation="2dp"
                 app:cardBackgroundColor="?attr/colorSurface"
                 app:strokeWidth="1dp"
@@ -323,7 +329,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="14dp"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="14dp"
                     android:gravity="center_vertical">
 
                     <FrameLayout
@@ -331,12 +338,13 @@
                         android:layout_height="44dp"
                         android:background="@drawable/bg_highlight_icon_fours">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_gravity="center"
-                            android:text="⚡"
-                            android:textSize="20sp" />
+                            android:src="@drawable/ic_stat_zap"
+                            app:tint="#F59E0B"
+                            android:contentDescription="@null" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -350,9 +358,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="MOST FOURS"
-                            android:textSize="10sp"
+                            android:textSize="11sp"
                             android:textStyle="bold"
-                            android:textColor="#D4AF37"
+                            android:textColor="#F59E0B"
                             android:letterSpacing="0.08" />
 
                         <TextView
@@ -360,7 +368,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="-"
-                            android:textSize="15sp"
+                            android:textSize="15.5sp"
                             android:textStyle="bold"
                             android:textColor="?attr/colorOnSurface"
                             android:layout_marginTop="2dp" />
@@ -373,7 +381,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="18dp"
                 app:cardElevation="2dp"
                 app:cardBackgroundColor="?attr/colorSurface"
                 app:strokeWidth="1dp"
@@ -383,7 +391,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="14dp"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="14dp"
                     android:gravity="center_vertical">
 
                     <FrameLayout
@@ -391,12 +400,13 @@
                         android:layout_height="44dp"
                         android:background="@drawable/bg_highlight_icon_dots">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_gravity="center"
-                            android:text="🎯"
-                            android:textSize="20sp" />
+                            android:src="@drawable/ic_stat_target"
+                            app:tint="#26A69A"
+                            android:contentDescription="@null" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -410,9 +420,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="MOST DOT BALLS"
-                            android:textSize="10sp"
+                            android:textSize="11sp"
                             android:textStyle="bold"
-                            android:textColor="?attr/colorPrimary"
+                            android:textColor="#26A69A"
                             android:letterSpacing="0.08" />
 
                         <TextView
@@ -420,7 +430,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="-"
-                            android:textSize="15sp"
+                            android:textSize="15.5sp"
                             android:textStyle="bold"
                             android:textColor="?attr/colorOnSurface"
                             android:layout_marginTop="2dp" />

@@ -157,6 +157,91 @@ object AiToolDeclarations {
         requiredParameters = listOf("query")
     )
 
+    val getPlayerDismissalAnalysisTool = defineFunction(
+        name = "getPlayerDismissalAnalysis",
+        description = "Analyzes how a player gets out (modes of dismissal: Bowled, Caught, LBW, Run Out, Stumped, Hit Wicket), their nemesis bowler (bowler who dismissed them most), who caught them most, and their not-out percentage.",
+        parameters = listOf(
+            Schema.str("playerName", "Name or nickname of the player to analyze")
+        ),
+        requiredParameters = listOf("playerName")
+    )
+
+    val getPlayerStatsAgainstTeamTool = defineFunction(
+        name = "getPlayerStatsAgainstTeam",
+        description = "Gets a player's complete batting and bowling statistics specifically against an opposition team (runs, average, strike rate, boundaries, wickets, economy, and win/loss record).",
+        parameters = listOf(
+            Schema.str("playerName", "Name or nickname of the player"),
+            Schema.str("opponentTeam", "Name or partial name of the opposition team")
+        ),
+        requiredParameters = listOf("playerName", "opponentTeam")
+    )
+
+    val getPlayerPhaseOfPlayStatsTool = defineFunction(
+        name = "getPlayerPhaseOfPlayStats",
+        description = "Gets a player's batting and bowling performance broken down by cricket match phases: Powerplay (early overs), Middle overs, and Death overs (final overs).",
+        parameters = listOf(
+            Schema.str("playerName", "Name or nickname of the player"),
+            Schema.str("phase", "Optional phase filter: ALL, POWERPLAY, MIDDLE, or DEATH")
+        ),
+        requiredParameters = listOf("playerName")
+    )
+
+    val getPlayerWinImpactStatsTool = defineFunction(
+        name = "getPlayerWinImpactStats",
+        description = "Analyzes a player's match-winning impact and contribution: team win percentage when they play vs overall win percentage, win rate when scoring 25+ runs or taking 2+ wickets, and Player of the Match awards.",
+        parameters = listOf(
+            Schema.str("playerName", "Name or nickname of the player")
+        ),
+        requiredParameters = listOf("playerName")
+    )
+
+    val getPlayerPersonalBestsTool = defineFunction(
+        name = "getPlayerPersonalBests",
+        description = "Gets all career personal records and bests for a player: best batting innings (highest score with balls and SR), best bowling spell (e.g. 4/12), most boundaries in an innings, and best fielding performance.",
+        parameters = listOf(
+            Schema.str("playerName", "Name or nickname of the player")
+        ),
+        requiredParameters = listOf("playerName")
+    )
+
+    val compareTwoPlayersTool = defineFunction(
+        name = "compareTwoPlayers",
+        description = "Compares two cricket players side-by-side in batting, bowling, strike rates, averages, boundaries, wickets, economy, and their head-to-head matchup.",
+        parameters = listOf(
+            Schema.str("player1", "Name or nickname of the first player"),
+            Schema.str("player2", "Name or nickname of the second player")
+        ),
+        requiredParameters = listOf("player1", "player2")
+    )
+
+    val getPlayerBestPartnershipsTool = defineFunction(
+        name = "getPlayerBestPartnerships",
+        description = "Finds a player's top batting partnerships across all matches in the league (highest partnership runs, partner name, balls faced, and individual contributions).",
+        parameters = listOf(
+            Schema.str("playerName", "Name or nickname of the player"),
+            Schema.str("partnerName", "Optional specific batting partner name to filter")
+        ),
+        requiredParameters = listOf("playerName")
+    )
+
+    val getPlayerInningsSplitTool = defineFunction(
+        name = "getPlayerInningsSplit",
+        description = "Analyzes a player's performance when setting a target (1st Innings) vs chasing a target (2nd Innings), including runs, average, strike rate, wickets, economy, and win percentage in chases.",
+        parameters = listOf(
+            Schema.str("playerName", "Name or nickname of the player")
+        ),
+        requiredParameters = listOf("playerName")
+    )
+
+    val getPlayerFormStreaksTool = defineFunction(
+        name = "getPlayerFormStreaks",
+        description = "Calculates a player's current and best career streaks (consecutive matches scoring 20+/30+, consecutive games with wickets taken, consecutive boundary matches) and upcoming milestone progress.",
+        parameters = listOf(
+            Schema.str("playerName", "Name or nickname of the player")
+        ),
+        requiredParameters = listOf("playerName")
+    )
+
     val aiDatabaseTools = Tool(
         listOf(
             resolvePlayerByNameTool,
@@ -173,7 +258,16 @@ object AiToolDeclarations {
             getLiveMatchStatusTool,
             getTeamRecordsAndStandingsTool,
             getVenueAnalyticsTool,
-            searchCommentaryTool
+            searchCommentaryTool,
+            getPlayerDismissalAnalysisTool,
+            getPlayerStatsAgainstTeamTool,
+            getPlayerPhaseOfPlayStatsTool,
+            getPlayerWinImpactStatsTool,
+            getPlayerPersonalBestsTool,
+            compareTwoPlayersTool,
+            getPlayerBestPartnershipsTool,
+            getPlayerInningsSplitTool,
+            getPlayerFormStreaksTool
         )
     )
 
@@ -484,6 +578,175 @@ object AiToolDeclarations {
                             })
                         })
                         put("required", JSONArray().put("query"))
+                    })
+                })
+            })
+            put(JSONObject().apply {
+                put("type", "function")
+                put("function", JSONObject().apply {
+                    put("name", "getPlayerDismissalAnalysis")
+                    put("description", "Analyzes how a player gets out (modes of dismissal: Bowled, Caught, LBW, Run Out, Stumped, Hit Wicket), their nemesis bowler (bowler who dismissed them most), who caught them most, and their not-out percentage.")
+                    put("parameters", JSONObject().apply {
+                        put("type", "object")
+                        put("properties", JSONObject().apply {
+                            put("playerName", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Name or nickname of the player to analyze")
+                            })
+                        })
+                        put("required", JSONArray().put("playerName"))
+                    })
+                })
+            })
+            put(JSONObject().apply {
+                put("type", "function")
+                put("function", JSONObject().apply {
+                    put("name", "getPlayerStatsAgainstTeam")
+                    put("description", "Gets a player's complete batting and bowling statistics specifically against an opposition team (runs, average, strike rate, boundaries, wickets, economy, and win/loss record).")
+                    put("parameters", JSONObject().apply {
+                        put("type", "object")
+                        put("properties", JSONObject().apply {
+                            put("playerName", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Name or nickname of the player")
+                            })
+                            put("opponentTeam", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Name or partial name of the opposition team")
+                            })
+                        })
+                        put("required", JSONArray().put("playerName").put("opponentTeam"))
+                    })
+                })
+            })
+            put(JSONObject().apply {
+                put("type", "function")
+                put("function", JSONObject().apply {
+                    put("name", "getPlayerPhaseOfPlayStats")
+                    put("description", "Gets a player's batting and bowling performance broken down by cricket match phases: Powerplay (early overs), Middle overs, and Death overs (final overs).")
+                    put("parameters", JSONObject().apply {
+                        put("type", "object")
+                        put("properties", JSONObject().apply {
+                            put("playerName", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Name or nickname of the player")
+                            })
+                            put("phase", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Optional phase filter: ALL, POWERPLAY, MIDDLE, or DEATH")
+                            })
+                        })
+                        put("required", JSONArray().put("playerName"))
+                    })
+                })
+            })
+            put(JSONObject().apply {
+                put("type", "function")
+                put("function", JSONObject().apply {
+                    put("name", "getPlayerWinImpactStats")
+                    put("description", "Analyzes a player's match-winning impact and contribution: team win percentage when they play vs overall win percentage, win rate when scoring 25+ runs or taking 2+ wickets, and Player of the Match awards.")
+                    put("parameters", JSONObject().apply {
+                        put("type", "object")
+                        put("properties", JSONObject().apply {
+                            put("playerName", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Name or nickname of the player")
+                            })
+                        })
+                        put("required", JSONArray().put("playerName"))
+                    })
+                })
+            })
+            put(JSONObject().apply {
+                put("type", "function")
+                put("function", JSONObject().apply {
+                    put("name", "getPlayerPersonalBests")
+                    put("description", "Gets all career personal records and bests for a player: best batting innings (highest score with balls and SR), best bowling spell (e.g. 4/12), most boundaries in an innings, and best fielding performance.")
+                    put("parameters", JSONObject().apply {
+                        put("type", "object")
+                        put("properties", JSONObject().apply {
+                            put("playerName", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Name or nickname of the player")
+                            })
+                        })
+                        put("required", JSONArray().put("playerName"))
+                    })
+                })
+            })
+            put(JSONObject().apply {
+                put("type", "function")
+                put("function", JSONObject().apply {
+                    put("name", "compareTwoPlayers")
+                    put("description", "Compares two cricket players side-by-side in batting, bowling, strike rates, averages, boundaries, wickets, economy, and their head-to-head matchup.")
+                    put("parameters", JSONObject().apply {
+                        put("type", "object")
+                        put("properties", JSONObject().apply {
+                            put("player1", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Name or nickname of the first player")
+                            })
+                            put("player2", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Name or nickname of the second player")
+                            })
+                        })
+                        put("required", JSONArray().put("player1").put("player2"))
+                    })
+                })
+            })
+            put(JSONObject().apply {
+                put("type", "function")
+                put("function", JSONObject().apply {
+                    put("name", "getPlayerBestPartnerships")
+                    put("description", "Finds a player's top batting partnerships across all matches in the league (highest partnership runs, partner name, balls faced, and individual contributions).")
+                    put("parameters", JSONObject().apply {
+                        put("type", "object")
+                        put("properties", JSONObject().apply {
+                            put("playerName", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Name or nickname of the player")
+                            })
+                            put("partnerName", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Optional specific batting partner name to filter")
+                            })
+                        })
+                        put("required", JSONArray().put("playerName"))
+                    })
+                })
+            })
+            put(JSONObject().apply {
+                put("type", "function")
+                put("function", JSONObject().apply {
+                    put("name", "getPlayerInningsSplit")
+                    put("description", "Analyzes a player's performance when setting a target (1st Innings) vs chasing a target (2nd Innings), including runs, average, strike rate, wickets, economy, and win percentage in chases.")
+                    put("parameters", JSONObject().apply {
+                        put("type", "object")
+                        put("properties", JSONObject().apply {
+                            put("playerName", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Name or nickname of the player")
+                            })
+                        })
+                        put("required", JSONArray().put("playerName"))
+                    })
+                })
+            })
+            put(JSONObject().apply {
+                put("type", "function")
+                put("function", JSONObject().apply {
+                    put("name", "getPlayerFormStreaks")
+                    put("description", "Calculates a player's current and best career streaks (consecutive matches scoring 20+/30+, consecutive games with wickets taken, consecutive boundary matches) and upcoming milestone progress.")
+                    put("parameters", JSONObject().apply {
+                        put("type", "object")
+                        put("properties", JSONObject().apply {
+                            put("playerName", JSONObject().apply {
+                                put("type", "string")
+                                put("description", "Name or nickname of the player")
+                            })
+                        })
+                        put("required", JSONArray().put("playerName"))
                     })
                 })
             })

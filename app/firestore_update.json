@@ -1,16 +1,16 @@
 {
   "fields": {
     "latest_version_code": {
-      "integerValue": "17"
+      "integerValue": "18"
     },
     "version_name": {
-      "stringValue": "7.1"
+      "stringValue": "7.2"
     },
     "download_url": {
-      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v7.1.apk"
+      "stringValue": "https://alyfggrwppkctlbroqzr.supabase.co/storage/v1/object/public/apks/Golden_Duck_v7.2.apk"
     },
     "release_notes": {
-      "stringValue": "• Excluded retired dismissals from bowler wickets & hat-tricks\n• Improved player match stats deduplication across PID, Global ID, and names\n• Enhanced StatsRecalculator with exact dismissal and maiden over parsing\n• Sync global player career stats to cloud"
+      "stringValue": "• Modernized Material 3 UI: Refined player list cards, stat entry layouts, and date headers\n• Live Scoring & Match History Improvements: Cleaner POTM display and score formatting\n• Remote Config Controls: Cloud feature toggles for app settings\n• Performance & Bug Fixes: Smoother scrolling, optimized memory usage, and UI enhancements"
     },
     "force_update": {
       "booleanValue": false

@@ -35,7 +35,7 @@ class StatsActivity : BaseActivity() {
 
             val tabs = arrayOf("Batting", "Bowling", "Fielding", "Ranking")
             val tabIcons = intArrayOf(
-                R.drawable.ic_stat_bat,
+                R.drawable.ic_stat_bat_mono,
                 R.drawable.ic_stat_ball,
                 R.drawable.ic_stat_fielding,
                 R.drawable.ic_trophy

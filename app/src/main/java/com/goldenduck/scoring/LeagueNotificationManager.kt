@@ -172,29 +172,46 @@ object LeagueNotificationManager {
         }
 
         executor.execute {
-            try {
-                val conn = (URL(RELAY_URL).openConnection() as HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                    if (RELAY_SECRET.isNotBlank()) {
-                        setRequestProperty("x-relay-secret", RELAY_SECRET)
+            var attempt = 0
+            val maxAttempts = 3
+            var success = false
+
+            while (attempt < maxAttempts && !success) {
+                attempt++
+                var conn: HttpURLConnection? = null
+                try {
+                    conn = (URL(RELAY_URL).openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                        if (RELAY_SECRET.isNotBlank()) {
+                            setRequestProperty("x-relay-secret", RELAY_SECRET)
+                        }
+                        connectTimeout = 8000
+                        readTimeout = 8000
+                        doOutput = true
                     }
-                    connectTimeout = 10000
-                    readTimeout = 10000
-                    doOutput = true
+                    conn.outputStream.use { os ->
+                        os.write(jsonPayload.toString().toByteArray(Charsets.UTF_8))
+                    }
+                    val code = conn.responseCode
+                    if (code in 200..299) {
+                        Log.d(TAG, "Notification dispatched to relay successfully on attempt $attempt")
+                        success = true
+                    } else if (code in 500..599 && attempt < maxAttempts) {
+                        Log.w(TAG, "Relay returned HTTP error $code on attempt $attempt, retrying...")
+                        try { Thread.sleep(500L * attempt) } catch (_: InterruptedException) {}
+                    } else {
+                        Log.e(TAG, "Relay returned HTTP error code: $code")
+                        break
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Attempt $attempt failed to dispatch notification to relay: ${e.message}")
+                    if (attempt < maxAttempts) {
+                        try { Thread.sleep(500L * attempt) } catch (_: InterruptedException) {}
+                    }
+                } finally {
+                    try { conn?.disconnect() } catch (_: Exception) {}
                 }
-                conn.outputStream.use { os ->
-                    os.write(jsonPayload.toString().toByteArray(Charsets.UTF_8))
-                }
-                val code = conn.responseCode
-                if (code == HttpURLConnection.HTTP_OK) {
-                    Log.d(TAG, "Notification dispatched to relay successfully")
-                } else {
-                    Log.e(TAG, "Relay returned HTTP error code: $code")
-                }
-                conn.disconnect()
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to dispatch notification to relay: ${e.message}")
             }
         }
     }

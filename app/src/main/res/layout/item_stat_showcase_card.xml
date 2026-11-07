@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardShowcaseRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardCornerRadius="22dp"
+    app:cardElevation="3dp"
+    app:strokeWidth="0dp">
+
+    <RelativeLayout
+        android:id="@+id/layoutShowcaseBg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:tag="custom_color"
+        android:paddingHorizontal="18dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp">
+
+        <!-- Top Pill Tag: Category Badge -->
+        <LinearLayout
+            android:id="@+id/layoutShowcaseTag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:tag="custom_color"
+            android:background="@drawable/bg_showcase_pill"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp">
+
+            <ImageView
+                android:id="@+id/ivShowcaseTagIcon"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:src="@drawable/ic_crown"
+                android:tag="custom_color"
+                app:tint="#FFFFFF"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/tvShowcaseTagText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                tools:text="PREMIER LEADERBOARD"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.06"
+                android:tag="custom_color"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <!-- Big Background Watermark Icon (Faded for depth) -->
+        <ImageView
+            android:id="@+id/ivShowcaseWatermark"
+            android:layout_width="110dp"
+            android:layout_height="110dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="-12dp"
+            android:alpha="0.12"
+            android:tag="custom_color"
+            android:src="@drawable/ic_stat_bat_mono"
+            app:tint="#FFFFFF"
+            android:contentDescription="@null" />
+
+        <!-- Title & Subtitle -->
+        <LinearLayout
+            android:id="@+id/layoutShowcaseText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/layoutShowcaseTag"
+            android:layout_marginTop="14dp"
+            android:layout_marginEnd="60dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvShowcaseTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="Most Runs"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:tag="custom_color"
+                android:textColor="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/tvShowcaseSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                tools:text="All-time cumulative runs scored in tournament history"
+                android:textSize="12.5sp"
+                android:tag="custom_color"
+                android:textColor="#E0E0E0" />
+        </LinearLayout>
+
+        <!-- Bottom Action CTA Row -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/layoutShowcaseText"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:tag="custom_color"
+            android:background="@drawable/bg_showcase_pill"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp">
+
+            <TextView
+                android:id="@+id/tvShowcaseCta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="View Full Standings"
+                android:text="View Full Standings"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:tag="custom_color"
+                android:textColor="#FFFFFF" />
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="4dp"
+                android:src="@drawable/ic_chevron_right"
+                android:tag="custom_color"
+                app:tint="#FFFFFF"
+                android:contentDescription="@null" />
+        </LinearLayout>
+
+    </RelativeLayout>
+</com.google.android.material.card.MaterialCardView>

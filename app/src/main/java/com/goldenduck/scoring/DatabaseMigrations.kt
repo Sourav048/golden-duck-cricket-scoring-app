@@ -58,3 +58,14 @@ val MIGRATION_13_14 = object : Migration(13, 14) {
         }
     }
 }
+
+// Migration from version 14 to 15: Add resourcesLostTeam1 column to matches table
+val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        try {
+            db.execSQL("ALTER TABLE matches ADD COLUMN resourcesLostTeam1 REAL NOT NULL DEFAULT 0.0")
+        } catch (_: Exception) {
+            // Column may already exist
+        }
+    }
+}

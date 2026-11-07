@@ -21,8 +21,10 @@ class NotificationReplyReceiver : BroadcastReceiver() {
         val rawLeagueId = intent.getStringExtra("LEAGUE_ID") ?: return
         val leagueId = if (rawLeagueId.trim().equals("local", ignoreCase = true)) "local" else rawLeagueId.trim().uppercase()
 
+        val pendingResult = goAsync()
+
         val gullyPrefs = context.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
-        val senderId = gullyPrefs.getString("chat_sender_id", "unknown_user") ?: "unknown_user"
+        val senderId = gullyPrefs.getString("chat_sender_id", null) ?: ScoringApp.instance?.getOrCreateUserId() ?: "unknown_user"
         val senderName = gullyPrefs.getString("chat_sender_name", "Me") ?: "Me"
         val senderProfilePic = gullyPrefs.getString("chat_sender_profile_pic", null)
 
@@ -58,8 +60,14 @@ class NotificationReplyReceiver : BroadcastReceiver() {
             .addOnFailureListener { e ->
                 Log.e(TAG, "Failed to save reply message to Firestore: ${e.message}")
             }
-
-        // 3. Clear the notification for this league as the user has responded
-        ChatNotificationHelper.clearNotificationForLeague(context, leagueId)
+            .addOnCompleteListener {
+                // 3. Clear the notification for this league as the user has responded
+                ChatNotificationHelper.clearNotificationForLeague(context, leagueId)
+                try {
+                    pendingResult.finish()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error finishing goAsync: ${e.message}")
+                }
+            }
     }
 }

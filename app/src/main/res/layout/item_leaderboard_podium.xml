@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardPodium"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    android:tag="custom_color"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="3dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#2E3A4E"
+    app:cardBackgroundColor="#131A26">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="12dp">
+
+        <!-- Podium Section Header Banner -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_stat_value_pill_gold"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:layout_marginBottom="14dp">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:src="@drawable/ic_trophy"
+                app:tint="#FFD700"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/tvPodiumHeaderTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="TOP STANDINGS"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#FFD700"
+                android:letterSpacing="0.08" />
+        </LinearLayout>
+
+        <!-- 3 Pedestals Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="bottom"
+            android:baselineAligned="false">
+
+            <!-- 2nd Place (Left) -->
+            <LinearLayout
+                android:id="@+id/layoutPodium2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:paddingHorizontal="4dp">
+
+                <!-- Avatar with Rank Badge -->
+                <RelativeLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/ivPodiumPhoto2"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_person_placeholder"
+                        app:strokeWidth="2dp"
+                        app:strokeColor="#CBD5E1"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+                    <FrameLayout
+                        android:id="@+id/flPodiumBadge2"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_alignBottom="@id/ivPodiumPhoto2"
+                        android:layout_centerHorizontal="true"
+                        android:layout_marginBottom="-4dp"
+                        android:background="@drawable/bg_rank_silver">
+
+                        <TextView
+                            android:id="@+id/tvPodiumRank2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="2"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:textColor="#FFFFFF" />
+                    </FrameLayout>
+                </RelativeLayout>
+
+                <!-- Player Name -->
+                <TextView
+                    android:id="@+id/tvPodiumName2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    tools:text="Harkesh G."
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:tag="custom_color"
+                    android:textColor="#FFFFFF" />
+
+                <!-- Position Pill (Where value used to be) -->
+                <FrameLayout
+                    android:id="@+id/flPodiumPosition2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_stat_value_pill_silver"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="3dp">
+
+                    <TextView
+                        android:id="@+id/tvPodiumPosition2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="2nd"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="#CBD5E1" />
+                </FrameLayout>
+
+                <!-- Pedestal Block 2 (Big Box: Now holds the Stat Value) -->
+                <LinearLayout
+                    android:id="@+id/layoutPedestal2"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_podium_silver"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="4dp">
+
+                    <TextView
+                        android:id="@+id/tvPodiumValue2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="22"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF" />
+
+                    <TextView
+                        android:id="@+id/tvPodiumUnit2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="FOURS"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.06"
+                        android:textColor="#CBD5E1" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- 1st Place (Center - Elevated) -->
+            <LinearLayout
+                android:id="@+id/layoutPodium1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.2"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:paddingHorizontal="4dp">
+
+                <!-- Crown floating on top -->
+                <ImageView
+                    android:id="@+id/ivPodiumCrown1"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_crown"
+                    android:contentDescription="@null"
+                    android:layout_marginBottom="2dp" />
+
+                <!-- Avatar with Gold Ring & Rank 1 Badge -->
+                <RelativeLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/ivPodiumPhoto1"
+                        android:layout_width="68dp"
+                        android:layout_height="68dp"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_person_placeholder"
+                        app:strokeWidth="3dp"
+                        app:strokeColor="#FFD700"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+                    <FrameLayout
+                        android:id="@+id/flPodiumBadge1"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_alignBottom="@id/ivPodiumPhoto1"
+                        android:layout_centerHorizontal="true"
+                        android:layout_marginBottom="-5dp"
+                        android:background="@drawable/bg_rank_gold">
+
+                        <TextView
+                            android:id="@+id/tvPodiumRank1"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="1"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="#FFFFFF" />
+                    </FrameLayout>
+                </RelativeLayout>
+
+                <!-- Player Name -->
+                <TextView
+                    android:id="@+id/tvPodiumName1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    tools:text="Sourav Sharma"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFD700" />
+
+                <!-- Position Pill (Where value used to be) -->
+                <FrameLayout
+                    android:id="@+id/flPodiumPosition1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_stat_value_pill_gold"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="3.5dp">
+
+                    <TextView
+                        android:id="@+id/tvPodiumPosition1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1st"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFD700" />
+                </FrameLayout>
+
+                <!-- Pedestal Block 1 (Tallest - Big Box: Now holds the Stat Value) -->
+                <LinearLayout
+                    android:id="@+id/layoutPedestal1"
+                    android:layout_width="match_parent"
+                    android:layout_height="84dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_podium_gold"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="6dp">
+
+                    <TextView
+                        android:id="@+id/tvPodiumValue1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="26"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFD700" />
+
+                    <TextView
+                        android:id="@+id/tvPodiumUnit1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="FOURS"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.06"
+                        android:textColor="#FFE082" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- 3rd Place (Right) -->
+            <LinearLayout
+                android:id="@+id/layoutPodium3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                android:paddingHorizontal="4dp">
+
+                <!-- Avatar with Rank Badge -->
+                <RelativeLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/ivPodiumPhoto3"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_person_placeholder"
+                        app:strokeWidth="2dp"
+                        app:strokeColor="#CD7F32"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+                    <FrameLayout
+                        android:id="@+id/flPodiumBadge3"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_alignBottom="@id/ivPodiumPhoto3"
+                        android:layout_centerHorizontal="true"
+                        android:layout_marginBottom="-4dp"
+                        android:background="@drawable/bg_rank_bronze">
+
+                        <TextView
+                            android:id="@+id/tvPodiumRank3"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="3"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:textColor="#FFFFFF" />
+                    </FrameLayout>
+                </RelativeLayout>
+
+                <!-- Player Name -->
+                <TextView
+                    android:id="@+id/tvPodiumName3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    tools:text="Sushant A."
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:tag="custom_color"
+                    android:textColor="#FFFFFF" />
+
+                <!-- Position Pill (Where value used to be) -->
+                <FrameLayout
+                    android:id="@+id/flPodiumPosition3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_stat_value_pill_bronze"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="3dp">
+
+                    <TextView
+                        android:id="@+id/tvPodiumPosition3"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="3rd"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="#CD7F32" />
+                </FrameLayout>
+
+                <!-- Pedestal Block 3 (Big Box: Now holds the Stat Value) -->
+                <LinearLayout
+                    android:id="@+id/layoutPedestal3"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_podium_bronze"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="4dp">
+
+                    <TextView
+                        android:id="@+id/tvPodiumValue3"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="21"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF" />
+
+                    <TextView
+                        android:id="@+id/tvPodiumUnit3"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="FOURS"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.06"
+                        android:textColor="#CD7F32" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

@@ -10,7 +10,7 @@ import java.util.concurrent.Executors
 
 @Database(
     entities = [PlayerEntity::class, MatchEntity::class, PlayerMatchStatEntity::class, DraftMatchEntity::class],
-    version = 14,
+    version = 15,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -35,7 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "cricket_db"
                 )
-                    .addMigrations(MIGRATION_13_14)
+                    .addMigrations(MIGRATION_13_14, MIGRATION_14_15)
                     .fallbackToDestructiveMigration()
                     .build()
             }

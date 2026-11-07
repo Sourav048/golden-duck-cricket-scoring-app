@@ -340,7 +340,7 @@ class LeagueChatActivity : BaseActivity() {
 
     override fun onPause() {
         super.onPause()
-        if (::leagueId.isInitialized && activeLeagueId == leagueId) {
+        if (isFinishing && ::leagueId.isInitialized && activeLeagueId == leagueId) {
             activeLeagueId = null
         }
     }
@@ -424,7 +424,6 @@ class LeagueChatActivity : BaseActivity() {
         var storedName = prefs.getString("chat_sender_name", null)
         if (storedName.isNullOrEmpty()) {
             storedName = "Player-${senderId.takeLast(4)}"
-            prefs.edit().putString("chat_sender_name", storedName).apply()
         }
         senderName = storedName
 
@@ -510,76 +509,113 @@ class LeagueChatActivity : BaseActivity() {
                     .addOnSuccessListener {
                         GullySyncManager.syncLeagueMemberCount(leagueId)
                     }
+
+                val globalUserMap = hashMapOf(
+                    "userId" to senderId,
+                    "displayName" to senderName,
+                    "profilePic" to (senderProfilePic ?: ""),
+                    "lastActive" to System.currentTimeMillis()
+                )
+                db.collection("users").document(senderId).set(globalUserMap, SetOptions.merge())
+                db.collection("users").document(altSenderId).set(globalUserMap, SetOptions.merge())
             }
 
-            // 1. Check primary chat_users document
-            db.collection("gullies").document(leagueId)
-                .collection("chat_users").document(senderId)
-                .get()
-                .addOnSuccessListener { doc ->
-                    val remoteJoinedAt = doc.getLong("joinedAt")
-                    val effectiveJoinedAt = if (remoteJoinedAt != null && remoteJoinedAt > 0) remoteJoinedAt else localJoinedAt
+            var resolvedName: String? = null
+            var resolvedPic: String? = null
 
-                    val remoteName = doc.getString("displayName") ?: doc.getString("name")
-                    val remotePic = doc.getString("profilePic") ?: doc.getString("senderProfilePic")
+            fun isFullyResolved(): Boolean {
+                val hasName = !resolvedName.isNullOrBlank() && !resolvedName!!.startsWith("Player-")
+                val hasPic = !resolvedPic.isNullOrBlank()
+                return hasName && hasPic
+            }
 
-                    val hasValidRemoteName = !remoteName.isNullOrBlank() && !remoteName.startsWith("Player-")
+            fun finishRestoration() {
+                applyRestoredProfile(resolvedName, resolvedPic)
+                saveFinalUserMap(localJoinedAt)
+            }
 
-                    if (hasValidRemoteName) {
-                        applyRestoredProfile(remoteName, remotePic)
-                        saveFinalUserMap(effectiveJoinedAt)
-                    } else {
-                        // 2. Check alternate document ID in chat_users
-                        db.collection("gullies").document(leagueId)
-                            .collection("chat_users").document(altSenderId)
-                            .get()
-                            .addOnSuccessListener { altDoc ->
-                                val altName = altDoc.getString("displayName") ?: altDoc.getString("name")
-                                val altPic = altDoc.getString("profilePic") ?: altDoc.getString("senderProfilePic")
+            // Step 1: Check central "users" collection
+            db.collection("users").document(senderId).get().addOnCompleteListener { task1 ->
+                val centralDoc = task1.result
+                if (centralDoc != null && centralDoc.exists()) {
+                    val cName = centralDoc.getString("displayName") ?: centralDoc.getString("name")
+                    val cPic = centralDoc.getString("profilePic") ?: centralDoc.getString("senderProfilePic")
+                    if (!cName.isNullOrBlank() && !cName.startsWith("Player-")) resolvedName = cName.trim()
+                    if (!cPic.isNullOrBlank()) resolvedPic = cPic.trim()
+                }
 
-                                if (!altName.isNullOrBlank() && !altName.startsWith("Player-")) {
-                                    applyRestoredProfile(altName, altPic)
-                                    saveFinalUserMap(effectiveJoinedAt)
-                                } else {
-                                    // 3. Fallback: Search past messages sent by this device in this league
-                                    db.collection("gullies").document(leagueId)
-                                        .collection("messages")
-                                        .whereIn("senderId", possibleUserIds)
-                                        .get()
-                                        .addOnSuccessListener { msgSnap ->
-                                            var foundPastName: String? = null
-                                            var foundPastPic: String? = null
+                if (isFullyResolved()) { finishRestoration(); return@addOnCompleteListener }
 
-                                            if (msgSnap != null && !msgSnap.isEmpty) {
-                                                for (msgDoc in msgSnap.documents) {
-                                                    val mName = msgDoc.getString("senderName")
-                                                    val mPic = msgDoc.getString("senderProfilePic")
-                                                    if (!mName.isNullOrBlank() && !mName.startsWith("Player-")) {
-                                                        foundPastName = mName
-                                                        if (!mPic.isNullOrBlank()) foundPastPic = mPic
-                                                        break
-                                                    }
-                                                }
-                                            }
+                // Step 2: Check global_usernames collection by userId
+                db.collection("global_usernames").whereIn("userId", possibleUserIds).get().addOnCompleteListener { task2 ->
+                    val usernameSnap = task2.result
+                    if (usernameSnap != null && !usernameSnap.isEmpty) {
+                        for (uDoc in usernameSnap.documents) {
+                            val uName = uDoc.getString("displayName")
+                            if (!uName.isNullOrBlank() && !uName.startsWith("Player-")) {
+                                resolvedName = uName.trim()
+                                break
+                            }
+                        }
+                    }
 
-                                            if (foundPastName != null) {
-                                                applyRestoredProfile(foundPastName, foundPastPic)
-                                            }
-                                            saveFinalUserMap(effectiveJoinedAt)
+                    if (isFullyResolved()) { finishRestoration(); return@addOnCompleteListener }
+
+                    // Step 3: Check current league chat_users
+                    db.collection("gullies").document(leagueId)
+                        .collection("chat_users").document(senderId).get().addOnCompleteListener { task3 ->
+                            val leagueDoc = task3.result
+                            if (leagueDoc != null && leagueDoc.exists()) {
+                                val lName = leagueDoc.getString("displayName") ?: leagueDoc.getString("name")
+                                val lPic = leagueDoc.getString("profilePic") ?: leagueDoc.getString("senderProfilePic")
+                                if (resolvedName.isNullOrBlank() || resolvedName!!.startsWith("Player-")) {
+                                    if (!lName.isNullOrBlank() && !lName.startsWith("Player-")) resolvedName = lName.trim()
+                                }
+                                if (resolvedPic.isNullOrBlank() && !lPic.isNullOrBlank()) resolvedPic = lPic.trim()
+                            }
+
+                            if (isFullyResolved()) { finishRestoration(); return@addOnCompleteListener }
+
+                            // Step 4: Search collectionGroup("chat_users") across all gullies
+                            db.collectionGroup("chat_users").whereIn("userId", possibleUserIds).get().addOnCompleteListener { task4 ->
+                                val groupSnap = task4.result
+                                if (groupSnap != null && !groupSnap.isEmpty) {
+                                    for (gDoc in groupSnap.documents) {
+                                        val gName = gDoc.getString("displayName") ?: gDoc.getString("name")
+                                        val gPic = gDoc.getString("profilePic") ?: gDoc.getString("senderProfilePic")
+                                        if ((resolvedName.isNullOrBlank() || resolvedName!!.startsWith("Player-")) && !gName.isNullOrBlank() && !gName.startsWith("Player-")) {
+                                            resolvedName = gName.trim()
                                         }
-                                        .addOnFailureListener {
-                                            saveFinalUserMap(effectiveJoinedAt)
+                                        if (resolvedPic.isNullOrBlank() && !gPic.isNullOrBlank()) {
+                                            resolvedPic = gPic.trim()
                                         }
+                                    }
+                                }
+
+                                if (isFullyResolved()) { finishRestoration(); return@addOnCompleteListener }
+
+                                // Step 5: Search collectionGroup("messages") across all gullies
+                                db.collectionGroup("messages").whereIn("senderId", possibleUserIds).get().addOnCompleteListener { task5 ->
+                                    val msgSnap = task5.result
+                                    if (msgSnap != null && !msgSnap.isEmpty) {
+                                        for (mDoc in msgSnap.documents) {
+                                            val mName = mDoc.getString("senderName")
+                                            val mPic = mDoc.getString("senderProfilePic")
+                                            if ((resolvedName.isNullOrBlank() || resolvedName!!.startsWith("Player-")) && !mName.isNullOrBlank() && !mName.startsWith("Player-")) {
+                                                resolvedName = mName.trim()
+                                            }
+                                            if (resolvedPic.isNullOrBlank() && !mPic.isNullOrBlank()) {
+                                                resolvedPic = mPic.trim()
+                                            }
+                                        }
+                                    }
+
+                                    finishRestoration()
                                 }
                             }
-                            .addOnFailureListener {
-                                saveFinalUserMap(effectiveJoinedAt)
-                            }
-                    }
+                        }
                 }
-                .addOnFailureListener {
-                    saveFinalUserMap(localJoinedAt)
-                }
+            }
         }
     }
 
@@ -1116,7 +1152,12 @@ class LeagueChatActivity : BaseActivity() {
             .document()
         val msgId = docRef.id
 
-        // Dispatch notification IMMEDIATELY (Blink-of-an-eye speed, no Firestore network delay)
+        docRef.set(newMsg)
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to send: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+
+        // Dispatch notification with the confirmed message document ID
         LeagueNotificationManager.sendLeagueChatNotification(
             leagueId = leagueId,
             senderName = senderName,
@@ -1127,11 +1168,6 @@ class LeagueChatActivity : BaseActivity() {
             senderProfilePic = senderProfilePic,
             msgId = msgId
         )
-
-        docRef.set(newMsg)
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Failed to send: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
 
         checkAndTriggerDuckieAiInLeagueChat(text)
     }
@@ -2395,6 +2431,18 @@ class LeagueChatActivity : BaseActivity() {
             .putString("chat_sender_name", newName)
             .putString("chat_sender_profile_pic", picToSave)
             .apply()
+
+        // Also save to central Firestore 'users' collection so profile persists globally across all leagues & reinstalls
+        val globalUserMap = hashMapOf(
+            "userId" to senderId,
+            "displayName" to newName,
+            "profilePic" to picToSave,
+            "lastActive" to System.currentTimeMillis()
+        )
+        val rawAndroidId = senderId.removePrefix("user_")
+        val altSenderId = if (senderId.startsWith("user_")) rawAndroidId else "user_$senderId"
+        db.collection("users").document(senderId).set(globalUserMap, SetOptions.merge())
+        db.collection("users").document(altSenderId).set(globalUserMap, SetOptions.merge())
 
         tvLeagueSubtitle.text = "League: $leagueId • As: $senderName"
         registerActiveChatUser()

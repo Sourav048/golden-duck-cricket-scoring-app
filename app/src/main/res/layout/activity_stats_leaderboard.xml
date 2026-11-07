@@ -13,84 +13,219 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/colorSurface"
-        android:elevation="2dp"
-        app:elevation="2dp">
+        android:elevation="3dp"
+        app:elevation="3dp">
 
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:paddingHorizontal="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="14dp">
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp">
 
-            <ImageButton
-                android:id="@+id/btnBackLeaderboard"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_alignParentStart="true"
-                android:layout_centerVertical="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_arrow_back"
-                android:contentDescription="@null"
-                app:tint="?attr/colorOnSurface" />
-
-            <LinearLayout
+            <!-- Top Row: Back, Icon, Title, Search Action -->
+            <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_toEndOf="@id/btnBackLeaderboard"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="40dp"
-                android:orientation="vertical"
-                android:gravity="center">
+                android:layout_height="wrap_content">
 
-                <TextView
-                    android:id="@+id/tvLeaderboardTitle"
-                    android:layout_width="wrap_content"
+                <ImageButton
+                    android:id="@+id/btnBackLeaderboard"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_arrow_back"
+                    android:contentDescription="@null"
+                    app:tint="?attr/colorOnSurface" />
+
+                <!-- Category Icon Container -->
+                <FrameLayout
+                    android:id="@+id/flCategoryIcon"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_toEndOf="@id/btnBackLeaderboard"
+                    android:layout_centerVertical="true"
+                    android:layout_marginStart="8dp"
+                    android:tag="custom_color"
+                    android:background="@drawable/bg_category_icon_badge"
+                    android:padding="6dp">
+
+                    <ImageView
+                        android:id="@+id/ivLeaderboardCategoryIcon"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/ic_stat_bat"
+                        android:tag="custom_color"
+                        app:tint="@color/category_icon_tint"
+                        android:contentDescription="@null" />
+                </FrameLayout>
+
+                <!-- Title & Subtitle -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    tools:text="Leaderboard"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
+                    android:layout_toEndOf="@id/flCategoryIcon"
+                    android:layout_toStartOf="@id/btnSearchLeaderboard"
+                    android:layout_centerVertical="true"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="8dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvLeaderboardTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="Most Runs"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorOnSurface"
+                        android:ellipsize="end"
+                        android:maxLines="1" />
+
+                    <TextView
+                        android:id="@+id/tvLeaderboardSubtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="Highest cumulative runs scored"
+                        android:textSize="11.5sp"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:layout_marginTop="1dp" />
+                </LinearLayout>
+
+                <!-- Search Button -->
+                <ImageButton
+                    android:id="@+id/btnSearchLeaderboard"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_search"
+                    android:contentDescription="@null"
+                    app:tint="?attr/colorOnSurface" />
+
+            </RelativeLayout>
+
+            <!-- Search Bar (Expandable) -->
+            <LinearLayout
+                android:id="@+id/layoutSearchContainer"
+                android:layout_width="match_parent"
+                android:layout_height="42dp"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_stat_value_pill"
+                android:paddingHorizontal="12dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_search"
+                    app:tint="?attr/colorOnSurfaceVariant"
+                    android:contentDescription="@null" />
+
+                <EditText
+                    android:id="@+id/etSearchLeaderboard"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:background="@null"
+                    android:hint="Search player name..."
+                    android:importantForAutofill="no"
                     android:textColor="?attr/colorOnSurface"
-                    android:gravity="center"
-                    android:ellipsize="end"
+                    android:textColorHint="?attr/colorOnSurfaceVariant"
+                    android:textSize="14sp"
+                    android:inputType="text"
+                    android:imeOptions="actionDone"
                     android:maxLines="1" />
 
-                <TextView
-                    android:id="@+id/tvLeaderboardSubtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/leaderboard_subtitle"
-                    android:textSize="12sp"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:gravity="center"
-                    android:layout_marginTop="2dp" />
+                <ImageButton
+                    android:id="@+id/btnClearSearch"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_close_rounded"
+                    app:tint="?attr/colorOnSurfaceVariant"
+                    android:contentDescription="@null" />
             </LinearLayout>
 
-        </RelativeLayout>
+        </LinearLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Empty State -->
-    <TextView
-        android:id="@+id/tvEmptyLeaderboard"
+    <!-- Main Content Frame -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/empty_leaderboard_msg"
-        android:textSize="15sp"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:gravity="center"
-        android:padding="32dp"
-        android:visibility="gone" />
+        android:layout_height="match_parent">
 
-    <!-- Leaderboard RecyclerView -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvLeaderboard"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="24dp"
-        android:clipToPadding="false"
-        android:scrollbars="none" />
+        <!-- Loading Indicator -->
+        <ProgressBar
+            android:id="@+id/pbLeaderboardLoading"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:visibility="gone" />
+
+        <!-- Empty State Container -->
+        <LinearLayout
+            android:id="@+id/layoutEmptyLeaderboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="32dp"
+            android:visibility="gone"
+            tools:visibility="gone">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_trophy"
+                app:tint="?attr/colorOnSurfaceVariant"
+                android:contentDescription="@null"
+                android:alpha="0.6" />
+
+            <TextView
+                android:id="@+id/tvEmptyTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="No Standings Found"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface" />
+
+            <TextView
+                android:id="@+id/tvEmptyLeaderboard"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/empty_leaderboard_msg"
+                android:textSize="13sp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:gravity="center" />
+        </LinearLayout>
+
+        <!-- Leaderboard RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvLeaderboard"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingHorizontal="14dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="24dp"
+            android:clipToPadding="false"
+            android:scrollbars="none" />
+
+    </FrameLayout>
 
 </LinearLayout>

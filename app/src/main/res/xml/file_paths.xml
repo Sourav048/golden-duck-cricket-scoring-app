@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <external-files-path name="player_photos" path="Pictures/" />
+    <external-files-path name="apk_downloads" path="Download/" />
     <cache-path name="export_temp" path="." />
-    <external-cache-path name="apk_downloads" path="." />
+    <external-cache-path name="external_cache" path="." />
 </paths>

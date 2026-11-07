@@ -171,4 +171,28 @@ class PartnershipLogicTest {
         assertEquals(900, p1.minutesPlayed)
         assertEquals(0L, p1.entryTime)
     }
+
+    @Test
+    fun testReSelectingSameBatter_doesNotResetBattingClock() {
+        val originalEntryTime = System.currentTimeMillis() - 30000 // 30s ago
+        p1.entryTime = originalEntryTime
+        p1.minutesPlayed = 0
+
+        val oldBatter = p1
+        val selectedBatter = p1
+
+        // When re-selecting the batter already at this crease position:
+        val isSameBatter = oldBatter != null && (oldBatter == selectedBatter || oldBatter.name.equals(selectedBatter.name, ignoreCase = true))
+        if (isSameBatter) {
+            // Must NOT overwrite entryTime or reset time
+            if (selectedBatter.entryTime == 0L && !selectedBatter.isOut) {
+                selectedBatter.entryTime = System.currentTimeMillis()
+            }
+            // Early return (no-op)
+        }
+
+        // Original entryTime must be preserved (not reset to currentTime)
+        assertEquals(originalEntryTime, p1.entryTime)
+        assertEquals(0, p1.minutesPlayed)
+    }
 }

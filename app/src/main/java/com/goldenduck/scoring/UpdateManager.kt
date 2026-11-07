@@ -1,6 +1,5 @@
 package com.goldenduck.scoring
 
-import android.R
 import android.app.Activity
 import android.app.DownloadManager
 import android.content.BroadcastReceiver
@@ -10,6 +9,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -26,12 +26,14 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
 
 object UpdateManager {
 
     private const val TAG = "UpdateManager"
     private const val CONFIG_COLLECTION = "app_config"
     private const val CONFIG_DOCUMENT = "update"
+    private const val APK_FILE_NAME = "GoldenDuck_Update.apk"
 
     /**
      * Checks Firebase Firestore for available app updates.
@@ -103,7 +105,7 @@ object UpdateManager {
                 dialog.dismiss()
                 handleUpdateProcess(activity, downloadUrl)
             }
-            .setCancelable(false) // Dialog cannot be dismissed by tapping outside or pressing Back
+            .setCancelable(false)
 
         if (!forceUpdate) {
             builder.setNegativeButton("Later") { dialog, _ ->
@@ -115,14 +117,12 @@ object UpdateManager {
     }
 
     private fun handleUpdateProcess(activity: Activity, downloadUrl: String) {
-        // Start the APK download with real-time progress dialog
-        downloadAndInstallApk(activity, downloadUrl)
-
-        // Check if Android 8.0+ unknown sources permission is needed
+        // Check Android 8.0+ unknown sources permission BEFORE starting download
+        // Prevents app termination while a download is running
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !activity.packageManager.canRequestPackageInstalls()) {
             MaterialAlertDialogBuilder(activity)
                 .setTitle("Permission Required")
-                .setMessage("Golden Duck is downloading the update in the background.\n\nTo install it, please enable 'Allow from this source' on the next screen.")
+                .setMessage("To install updates directly, Golden Duck requires the 'Install unknown apps' permission.\n\nPlease enable 'Allow from this source' on the next screen, then tap 'Update Now' again.")
                 .setPositiveButton("Open Settings") { dialog, _ ->
                     dialog.dismiss()
                     try {
@@ -136,15 +136,20 @@ object UpdateManager {
                     }
                 }
                 .setNegativeButton("Later", null)
+                .setCancelable(false)
                 .show()
+            return
         }
+
+        // Permission is granted; begin download and install flow
+        downloadAndInstallApk(activity, downloadUrl)
     }
 
     fun downloadAndInstallApk(activity: Activity, downloadUrl: String) {
         val context = activity.applicationContext
         try {
-            val cacheDir = context.externalCacheDir ?: context.cacheDir
-            val destinationFile = File(cacheDir, "GoldenDuck_Update.apk")
+            val downloadDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir
+            val destinationFile = File(downloadDir, APK_FILE_NAME)
 
             if (destinationFile.exists()) {
                 destinationFile.delete()
@@ -155,14 +160,14 @@ object UpdateManager {
                 setTitle("Downloading Golden Duck Update")
                 setDescription("Please wait while the update file is downloading...")
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                setDestinationUri(Uri.fromFile(destinationFile))
+                setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, APK_FILE_NAME)
                 setMimeType("application/vnd.android.package-archive")
             }
 
             val downloadId = downloadManager.enqueue(request)
 
-            // Create Progress Dialog UI inside the app
-            val progressBar = ProgressBar(activity, null, R.attr.progressBarStyleHorizontal).apply {
+            // Progress Dialog UI
+            val progressBar = ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
                 isIndeterminate = false
                 max = 100
                 progress = 0
@@ -187,10 +192,52 @@ object UpdateManager {
                 .setCancelable(false)
                 .show()
 
-            val handler = Handler(Looper.getMainLooper())
+            val isInstallTriggered = AtomicBoolean(false)
             var isDownloading = true
+            var isReceiverRegistered = false
+            val handler = Handler(Looper.getMainLooper())
 
-            // Poll DownloadManager every 300ms to update progress bar UI
+            lateinit var onCompleteReceiver: BroadcastReceiver
+
+            fun cleanup() {
+                isDownloading = false
+                handler.removeCallbacksAndMessages(null)
+                try {
+                    if (progressDialog.isShowing) {
+                        progressDialog.dismiss()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Dialog dismiss error", e)
+                }
+
+                if (isReceiverRegistered) {
+                    try {
+                        context.applicationContext.unregisterReceiver(onCompleteReceiver)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Receiver unregister error", e)
+                    }
+                    isReceiverRegistered = false
+                }
+            }
+
+            fun triggerInstall() {
+                // Ensure installation is triggered exactly once across polling loop and broadcast receiver
+                if (isInstallTriggered.compareAndSet(false, true)) {
+                    cleanup()
+                    if (destinationFile.exists()) {
+                        installApk(activity, destinationFile)
+                    } else {
+                        Toast.makeText(context, "Update download failed: file not found.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
+            fun handleFailure(message: String = "Update download failed.") {
+                cleanup()
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            }
+
+            // Poll DownloadManager every 300ms to update progress bar
             val progressRunnable = object : Runnable {
                 override fun run() {
                     if (!isDownloading) return
@@ -215,16 +262,13 @@ object UpdateManager {
                                 tvProgress.text = "Downloaded $percent% ($downloadedMb MB / $totalMb MB)"
                             }
 
-                            if (status == DownloadManager.STATUS_SUCCESSFUL || status == DownloadManager.STATUS_FAILED) {
-                                isDownloading = false
-                                try { progressDialog.dismiss() } catch (e: Exception) { Log.e(TAG, "Dialog dismiss error", e) }
+                            if (status == DownloadManager.STATUS_SUCCESSFUL) {
                                 cursor.close()
-
-                                if (status == DownloadManager.STATUS_SUCCESSFUL && destinationFile.exists()) {
-                                    installApk(activity, destinationFile)
-                                } else if (status == DownloadManager.STATUS_FAILED) {
-                                    Toast.makeText(context, "Update download failed.", Toast.LENGTH_SHORT).show()
-                                }
+                                triggerInstall()
+                                return
+                            } else if (status == DownloadManager.STATUS_FAILED) {
+                                cursor.close()
+                                handleFailure()
                                 return
                             }
                         }
@@ -238,23 +282,11 @@ object UpdateManager {
 
             handler.post(progressRunnable)
 
-            val onCompleteReceiver = object : BroadcastReceiver() {
+            onCompleteReceiver = object : BroadcastReceiver() {
                 override fun onReceive(c: Context?, intent: Intent?) {
                     val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L) ?: -1L
                     if (id == downloadId) {
-                        isDownloading = false
-                        try { progressDialog.dismiss() } catch (e: Exception) { Log.e(TAG, "Dialog dismiss error", e) }
-                        try {
-                            context.applicationContext.unregisterReceiver(this)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Receiver unregister error", e)
-                        }
-
-                        if (destinationFile.exists()) {
-                            installApk(activity, destinationFile)
-                        } else {
-                            Toast.makeText(context, "Update download failed.", Toast.LENGTH_SHORT).show()
-                        }
+                        triggerInstall()
                     }
                 }
             }
@@ -266,6 +298,7 @@ object UpdateManager {
                 filter,
                 ContextCompat.RECEIVER_EXPORTED
             )
+            isReceiverRegistered = true
 
         } catch (e: Exception) {
             Log.e(TAG, "Error initiating APK download", e)
@@ -275,6 +308,11 @@ object UpdateManager {
 
     private fun installApk(activity: Activity, apkFile: File) {
         try {
+            if (!apkFile.exists()) {
+                Toast.makeText(activity, "Update file not found.", Toast.LENGTH_SHORT).show()
+                return
+            }
+
             val authority = "${activity.packageName}.fileprovider"
             val apkUri = FileProvider.getUriForFile(activity.applicationContext, authority, apkFile)
 
@@ -282,18 +320,28 @@ object UpdateManager {
                 setDataAndType(apkUri, "application/vnd.android.package-archive")
                 flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
                         Intent.FLAG_GRANT_PREFIX_URI_PERMISSION or
-                        Intent.FLAG_ACTIVITY_NEW_TASK
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
 
-            // Explicitly grant URI read permissions for PackageInstaller on Android 14/15
-            val resInfoList = activity.packageManager.queryIntentActivities(
-                installIntent,
-                PackageManager.MATCH_DEFAULT_ONLY
-            )
+            // Explicitly grant URI read permissions for PackageInstaller across API levels
+            val resInfoList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                activity.packageManager.queryIntentActivities(
+                    installIntent,
+                    PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_DEFAULT_ONLY.toLong())
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                activity.packageManager.queryIntentActivities(
+                    installIntent,
+                    PackageManager.MATCH_DEFAULT_ONLY
+                )
+            }
+
             for (resolveInfo in resInfoList) {
-                val packageName = resolveInfo.activityInfo.packageName
+                val targetPkg = resolveInfo.activityInfo.packageName
                 activity.grantUriPermission(
-                    packageName,
+                    targetPkg,
                     apkUri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )

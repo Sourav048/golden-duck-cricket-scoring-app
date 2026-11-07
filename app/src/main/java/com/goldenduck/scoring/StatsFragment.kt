@@ -1,10 +1,14 @@
 package com.goldenduck.scoring
 
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -12,6 +16,13 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.card.MaterialCardView
 
 class StatsFragment : Fragment() {
+
+    private data class StatStyle(
+        val bg: Int,
+        val stroke: Int,
+        val iconTint: Int
+    )
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -25,36 +36,32 @@ class StatsFragment : Fragment() {
 
             when (category) {
                 "Batting" -> {
-                    addStatCard(content, "Most Runs")
-                    addStatCard(content, "Highest Score")
-                    addStatCard(content, "Best Strike Rate")
-                    addStatCard(content, "Most Sixes")
-                    addStatCard(content, "Most Fours")
-                    addStatCard(content, "Most 80s")
-                    addStatCard(content, "Most 50s")
-                    addStatCard(content, "Most 30s")
-                    addStatCard(content, "Most Ducks")
+                    addShowcaseCard(content, "Most Runs", "Batting")
+                    addSectionHeader(content, "POWER & BOUNDARIES")
+                    addTileRow(content, "Highest Score", "Best Strike Rate")
+                    addTileRow(content, "Most Sixes", "Most Fours")
+                    addSectionHeader(content, "INNINGS MILESTONES")
+                    addTileRow(content, "Most 80s", "Most 50s")
+                    addTileRow(content, "Most 30s", "Most Ducks")
                 }
                 "Bowling" -> {
-                    addStatCard(content, "Most Wickets")
-                    addStatCard(content, "Best Bowling Figure")
-                    addStatCard(content, "Best Bowling Average")
-                    addStatCard(content, "Best Economy")
-                    addStatCard(content, "Most Hattricks")
-                    addStatCard(content, "Most 2 Wicket Hauls")
-                    addStatCard(content, "Most 3 Wicket Hauls")
-                    addStatCard(content, "Most 5 Wicket Hauls")
-                    addStatCard(content, "Most 6s Conceded")
+                    addShowcaseCard(content, "Most Wickets", "Bowling")
+                    addSectionHeader(content, "MATCH SPELLS & CONTROL")
+                    addTileRow(content, "Best Bowling Figure", "Best Bowling Average")
+                    addTileRow(content, "Best Economy", "Most Hattricks")
+                    addSectionHeader(content, "HAULS & CONCEDED")
+                    addTileRow(content, "Most 2 Wicket Hauls", "Most 3 Wicket Hauls")
+                    addTileRow(content, "Most 5 Wicket Hauls", "Most 6s Conceded")
                 }
                 "Fielding" -> {
-                    addStatCard(content, "Most Catches")
-                    addStatCard(content, "Most Stumpings")
-                    addStatCard(content, "Most Run Outs")
+                    addShowcaseCard(content, "Most Catches", "Fielding")
+                    addSectionHeader(content, "WICKETKEEPING & RUN OUTS")
+                    addTileRow(content, "Most Stumpings", "Most Run Outs")
                 }
                 "Ranking" -> {
-                    addStatCard(content, "Overall Rankings")
-                    addStatCard(content, "Batting Rankings")
-                    addStatCard(content, "Bowling Rankings")
+                    addShowcaseCard(content, "Overall Rankings", "Ranking")
+                    addSectionHeader(content, "DISCIPLINE STANDINGS")
+                    addTileRow(content, "Batting Rankings", "Bowling Rankings")
                 }
             }
             view
@@ -64,30 +71,325 @@ class StatsFragment : Fragment() {
         }
     }
 
-    private fun addStatCard(container: LinearLayout, title: String) {
+    private fun addShowcaseCard(container: LinearLayout, title: String, category: String) {
         try {
-            val inflater = LayoutInflater.from(container.context)
+            val context = container.context
+            val inflater = LayoutInflater.from(context)
             val card = inflater.inflate(
-                R.layout.item_stat_entry_card,
+                R.layout.item_stat_showcase_card,
                 container,
                 false
             ) as MaterialCardView
 
-            card.findViewById<TextView>(R.id.tvStatTitle)?.text = title
-            card.findViewById<TextView>(R.id.tvStatSubtitle)?.text = getSubtitleForStat(title)
+            val isDark = ThemeManager.isDarkMode(context)
+            val layoutBg = card.findViewById<View>(R.id.layoutShowcaseBg)
+            layoutBg?.background = getShowcaseGradient(category, isDark)
 
-            val ivIcon = card.findViewById<ImageView>(R.id.ivStatIcon)
-            ivIcon?.setImageResource(getIconForStat(title))
+            val tvTitle = card.findViewById<TextView>(R.id.tvShowcaseTitle)
+            val tvSubtitle = card.findViewById<TextView>(R.id.tvShowcaseSubtitle)
+            val tvTag = card.findViewById<TextView>(R.id.tvShowcaseTagText)
+            val ivTagIcon = card.findViewById<ImageView>(R.id.ivShowcaseTagIcon)
+            val ivWatermark = card.findViewById<ImageView>(R.id.ivShowcaseWatermark)
+
+            tvTitle?.text = title
+            tvSubtitle?.text = getSubtitleForStat(title)
+
+            when (category) {
+                "Batting" -> {
+                    tvTag?.text = "PREMIER BATTING RECORD"
+                    ivTagIcon?.setImageResource(R.drawable.ic_crown)
+                    ivWatermark?.setImageResource(R.drawable.ic_stat_bat_mono)
+                }
+                "Bowling" -> {
+                    tvTag?.text = "PREMIER BOWLING RECORD"
+                    ivTagIcon?.setImageResource(R.drawable.ic_stat_fire)
+                    ivWatermark?.setImageResource(R.drawable.ic_stat_ball)
+                }
+                "Fielding" -> {
+                    tvTag?.text = "PREMIER FIELDING RECORD"
+                    ivTagIcon?.setImageResource(R.drawable.ic_stat_fielding)
+                    ivWatermark?.setImageResource(R.drawable.ic_stat_fielding)
+                }
+                "Ranking" -> {
+                    tvTag?.text = "OFFICIAL CHAMPIONSHIP STANDINGS"
+                    ivTagIcon?.setImageResource(R.drawable.ic_trophy)
+                    ivWatermark?.setImageResource(R.drawable.ic_trophy)
+                }
+            }
 
             card.setOnClickListener {
                 val intent = Intent(activity, LeaderboardActivity::class.java)
                 intent.putExtra("type", title)
                 startActivity(intent)
             }
+
             ThemeManager.colorize(card)
             container.addView(card)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private fun addSectionHeader(container: LinearLayout, title: String) {
+        try {
+            val inflater = LayoutInflater.from(container.context)
+            val view = inflater.inflate(R.layout.item_stat_section_header, container, false)
+            view.findViewById<TextView>(R.id.tvSectionTitle)?.text = title
+            container.addView(view)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun addTileRow(container: LinearLayout, leftTitle: String, rightTitle: String? = null) {
+        try {
+            val context = container.context
+            val inflater = LayoutInflater.from(context)
+            val row = inflater.inflate(R.layout.item_stat_grid_row, container, false)
+
+            val leftContainer = row.findViewById<FrameLayout>(R.id.containerLeftTile)
+            val rightContainer = row.findViewById<FrameLayout>(R.id.containerRightTile)
+
+            val leftTile = createTile(container, leftTitle)
+            leftContainer?.addView(leftTile)
+
+            if (rightTitle != null) {
+                val rightTile = createTile(container, rightTitle)
+                rightContainer?.addView(rightTile)
+            } else {
+                rightContainer?.visibility = View.INVISIBLE
+            }
+
+            container.addView(row)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun createTile(parent: ViewGroup, title: String): View {
+        val context = parent.context
+        val inflater = LayoutInflater.from(context)
+        val card = inflater.inflate(R.layout.item_stat_grid_tile, parent, false) as MaterialCardView
+
+        val isDark = ThemeManager.isDarkMode(context)
+        val density = resources.displayMetrics.density
+        val style = getStatStyle(title, isDark)
+
+        val tvTitle = card.findViewById<TextView>(R.id.tvTileTitle)
+        val tvSubtitle = card.findViewById<TextView>(R.id.tvTileSubtitle)
+        val ivIcon = card.findViewById<ImageView>(R.id.ivTileIcon)
+        val flIconBg = card.findViewById<FrameLayout>(R.id.flTileIconBg)
+
+        tvTitle?.text = title
+        tvSubtitle?.text = getSubtitleForStat(title)
+
+        val iconShape = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 11f * density
+            setColor(style.bg)
+            setStroke((1.5f * density).toInt(), style.stroke)
+        }
+        flIconBg?.background = iconShape
+
+        ivIcon?.setImageResource(getIconForStat(title))
+        ivIcon?.imageTintList = ColorStateList.valueOf(style.iconTint)
+
+        card.setOnClickListener {
+            val intent = Intent(activity, LeaderboardActivity::class.java)
+            intent.putExtra("type", title)
+            startActivity(intent)
+        }
+
+        ThemeManager.colorize(card)
+        return card
+    }
+
+    private fun getShowcaseGradient(category: String, isDark: Boolean): GradientDrawable {
+        val density = resources.displayMetrics.density
+        // Keep the vibrant, luminous, high-energy gradients in both light and dark modes!
+        val colors = when (category) {
+            "Batting" -> intArrayOf(Color.parseColor("#E65100"), Color.parseColor("#F57C00"), Color.parseColor("#FF9800"))
+            "Bowling" -> intArrayOf(Color.parseColor("#991B1B"), Color.parseColor("#B91C1C"), Color.parseColor("#DC2626"))
+            "Fielding" -> intArrayOf(Color.parseColor("#14532D"), Color.parseColor("#15803D"), Color.parseColor("#16A34A"))
+            "Ranking" -> intArrayOf(Color.parseColor("#78350F"), Color.parseColor("#92400E"), Color.parseColor("#B45309"))
+            else -> intArrayOf(Color.parseColor("#004D40"), Color.parseColor("#00695C"))
+        }
+
+        val strokeColor = if (isDark) {
+            when (category) {
+                "Batting" -> Color.parseColor("#4DFF9800")
+                "Bowling" -> Color.parseColor("#4DEF4444")
+                "Fielding" -> Color.parseColor("#4D22C55E")
+                "Ranking" -> Color.parseColor("#4DF59E0B")
+                else -> Color.TRANSPARENT
+            }
+        } else {
+            Color.TRANSPARENT
+        }
+
+        return GradientDrawable(GradientDrawable.Orientation.TL_BR, colors).apply {
+            cornerRadius = 22f * density
+            if (isDark) {
+                setStroke((1.5f * density).toInt(), strokeColor)
+            }
+        }
+    }
+
+    private fun getStatStyle(title: String, isDark: Boolean): StatStyle {
+        return when (title) {
+            "Best Strike Rate", "Most Sixes" -> if (isDark) {
+                StatStyle(
+                    bg = Color.parseColor("#26EF4444"),
+                    stroke = Color.parseColor("#EF4444"),
+                    iconTint = Color.parseColor("#FF5252")
+                )
+            } else {
+                StatStyle(
+                    bg = Color.parseColor("#FEF2F2"),
+                    stroke = Color.parseColor("#EF4444"),
+                    iconTint = Color.parseColor("#DC2626")
+                )
+            }
+
+            "Highest Score", "Most Fours" -> if (isDark) {
+                StatStyle(
+                    bg = Color.parseColor("#26F97316"),
+                    stroke = Color.parseColor("#F97316"),
+                    iconTint = Color.parseColor("#FFA726")
+                )
+            } else {
+                StatStyle(
+                    bg = Color.parseColor("#FFF7ED"),
+                    stroke = Color.parseColor("#F97316"),
+                    iconTint = Color.parseColor("#C2410C")
+                )
+            }
+
+            "Most 80s", "Most 50s", "Most 30s" -> if (isDark) {
+                StatStyle(
+                    bg = Color.parseColor("#26F59E0B"),
+                    stroke = Color.parseColor("#F59E0B"),
+                    iconTint = Color.parseColor("#FCD34D")
+                )
+            } else {
+                StatStyle(
+                    bg = Color.parseColor("#FEF9C3"),
+                    stroke = Color.parseColor("#EAB308"),
+                    iconTint = Color.parseColor("#A16207")
+                )
+            }
+
+            "Most Ducks" -> if (isDark) {
+                StatStyle(
+                    bg = Color.parseColor("#2664748B"),
+                    stroke = Color.parseColor("#64748B"),
+                    iconTint = Color.parseColor("#94A3B8")
+                )
+            } else {
+                StatStyle(
+                    bg = Color.parseColor("#F1F5F9"),
+                    stroke = Color.parseColor("#94A3B8"),
+                    iconTint = Color.parseColor("#475569")
+                )
+            }
+
+            "Best Bowling Figure", "Most 5 Wicket Hauls" -> if (isDark) {
+                StatStyle(
+                    bg = Color.parseColor("#26A855F7"),
+                    stroke = Color.parseColor("#A855F7"),
+                    iconTint = Color.parseColor("#C084FC")
+                )
+            } else {
+                StatStyle(
+                    bg = Color.parseColor("#F5F3FF"),
+                    stroke = Color.parseColor("#8B5CF6"),
+                    iconTint = Color.parseColor("#6D28D9")
+                )
+            }
+
+            "Best Bowling Average", "Best Economy" -> if (isDark) {
+                StatStyle(
+                    bg = Color.parseColor("#263B82F6"),
+                    stroke = Color.parseColor("#3B82F6"),
+                    iconTint = Color.parseColor("#60A5FA")
+                )
+            } else {
+                StatStyle(
+                    bg = Color.parseColor("#EFF6FF"),
+                    stroke = Color.parseColor("#3B82F6"),
+                    iconTint = Color.parseColor("#1D4ED8")
+                )
+            }
+
+            "Most Hattricks", "Most 2 Wicket Hauls", "Most 3 Wicket Hauls", "Most 6s Conceded" -> if (isDark) {
+                StatStyle(
+                    bg = Color.parseColor("#26F87171"),
+                    stroke = Color.parseColor("#F87171"),
+                    iconTint = Color.parseColor("#FF6B6B")
+                )
+            } else {
+                StatStyle(
+                    bg = Color.parseColor("#FEE2E2"),
+                    stroke = Color.parseColor("#F87171"),
+                    iconTint = Color.parseColor("#B91C1C")
+                )
+            }
+
+            "Most Catches", "Most Stumpings", "Most Run Outs" -> if (isDark) {
+                StatStyle(
+                    bg = Color.parseColor("#2622C55E"),
+                    stroke = Color.parseColor("#22C55E"),
+                    iconTint = Color.parseColor("#4ADE80")
+                )
+            } else {
+                StatStyle(
+                    bg = Color.parseColor("#DCFCE7"),
+                    stroke = Color.parseColor("#22C55E"),
+                    iconTint = Color.parseColor("#15803D")
+                )
+            }
+
+            "Batting Rankings" -> if (isDark) {
+                StatStyle(
+                    bg = Color.parseColor("#26F97316"),
+                    stroke = Color.parseColor("#F97316"),
+                    iconTint = Color.parseColor("#FFA726")
+                )
+            } else {
+                StatStyle(
+                    bg = Color.parseColor("#FFF7ED"),
+                    stroke = Color.parseColor("#F97316"),
+                    iconTint = Color.parseColor("#C2410C")
+                )
+            }
+
+            "Bowling Rankings" -> if (isDark) {
+                StatStyle(
+                    bg = Color.parseColor("#26EF4444"),
+                    stroke = Color.parseColor("#EF4444"),
+                    iconTint = Color.parseColor("#FF5252")
+                )
+            } else {
+                StatStyle(
+                    bg = Color.parseColor("#FEE2E2"),
+                    stroke = Color.parseColor("#EF4444"),
+                    iconTint = Color.parseColor("#B91C1C")
+                )
+            }
+
+            else -> if (isDark) {
+                StatStyle(
+                    bg = Color.parseColor("#2614B8A6"),
+                    stroke = Color.parseColor("#14B8A6"),
+                    iconTint = Color.parseColor("#2DD4BF")
+                )
+            } else {
+                StatStyle(
+                    bg = Color.parseColor("#CCFBF1"),
+                    stroke = Color.parseColor("#14B8A6"),
+                    iconTint = Color.parseColor("#0D9488")
+                )
+            }
         }
     }
 
@@ -107,7 +409,7 @@ class StatsFragment : Fragment() {
             "Best Bowling Figure" -> "Top spell performances"
             "Best Bowling Average" -> "Runs per wicket taken"
             "Best Economy" -> "Lowest runs per over"
-            "Most Hattricks" -> "3 wickets in 3 consecutive balls"
+            "Most Hattricks" -> "3 wickets in 3 balls"
             "Most 2 Wicket Hauls" -> "2+ wickets in an innings"
             "Most 3 Wicket Hauls" -> "3+ wickets in an innings"
             "Most 5 Wicket Hauls" -> "5+ wickets in an innings"
@@ -126,23 +428,16 @@ class StatsFragment : Fragment() {
 
     private fun getIconForStat(title: String): Int {
         return when (title) {
-            "Most Runs" -> R.drawable.ic_stat_bat
-            "Highest Score" -> R.drawable.ic_stat_star
+            "Most Runs", "Most Fours" -> R.drawable.ic_stat_bat_mono
+            "Highest Score", "Most 80s", "Most 50s", "Most 30s" -> R.drawable.ic_stat_star
             "Best Strike Rate" -> R.drawable.ic_stat_zap
-            "Most Sixes" -> R.drawable.ic_stat_fire
-            "Most Fours" -> R.drawable.ic_stat_bat
-            "Most 80s", "Most 50s", "Most 30s" -> R.drawable.ic_stat_star
+            "Most Sixes", "Most Hattricks" -> R.drawable.ic_stat_fire
             "Most Ducks" -> R.drawable.ic_stat_duck
 
-            "Most Wickets" -> R.drawable.ic_stat_ball
+            "Most Wickets", "Most 2 Wicket Hauls", "Most 3 Wicket Hauls", "Most 5 Wicket Hauls" -> R.drawable.ic_stat_ball
             "Best Bowling Figure" -> R.drawable.ic_trophy
-            "Best Bowling Average" -> R.drawable.ic_stat_target
-            "Best Economy" -> R.drawable.ic_stat_fielding
-            "Most Hattricks" -> R.drawable.ic_stat_fire
-            "Most 2 Wicket Hauls", "Most 3 Wicket Hauls", "Most 5 Wicket Hauls" -> R.drawable.ic_stat_ball
-            "Most 6s Conceded" -> R.drawable.ic_stat_target
-
-            "Most Catches", "Most Stumpings", "Most Run Outs" -> R.drawable.ic_stat_fielding
+            "Best Bowling Average", "Most 6s Conceded" -> R.drawable.ic_stat_target
+            "Best Economy", "Most Catches", "Most Stumpings", "Most Run Outs" -> R.drawable.ic_stat_fielding
 
             "Overall Rankings", "Batting Rankings", "Bowling Rankings" -> R.drawable.ic_trophy
             else -> R.drawable.ic_trophy

@@ -4,7 +4,13 @@ import androidx.annotation.Keep
 
 @Keep
 class Player {
-    var id: String? = null
+    var id: String? = "local_${java.util.UUID.randomUUID()}"
+        get() {
+            if (field == null) {
+                field = "local_${java.util.UUID.randomUUID()}"
+            }
+            return field
+        }
     var name: String? = null
     var runsScored: Int = 0
     var ballsFaced: Int = 0
@@ -35,6 +41,7 @@ class Player {
 
     constructor(name: String?) {
         this.name = name
+        this.id = "local_${java.util.UUID.randomUUID()}"
     }
 
     val oversBowledDisplay: String

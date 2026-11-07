@@ -203,11 +203,10 @@ object ThemeManager {
             }
             is MaterialCardView -> {
                 // EXCLUDE cardPhotoFrame so it keeps its specific background (usually white) for the photo
-                if (v.id == R.id.cardPhotoFrame) return
+                if (v.id == R.id.cardPhotoFrame || v.id == R.id.cardScoringHeader) return
 
                 // Only force primary coloring for specific Header IDs
-                if (v.id == R.id.cardScoringHeader || v.id == R.id.layoutPlayerHeader ||
-                    v.id == R.id.cardNewMatch || v.id == R.id.cardHistory ||
+                if (v.id == R.id.cardNewMatch || v.id == R.id.cardHistory ||
                     v.id == R.id.cardPlayers || v.id == R.id.cardStats ||
                     v.id == R.id.layoutSelectPlayer1 || v.id == R.id.layoutSelectPlayer2) {
                     v.setCardBackgroundColor(seed)
@@ -243,7 +242,7 @@ object ThemeManager {
                 if (v.tag == "custom_color") return
                 if (v.id == R.id.tvInningsTeamName || v.id == R.id.tvInningsScore || v.id == R.id.tvCommIconText ||
                     v.id == R.id.tvInningsTitle || v.id == R.id.tvCompareVal1 || v.id == R.id.tvCompareVal2 ||
-                    v.id == R.id.tvMaidenBadge || v.id == R.id.tvSummaryMaidenBadge ||
+                    v.id == R.id.tvMaidenBadge || v.id == R.id.tvSummaryMaidenBadge || R.id.tvFastScrollBubbleText == v.id ||
                     v.id == R.id.tvSentMessage || v.id == R.id.tvSentTime || v.id == R.id.tvReceivedMessage ||
                     v.id == R.id.tvReceivedTime || v.id == R.id.tvUserMessage || v.id == R.id.tvUserTime ||
                     v.id == R.id.tvAiMessage || v.id == R.id.tvAiTime || v.id == R.id.tvReceivedSender ||
@@ -252,7 +251,7 @@ object ThemeManager {
                 val currentColor = v.textColors.defaultColor
                 val isPrestige = RankingRegistry.isPrestigeColor(currentColor)
 
-                if (v.id == R.id.tvPlayerListTitle || v.id == R.id.tvFinalResultBanner || v.id == R.id.tvMatchConfigTitle) {
+                if (v.id == R.id.tvPlayerListTitle || v.id == R.id.tvMatchConfigTitle) {
                     if (forceContrast) v.setTextColor(contrast) else v.setTextColor(seed)
                 } else if (v.id == R.id.tvDetailNameDisplay || v.id == R.id.tvDetailJerseyDisplay ||
                     v.id == R.id.tvRankOverall || v.id == R.id.tvRankBatting || v.id == R.id.tvRankBowling || v.id == R.id.tvPotmTotal) {
@@ -264,7 +263,7 @@ object ThemeManager {
                     if (currentColor == SEED_LIGHT || currentColor == SEED_DARK ||
                         v.id == R.id.tvCoinResult || v.id == R.id.tvTossTitle || v.id == R.id.tvHomeTitle ||
                         v.id == R.id.tvStatRank || v.id == R.id.tvStatPlayerName || v.id == R.id.tvStatValue ||
-                        v.id == R.id.tvStatTitle) {
+                        v.id == R.id.tvStatLabel || v.id == R.id.tvStatTitle) {
 
                         if (!isPrestige) v.setTextColor(seed)
                     }
@@ -273,10 +272,6 @@ object ThemeManager {
         }
 
         if (v is ViewGroup) {
-            if (v.id == R.id.layoutPlayerHeader || v.id == R.id.layoutLiveHeader || v.id == R.id.cardScoringHeader) {
-                v.setBackgroundColor(seed)
-                nextForceContrast = true
-            }
             for (i in 0 until v.childCount) {
                 applyToViewRecursive(v.getChildAt(i), seed, nextForceContrast)
             }
@@ -291,6 +286,6 @@ object ThemeManager {
 
     fun getContrastColor(color: Int): Int {
         val luminance = (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255.0
-        return if (luminance > 0.5) Color.BLACK else Color.WHITE
+        return if (luminance > 0.72) Color.BLACK else Color.WHITE
     }
 }

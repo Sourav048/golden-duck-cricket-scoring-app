@@ -11,6 +11,7 @@ object RemoteConfigManager {
     const val KEY_ENABLE_EDIT_OPTION = "enable_edit_option"
     const val KEY_ENABLE_PLAYER_COMPARE = "enable_player_compare"
     const val KEY_ENABLE_STATS_RECALCULATE = "enable_stats_recalculate"
+    const val KEY_ENABLE_PLAYER_CARD_SHARE = "enable_player_card_share"
 
     fun init() {
         try {
@@ -25,7 +26,8 @@ object RemoteConfigManager {
             val defaults = mapOf(
                 KEY_ENABLE_EDIT_OPTION to false,
                 KEY_ENABLE_PLAYER_COMPARE to true,
-                KEY_ENABLE_STATS_RECALCULATE to false
+                KEY_ENABLE_STATS_RECALCULATE to false,
+                KEY_ENABLE_PLAYER_CARD_SHARE to false
             )
             remoteConfig.setDefaultsAsync(defaults)
 
@@ -46,7 +48,12 @@ object RemoteConfigManager {
         return try {
             FirebaseRemoteConfig.getInstance().getBoolean(key)
         } catch (e: Exception) {
-            true // Default to enabled if error or offline
+            when (key) {
+                KEY_ENABLE_EDIT_OPTION,
+                KEY_ENABLE_STATS_RECALCULATE,
+                KEY_ENABLE_PLAYER_CARD_SHARE -> false
+                else -> true // Default to enabled if error or offline
+            }
         }
     }
 }

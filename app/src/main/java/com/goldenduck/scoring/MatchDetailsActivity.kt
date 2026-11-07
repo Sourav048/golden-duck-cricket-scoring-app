@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.graphics.Color
 import android.graphics.Typeface
 import android.provider.Settings
 import android.text.Editable
@@ -322,18 +323,18 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                         val baseResult = entity.result?.uppercase() ?: "MATCH COMPLETED"
                         val isPlaceholder = baseResult == "IN-PROGRESS" || baseResult == "LIVE" || baseResult == "PAUSED" || baseResult == "MATCH COMPLETED" || baseResult == "MATCH FINISHED"
                         text = if (entity.isFinished && isPlaceholder) {
-                            setTextColor(ThemeManager.getThemeColor(context, com.google.android.material.R.attr.colorOnPrimary))
+                            setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.scoring_header_text))
                             calculateMatchResult()?.uppercase() ?: baseResult
                         } else if (!entity.isFinished && !entity.isAbandoned) {
                             if (entity.isMatchLive(now)) {
                                 setTextColor(context.getColor(R.color.card_red))
                                 "LIVE"
                             } else {
-                                setTextColor(ThemeManager.getThemeColor(context, com.google.android.material.R.attr.colorOnPrimary))
+                                setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.scoring_header_text))
                                 "IN-PROGRESS"
                             }
                         } else {
-                            setTextColor(ThemeManager.getThemeColor(context, com.google.android.material.R.attr.colorOnPrimary))
+                            setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.scoring_header_text))
                             baseResult
                         }
                         gravity = android.view.Gravity.CENTER
@@ -431,7 +432,7 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                 findViewById<TextView>(R.id.tvFinalResultBanner)?.apply {
                     visibility = View.VISIBLE
                     text = if (entity.isFinished) (entity.result ?: "MATCH COMPLETED") else "IN-PROGRESS"
-                    setTextColor(ThemeManager.getThemeColor(context, com.google.android.material.R.attr.colorOnPrimary))
+                    setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.scoring_header_text))
                 }
             } else {
                 layoutLiveHeader?.visibility = View.VISIBLE
@@ -539,6 +540,10 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
                             val widePenalty = if (isRuleRunsOnWide) 1 else 0
                             val nbPenalty = if (isRuleRunsOnWide) 1 else 0
                             val event = when {
+                                b.dismissalInfo?.trim().equals("retired hurt", ignoreCase = true) ||
+                                    b.wicketDetail?.dismissalType == DismissalType.RETIRED_HURT -> "RH"
+                                b.dismissalInfo?.trim().equals("retired out", ignoreCase = true) ||
+                                    b.wicketDetail?.dismissalType == DismissalType.RETIRED_OUT -> "RO"
                                 b.isWicket -> {
                                     val runsRan = when (b.type) {
                                         BallType.WIDE -> b.runs - widePenalty
@@ -813,7 +818,9 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
         scoreText?.text = "${innings.totalRuns}/${innings.totalWickets}"
 
         val oversLimit = innings.revisedMaxOvers ?: innings.maxOvers
-        oversText?.text = "Overs: ${innings.oversDisplay} / $oversLimit"
+        val isOversReduced = innings.revisedMaxOvers != null && innings.revisedMaxOvers != m.totalOvers
+        val dlsSuffix = if (isOversReduced) " [DLS]" else ""
+        oversText?.text = "Overs: ${innings.oversDisplay} / $oversLimit$dlsSuffix"
 
         val crr = innings.currentRunRate
         tvRateValue?.text = String.format(java.util.Locale.US, "%.2f", crr)
@@ -832,7 +839,9 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
             if (ballsLeft >= 0) {
                 val rrr = if (ballsLeft > 0) (needed.toDouble() / ballsLeft) * 6 else 0.0
                 tvRateValue?.text = String.format(java.util.Locale.US, "%.2f", rrr)
-                tvAnalysisLabel?.text = "$needed RUNS NEEDED IN $ballsLeft BALLS"
+                val isDlsTarget = (m.resourcesLostTeam1 > 0.0) || m.revisedTarget != null || innings.revisedTarget != null
+                val dlsSuffix = if (isDlsTarget) " (DLS TARGET)" else ""
+                tvAnalysisLabel?.text = "$needed RUNS NEEDED IN $ballsLeft BALLS$dlsSuffix"
             } else {
                 tvAnalysisLabel?.text = "INNINGS OVER"
             }
@@ -1036,6 +1045,7 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
         }
 
         val bgColor = when {
+            b.startsWith("P") -> "#D81B60".toColorInt()
             b.endsWith("W") -> "#B71C1C".toColorInt()
             b == "6" -> "#2E7D32".toColorInt()
             b == "4" -> "#EF6C00".toColorInt()
@@ -1053,7 +1063,9 @@ class MatchDetailsActivity : BaseActivity(), ScoringProvider {
         val tv = TextView(ctx).apply {
             tag = "custom_color"
             text = b
-            setTextColor(ThemeManager.getContrastColor(bgColor))
+            val isColoredBall = b.startsWith("P") || b == "4" || b == "6" || b.contains("WD", ignoreCase = true) || b.contains("NB") ||
+                                b == "W" || b.endsWith("W") || b.endsWith("LB") || b.endsWith("B")
+            setTextColor(if (isColoredBall) Color.WHITE else ThemeManager.getContrastColor(bgColor))
             textSize = if (text.length > 2) 8f else 10f
             setTypeface(null, Typeface.BOLD)
             gravity = android.view.Gravity.CENTER

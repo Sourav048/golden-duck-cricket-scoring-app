@@ -3,6 +3,7 @@ package com.goldenduck.scoring
 import androidx.appcompat.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
@@ -105,7 +106,13 @@ class MainActivity : BaseActivity(), ScoringProvider {
     private var teamABatting = true
     override var isFreeHitActive: Boolean = false
         private set
-    private var isOverCompleteDialogShowing = false
+    override var isOverCompleteDialogShowing = false
+    override var isOverTransitionPending = false
+    private var isOverCompleteMaiden = false
+    private var pendingBatsmanReplacementEnd: Boolean? = null
+    private var activeBatsmanSelectionDialog: androidx.appcompat.app.AlertDialog? = null
+    override val isBatsmanReplacementPending: Boolean
+        get() = pendingBatsmanReplacementEnd != null
     private var activeOverSummaryDialog: androidx.appcompat.app.AlertDialog? = null
     private var activeInningsCompleteDialog: androidx.appcompat.app.AlertDialog? = null
     private var activeMatchFinishedDialog: androidx.appcompat.app.AlertDialog? = null
@@ -260,6 +267,10 @@ class MainActivity : BaseActivity(), ScoringProvider {
         viewerPresenceHandler.removeCallbacks(viewerPresenceRunnable)
         viewerCountListener?.remove()
         viewerCountListener = null
+        activeOverSummaryDialog?.dismiss()
+        activeOverSummaryDialog = null
+        activeBatsmanSelectionDialog?.dismiss()
+        activeBatsmanSelectionDialog = null
         super.onDestroy()
     }
 
@@ -290,6 +301,13 @@ class MainActivity : BaseActivity(), ScoringProvider {
         outState.putBoolean("isFinished", isFinished)
         outState.putBoolean("isAbandoned", isAbandoned)
         outState.putBoolean("isScorer", isScorer)
+        outState.putBoolean("isOverTransitionPending", isOverTransitionPending)
+        outState.putBoolean("isOverCompleteDialogShowing", isOverCompleteDialogShowing)
+        outState.putBoolean("isOverCompleteMaiden", isOverCompleteMaiden)
+        if (pendingBatsmanReplacementEnd != null) {
+            outState.putBoolean("hasPendingBatsmanReplacement", true)
+            outState.putBoolean("pendingBatsmanReplacementEnd", pendingBatsmanReplacementEnd!!)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -396,6 +414,10 @@ class MainActivity : BaseActivity(), ScoringProvider {
             vm.isFinished = isFinished
             vm.isAbandoned = isAbandoned
             vm.isScorer = isScorer
+            vm.isOverTransitionPending = isOverTransitionPending
+            vm.isOverCompleteDialogShowing = isOverCompleteDialogShowing
+            vm.isOverCompleteMaiden = isOverCompleteMaiden
+            vm.pendingBatsmanReplacementEnd = pendingBatsmanReplacementEnd
         }
     }
 
@@ -421,6 +443,10 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 this.overRuns = vm.overRuns
                 this.overBowlerRuns = vm.overBowlerRuns
                 this.overWickets = vm.overWickets
+                this.isOverTransitionPending = vm.isOverTransitionPending
+                this.isOverCompleteDialogShowing = vm.isOverCompleteDialogShowing
+                this.isOverCompleteMaiden = vm.isOverCompleteMaiden
+                this.pendingBatsmanReplacementEnd = vm.pendingBatsmanReplacementEnd
                 
                 this.playerStatCache.clear()
                 this.playerStatCache.putAll(vm.playerStatCache)
@@ -447,11 +473,23 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 this.ruleEveryPlayerBats = match?.ruleEveryPlayerBats ?: true
 
                 updateUI()
+
+                if (pendingBatsmanReplacementEnd != null && match?.currentInnings?.isComplete == false) {
+                    showBatsmanSelectionDialog(pendingBatsmanReplacementEnd!!)
+                } else {
+                    resumePendingOverTransitionIfNeeded()
+                }
                 return
             }
         }
 
         // 2. Try restoring from saved state (handles theme/rotation if VM was cleared)
+        this.isOverTransitionPending = savedInstanceState?.getBoolean("isOverTransitionPending", false) ?: false
+        this.isOverCompleteDialogShowing = savedInstanceState?.getBoolean("isOverCompleteDialogShowing", false) ?: false
+        this.isOverCompleteMaiden = savedInstanceState?.getBoolean("isOverCompleteMaiden", false) ?: false
+        if (savedInstanceState?.getBoolean("hasPendingBatsmanReplacement", false) == true) {
+            this.pendingBatsmanReplacementEnd = savedInstanceState.getBoolean("pendingBatsmanReplacementEnd")
+        }
         val intent = intent ?: return
         isScorer = !intent.getBooleanExtra("isViewOnly", false)
         currentMatchId = intent.getStringExtra("matchId")
@@ -820,14 +858,24 @@ class MainActivity : BaseActivity(), ScoringProvider {
         // Calculate stats and display strings for the reconstructed over
         currentOverBalls.forEach { b ->
             overRuns += b.runs
-            if (b.type == BallType.NORMAL || b.type == BallType.WIDE || b.type == BallType.NO_BALL) {
-                overBowlerRuns += b.runs
+            val bowlerRunsForBall = when (b.type) {
+                BallType.NORMAL, BallType.WIDE -> b.runs
+                BallType.NO_BALL -> {
+                    val nbPenalty = if (isRuleRunsOnWide) 1 else 0
+                    b.batRuns + nbPenalty
+                }
+                else -> 0
             }
+            overBowlerRuns += bowlerRunsForBall
             if (b.isWicket) overWickets++
             
             val widePenalty = if (isRuleRunsOnWide) 1 else 0
             val nbPenalty = if (isRuleRunsOnWide) 1 else 0
             val event = when {
+                b.dismissalInfo?.trim().equals("retired hurt", ignoreCase = true) ||
+                    b.wicketDetail?.dismissalType == DismissalType.RETIRED_HURT -> "RH"
+                b.dismissalInfo?.trim().equals("retired out", ignoreCase = true) ||
+                    b.wicketDetail?.dismissalType == DismissalType.RETIRED_OUT -> "RO"
                 b.isWicket -> {
                     val runsRan = when (b.type) {
                         BallType.WIDE -> b.runs - widePenalty
@@ -844,10 +892,16 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     val runsRan = b.runs - nbPenalty
                     if (runsRan <= 0) "NB" else "${runsRan}NB"
                 }
+                b.type == BallType.PENALTY && b.runs > 0 -> "P${b.runs}"
+                b.type == BallType.PENALTY -> null
                 else -> b.runs.toString()
             }
-            overBallsList.add(event)
+            if (event != null) {
+                overBallsList.add(event)
+            }
         }
+        val distinctBowlers = currentOverBalls.mapNotNull { it.bowlerName?.trim() }.filter { it.isNotEmpty() }.distinct()
+        match?.isSharedOver = distinctBowlers.size > 1
     }
 
     private fun setupTabs() {
@@ -885,12 +939,13 @@ class MainActivity : BaseActivity(), ScoringProvider {
     }
 
     override fun getPlayerFromCache(name: String?): Player? {
-        if (name == null) return null
+        if (name == null || name.trim().equals("None", ignoreCase = true)) return null
         val trimmedName = name.trim()
         val currentGId = GullySyncManager.getCurrentGullyId(applicationContext) ?: "local"
         if (!playerStatCache.containsKey(trimmedName)) {
             val p = Player(trimmedName)
-            p.id = nameToIdMap[trimmedName]
+            p.id = nameToIdMap[trimmedName] ?: "local_${java.util.UUID.randomUUID()}"
+            nameToIdMap[trimmedName] = p.id!!
             p.gullyId = currentGId
             playerStatCache[trimmedName] = p
         }
@@ -899,6 +954,18 @@ class MainActivity : BaseActivity(), ScoringProvider {
             cachedP.gullyId = currentGId
         }
         return cachedP
+    }
+
+    private fun getPlayerById(id: String?): Player? {
+        if (id == null) return null
+        val existing = playerStatCache.values.find { it.id == id }
+        if (existing != null) return existing
+        
+        val nameEntry = nameToIdMap.entries.find { it.value == id }
+        if (nameEntry != null) {
+            return getPlayerFromCache(nameEntry.key)
+        }
+        return null
     }
 
     private fun isInMiddleOfOver(innings: Innings): Boolean {
@@ -931,7 +998,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
     override fun playBall(runs: Int, type: BallType?, isWicket: Boolean) {
         val batRuns = if (type == null || type == BallType.NORMAL) runs else 0
-        playBallWithPlayer(runs, type ?: BallType.NORMAL, isWicket, null, null, batRuns)
+        val isBoundary = (type == null || type == BallType.NORMAL) && (runs == 4 || runs == 6)
+        playBallWithPlayer(runs, type ?: BallType.NORMAL, isWicket, null, null, batRuns, isBoundary = isBoundary, overthrowRuns = 0)
     }
 
     private fun playBallWithPlayer(
@@ -942,14 +1010,29 @@ class MainActivity : BaseActivity(), ScoringProvider {
         fielder: String?,
         manualBatRuns: Int,
         outPlayer: Player? = null,
-        isStrikerReplacingOverride: Boolean? = null
+        isStrikerReplacingOverride: Boolean? = null,
+        wicketDetail: WicketDetail? = null,
+        byeRuns: Int = 0,
+        legByeRuns: Int = 0,
+        isBoundary: Boolean = false,
+        overthrowRuns: Int = 0
     ) {
-        if (isOverCompleteDialogShowing) return
+        if (isOverCompleteDialogShowing || isOverTransitionPending) return
+        if (pendingBatsmanReplacementEnd != null) return
         val innings = match?.currentInnings
         if (innings == null || innings.isComplete) return
 
         val batsmanForRecord = facingBatsman ?: striker
         if (batsmanForRecord == null || bowler == null) return
+        if (!isWicket) {
+            if (batsmanForRecord.isOut) {
+                Toast.makeText(this, "Cannot bowl to an out batter. Please select a replacement batter.", Toast.LENGTH_SHORT).show()
+                return
+            }
+            if (striker?.isOut == true || (nonStriker != null && nonStriker!!.isOut)) {
+                return
+            }
+        }
 
         // Identify the "other" batsman at the crease relative to the one who faced the ball.
         // This is necessary because if a swap happened immediately (on odd runs),
@@ -981,10 +1064,26 @@ class MainActivity : BaseActivity(), ScoringProvider {
         }
 
         bowler?.let { b ->
-            innings.addBall(runs, type, isWicket, batsmanForRecord, b, fielder, manualBatRuns, outPlayer, currentNonStrikerForRecord)
+            innings.addBall(runs, type, isWicket, batsmanForRecord, b, fielder, manualBatRuns, outPlayer, currentNonStrikerForRecord, wicketDetail, playerNameResolver = { id -> getPlayerById(id)?.name ?: id }, byeRuns = byeRuns, legByeRuns = legByeRuns, overthrowRuns = overthrowRuns, isBoundary = isBoundary)
         } ?: return
 
-        if (isWicket && fielder != null) {
+        if (isWicket && wicketDetail != null) {
+            wicketDetail.primaryFielderId?.let { fId ->
+                val f = getPlayerById(fId)
+                when (wicketDetail.dismissalType) {
+                    DismissalType.CAUGHT -> f?.catches = (f?.catches ?: 0) + 1
+                    DismissalType.STUMPED -> f?.stumpings = (f?.stumpings ?: 0) + 1
+                    DismissalType.RUN_OUT -> f?.runOuts = (f?.runOuts ?: 0) + 1
+                    else -> {}
+                }
+            }
+            wicketDetail.secondaryFielderId?.let { fId ->
+                if (wicketDetail.dismissalType == DismissalType.RUN_OUT && fId != wicketDetail.primaryFielderId) {
+                    val f = getPlayerById(fId)
+                    f?.runOuts = (f?.runOuts ?: 0) + 1
+                }
+            }
+        } else if (isWicket && fielder != null) {
             val fielders = fielder.split(" / ")
             fielders.forEach { fName ->
                 val f = getPlayerFromCache(fName.trim())
@@ -1002,7 +1101,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
         }
 
         // Bowling Stats Sync
-        if (runs == 6 && (type == BallType.NORMAL || type == BallType.NO_BALL)) {
+        val isSixConceded = when (type) {
+            BallType.NORMAL -> isBoundary && (manualBatRuns == 6 || runs == 6) && overthrowRuns == 0
+            BallType.NO_BALL -> isBoundary && manualBatRuns == 6 && overthrowRuns == 0
+            else -> false
+        }
+        if (isSixConceded) {
             bowler?.sixesConceded = (bowler?.sixesConceded ?: 0) + 1
         }
 
@@ -1093,6 +1197,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
             type == BallType.NO_BALL -> {
                 val nbPenalty = if (isRuleRunsOnWide) 1 else 0
                 if (manualBatRuns > 0) "$manualBatRuns NO BALL"
+                else if (byeRuns > 0) "$byeRuns BYES (NO BALL)"
+                else if (legByeRuns > 0) "$legByeRuns LEG BYES (NO BALL)"
                 else if (runs > nbPenalty) "${runs - nbPenalty} NO BALL"
                 else "NO BALL"
             }
@@ -1165,9 +1271,15 @@ class MainActivity : BaseActivity(), ScoringProvider {
         innings.commentary.firstOrNull()?.let { commentary.add(0, it) }
         overBallsList.add(event)
         overRuns += runs
-        if (type == BallType.NORMAL || type == BallType.WIDE || type == BallType.NO_BALL) {
-            overBowlerRuns += runs
+        val bowlerRunsForBall = when (type) {
+            BallType.NORMAL, BallType.WIDE -> runs
+            BallType.NO_BALL -> {
+                val nbPenalty = if (isRuleRunsOnWide) 1 else 0
+                manualBatRuns + nbPenalty
+            }
+            else -> 0
         }
+        overBowlerRuns += bowlerRunsForBall
         if (isWicket) overWickets++
 
         recalculateMatchState()
@@ -1215,11 +1327,21 @@ class MainActivity : BaseActivity(), ScoringProvider {
             }
         }
 
-        if (!isWicket && type == BallType.NORMAL) {
-            if (runs % 2 != 0) swapBatsmen()
+        if (!isWicket) {
+            val runsRan = when (type) {
+                BallType.NORMAL, BallType.BYE, BallType.LEG_BYE -> runs
+                BallType.WIDE -> {
+                    val widePenalty = if (isRuleRunsOnWide) 1 else 0
+                    (runs - widePenalty).coerceAtLeast(0)
+                }
+                BallType.NO_BALL -> {
+                    val nbPenalty = if (isRuleRunsOnWide) 1 else 0
+                    (runs - nbPenalty).coerceAtLeast(0)
+                }
+                else -> 0
+            }
+            if (runsRan % 2 != 0) swapBatsmen()
         }
-        // WIDE and NO_BALL swap is now handled immediately when runs are confirmed
-        // to ensure wicket dialogs reflect the correct player positions.
 
         if (isWicket) {
             playLottie("wicket")
@@ -1244,32 +1366,29 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     }
                 }
                 
-                // Hat-ttrick check (3 consecutive bowler-credited wickets)
-                var streak = 0
-                var bowlerBallsCount = 0
-                var fourthBallWasWicket = false
+                // Hat-trick check (3 consecutive bowler-credited wickets)
+                var consecutiveWickets = 0
                 for (i in innings.balls.indices.reversed()) {
                     val b = innings.balls[i]
-                    if (b.bowlerName == bowlerObj.name) {
-                        bowlerBallsCount++
-                        val isBowlerWicket = b.isWicket && 
-                                            !b.dismissalInfo.toString().contains("Run Out", ignoreCase = true) &&
-                                            !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true) &&
-                                            !b.dismissalInfo.toString().contains("Retired", ignoreCase = true)
-                        
-                        if (bowlerBallsCount <= 3) {
-                            if (isBowlerWicket) {
-                                streak++
-                            } else {
-                                break
-                            }
+                    if (b.type == BallType.PENALTY) continue
+                    val bBowlerId = b.wicketDetail?.bowlerId ?: b.bowlerId
+                    val isCurrentBowler = (bBowlerId != null && bBowlerId == bowlerObj.id) ||
+                        (b.bowlerName != null && b.bowlerName.equals(bowlerObj.name, ignoreCase = true))
+                    if (isCurrentBowler) {
+                        val isBowlerWicket = b.isWicket &&
+                            (b.wicketDetail?.dismissalType?.isBowlerWicket ?: (
+                                !b.dismissalInfo.toString().contains("Run Out", ignoreCase = true) &&
+                                !b.dismissalInfo.toString().contains("Obstruct", ignoreCase = true) &&
+                                !b.dismissalInfo.toString().contains("Retired", ignoreCase = true)
+                            ))
+                        if (isBowlerWicket) {
+                            consecutiveWickets++
                         } else {
-                            fourthBallWasWicket = isBowlerWicket
                             break
                         }
                     }
                 }
-                if (streak == 3 && !fourthBallWasWicket) {
+                if (consecutiveWickets > 0 && consecutiveWickets % 3 == 0) {
                     bowlerObj.hattricks++
                     val hatMsg = "!!! HAT-TRICK !!! ${bowlerObj.name} is on fire!"
                     innings.addCommentary("FACT", hatMsg, "W", "FACT")
@@ -1277,10 +1396,10 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     triggerConfetti(colorsMatchWin)
                 }
             }
-        } else if (runs == 6) {
+        } else if (runs == 6 && overthrowRuns == 0) {
             playLottie("six")
             triggerConfetti(colorsSix)
-        } else if (runs == 4) {
+        } else if (runs == 4 && overthrowRuns == 0) {
             playLottie("four")
             triggerConfetti(colorsFour)
         }
@@ -1314,21 +1433,20 @@ class MainActivity : BaseActivity(), ScoringProvider {
             }
         }
 
-        isFreeHitActive = (type == BallType.NO_BALL) || (type == BallType.WIDE && isFreeHitActive)
+        isFreeHitActive = isRuleFreeHit && ((type == BallType.NO_BALL) || (type == BallType.WIDE && isFreeHitActive))
 
         val isOverComplete = innings.legalBalls % 6 == 0 && (type == BallType.NORMAL || type == BallType.BYE || type == BallType.LEG_BYE)
 
-        if (isOverComplete) {
-            handleOverCompletion(innings, !innings.isComplete)
-        }
-        
         val isInningsComplete = checkInningsCompletion(innings)
+        val willShowBatsmanDialog = !isInningsComplete && isWicket && !isAbandoned
 
-        if (!isInningsComplete) {
-            if (isWicket && !isAbandoned) {
-                val isStrikerOut = isStrikerReplacingOverride ?: ((outPlayer ?: facingBatsman ?: striker) == striker)
-                showBatsmanSelectionDialog(isStrikerOut)
-            }
+        if (isOverComplete) {
+            handleOverCompletion(innings, showDialog = !innings.isComplete && !willShowBatsmanDialog)
+        }
+
+        if (willShowBatsmanDialog) {
+            val isStrikerOut = isStrikerReplacingOverride ?: ((outPlayer ?: facingBatsman ?: striker) == striker)
+            showBatsmanSelectionDialog(isStrikerOut)
         }
 
         updateUI()
@@ -1406,10 +1524,27 @@ class MainActivity : BaseActivity(), ScoringProvider {
         overBallsList.forEach { b -> sbSummaryBalls.append(b).append(" ") }
         val ballListStrRecon = sbSummaryBalls.toString().trim()
 
+        val currentOverBowlers = mutableSetOf<String>()
+        var legalBallsInCurrentOver = 0
+        for (i in innings.balls.indices.reversed()) {
+            val b = innings.balls[i]
+            if (b.type == BallType.PENALTY) continue
+            val bName = b.bowlerName?.trim()
+            if (!bName.isNullOrEmpty()) {
+                currentOverBowlers.add(bName)
+            }
+            if (b.type == BallType.NORMAL || b.type == BallType.BYE || b.type == BallType.LEG_BYE) {
+                legalBallsInCurrentOver++
+                if (legalBallsInCurrentOver == 6) break
+            }
+        }
+        val isOverShared = (match?.isSharedOver == true && currentOverBowlers.size > 1) || currentOverBowlers.size > 1
+        match?.isSharedOver = isOverShared
+
         var isMaiden = false
         if (this.overBowlerRuns == 0) {
             isMaiden = true
-            if (match?.isSharedOver == false && bowler != null) {
+            if (!isOverShared && bowler != null) {
                 bowler?.let { b -> b.maidens++ }
             }
         }
@@ -1438,7 +1573,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
         innings.commentary.firstOrNull()?.let { commentary.add(0, it) }
 
         // If Maiden, add milestone commentary SECOND so it appears ABOVE the over summary card
-        if (isMaiden && match?.isSharedOver == false && bowler != null) {
+        if (isMaiden && !isOverShared && bowler != null) {
             bowler?.let { b ->
                 val maidenMsg = "MAIDEN OVER! Splendid bowling by ${b.name}."
                 innings.addCommentary("FACT", maidenMsg, null, "FACT")
@@ -1446,10 +1581,23 @@ class MainActivity : BaseActivity(), ScoringProvider {
             }
         }
 
+        isOverCompleteMaiden = isMaiden
+        isOverCompleteDialogShowing = true
+        isOverTransitionPending = true
+        viewModel?.let {
+            it.isOverCompleteMaiden = isMaiden
+            it.isOverCompleteDialogShowing = true
+            it.isOverTransitionPending = true
+        }
+
         if (!showDialog) return
 
-        isOverCompleteDialogShowing = true
-        
+        showOverCompleteSummaryDialog(innings, isMaiden)
+    }
+
+    private fun showOverCompleteSummaryDialog(innings: Innings, isMaiden: Boolean) {
+        val overNum = innings.legalBalls / 6
+        val matchScore = "${innings.totalRuns}-${innings.totalWickets}"
         val view = layoutInflater.inflate(R.layout.dialog_over_summary, null)
         
         val ordinal = when {
@@ -1516,19 +1664,64 @@ class MainActivity : BaseActivity(), ScoringProvider {
         activeOverSummaryDialog = dialog
 
         view.findViewById<View>(R.id.btnNextOverDialog).setOnClickListener {
-            dialog.dismiss()
-            activeOverSummaryDialog = null
+            completeOverTransition()
+        }
+    }
+
+    private fun completeOverTransition() {
+        activeOverSummaryDialog?.dismiss()
+        activeOverSummaryDialog = null
+        isOverCompleteDialogShowing = false
+        viewModel?.isOverCompleteDialogShowing = false
+
+        overRuns = 0
+        overBowlerRuns = 0
+        overWickets = 0
+        overBallsList.clear()
+        match?.isSharedOver = false
+        swapBatsmen()
+        if (!isFinished && !isAbandoned) {
+            val bowlingTeam = if (teamABatting) teamBNames else teamANames
+            if (bowlingTeam != null && bowlingTeam.filterNotNull().size > 1) {
+                showBowlerSelectionDialog(Runnable {
+                    isOverTransitionPending = false
+                    viewModel?.isOverTransitionPending = false
+                }, false)
+            } else {
+                isOverTransitionPending = false
+                viewModel?.isOverTransitionPending = false
+                updateUI()
+            }
+        } else {
+            isOverTransitionPending = false
+            viewModel?.isOverTransitionPending = false
+        }
+    }
+
+    private fun resumePendingOverTransitionIfNeeded() {
+        if (match?.currentInnings?.isComplete == true || isFinished || isAbandoned) {
+            isOverTransitionPending = false
             isOverCompleteDialogShowing = false
-            overRuns = 0
-            overBowlerRuns = 0
-            overWickets = 0
-            overBallsList.clear()
-            swapBatsmen()
-            if (!isFinished && !isAbandoned) {
+            viewModel?.isOverTransitionPending = false
+            viewModel?.isOverCompleteDialogShowing = false
+            return
+        }
+
+        if (isOverTransitionPending) {
+            if (isOverCompleteDialogShowing) {
+                match?.currentInnings?.let { inn ->
+                    showOverCompleteSummaryDialog(inn, isOverCompleteMaiden)
+                }
+            } else {
                 val bowlingTeam = if (teamABatting) teamBNames else teamANames
                 if (bowlingTeam != null && bowlingTeam.filterNotNull().size > 1) {
-                    showBowlerSelectionDialog(null, false)
+                    showBowlerSelectionDialog(Runnable {
+                        isOverTransitionPending = false
+                        viewModel?.isOverTransitionPending = false
+                    }, false)
                 } else {
+                    isOverTransitionPending = false
+                    viewModel?.isOverTransitionPending = false
                     updateUI()
                 }
             }
@@ -1541,10 +1734,28 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val teamName = innings.battingTeam ?: "Batting Team"
         val scoreMsg = "$teamName scored $score Runs in $oversStr Overs"
         
-        val matchOvers = match?.totalOvers ?: 0
-        val targetRuns = match?.target ?: 0
+        val matchOvers = innings.revisedMaxOvers ?: match?.totalOvers ?: 0
         val totalBalls = matchOvers * 6
-        val targetMsg = "Target: $targetRuns Runs in $totalBalls Balls"
+
+        val m = match
+        val isDlsApplied = (m?.resourcesLostTeam1 ?: 0.0) > 0.0 || m?.revisedTarget != null
+        val targetRuns = if (m?.revisedTarget != null) {
+            m.revisedTarget!!
+        } else if ((m?.resourcesLostTeam1 ?: 0.0) > 0.0) {
+            val r1 = (100.0 - m!!.resourcesLostTeam1).coerceAtLeast(0.0)
+            val r2 = DLSUtility.getResource(matchOvers, 0, m.totalOvers)
+            val dlsTarget = DLSUtility.calculateRevisedTarget(innings.totalRuns, r1, r2, m.totalOvers)
+            m.revisedTarget = dlsTarget
+            dlsTarget
+        } else {
+            match?.target ?: (innings.totalRuns + 1)
+        }
+
+        val targetMsg = if (isDlsApplied) {
+            "DLS Target: $targetRuns Runs in $totalBalls Balls"
+        } else {
+            "Target: $targetRuns Runs in $totalBalls Balls"
+        }
         
         innings.addCommentary(innings.oversDisplay, scoreMsg, null, "FACT")
         innings.addCommentary(innings.oversDisplay, targetMsg, null, "FACT")
@@ -1672,16 +1883,53 @@ class MainActivity : BaseActivity(), ScoringProvider {
         }
     }
 
+    private fun getPreviousOverStartingBowler(innings: Innings): String? {
+        if (innings.balls.isEmpty()) return null
+        var legalBallsCount = 0
+        var firstBallOfOver: Ball? = null
+        for (i in innings.balls.indices.reversed()) {
+            val b = innings.balls[i]
+            if (b.type == BallType.PENALTY) continue
+            firstBallOfOver = b
+            if (b.type == BallType.NORMAL || b.type == BallType.BYE || b.type == BallType.LEG_BYE) {
+                legalBallsCount++
+                if (legalBallsCount == 6) {
+                    for (j in (i - 1) downTo 0) {
+                        val prevBall = innings.balls[j]
+                        if (prevBall.type == BallType.PENALTY) continue
+                        if (prevBall.type == BallType.NORMAL || prevBall.type == BallType.BYE || prevBall.type == BallType.LEG_BYE) {
+                            break
+                        }
+                        firstBallOfOver = prevBall
+                    }
+                    break
+                }
+            }
+        }
+        return firstBallOfOver?.bowlerName
+    }
+
     override fun showBowlerSelectionDialog(onDone: Runnable?, cancelable: Boolean) {
         val bowlingTeam = if (teamABatting) teamBNames else teamANames
         if (bowlingTeam == null) return
 
-        val currentBowler = bowler?.name?.trim() ?: ""
         val allNames = bowlingTeam.mapNotNull { it?.trim() }
-        
-        val isShared = match?.isSharedOver ?: false
-        val filteredNames = if (allNames.size > 1 && !isShared) {
-            allNames.filter { !it.equals(currentBowler, ignoreCase = true) }
+
+        val innings = match?.currentInnings
+        val isMidOver = innings != null && isInMiddleOfOver(innings)
+
+        // In mid-over, exclude the current bowler being replaced.
+        // At the start of a new over, exclude the bowler who STARTED the previous over.
+        val excludedBowler = if (isMidOver) {
+            bowler?.name?.trim()
+        } else if (innings != null && innings.legalBalls > 0 && innings.legalBalls % 6 == 0) {
+            getPreviousOverStartingBowler(innings)?.trim()
+        } else {
+            null
+        }
+
+        val filteredNames = if (allNames.size > 1 && !excludedBowler.isNullOrEmpty()) {
+            allNames.filter { !it.equals(excludedBowler, ignoreCase = true) }
         } else {
             allNames
         }
@@ -1699,10 +1947,16 @@ class MainActivity : BaseActivity(), ScoringProvider {
             setTitle(getString(R.string.select_bowler))
             setItems(namesArray) { d, w ->
                 val selectedName = namesArray[w]
-                bowler = getPlayerFromCache(selectedName)
+                val previousBowler = bowler
+                val newBowler = getPlayerFromCache(selectedName)
+                bowler = newBowler
 
-                // If selecting for a new over (0 balls) and flag was set, reset it
-                if (match?.currentInnings?.legalBalls?.let { it % 6 == 0 } == true) {
+                val innings = match?.currentInnings
+                val isMidOver = innings != null && isInMiddleOfOver(innings)
+
+                if (isMidOver && newBowler != null && !newBowler.name.equals(previousBowler?.name, ignoreCase = true)) {
+                    match?.isSharedOver = true
+                } else if (innings?.legalBalls?.let { it % 6 == 0 } == true) {
                     match?.isSharedOver = false
                 }
 
@@ -1726,7 +1980,6 @@ class MainActivity : BaseActivity(), ScoringProvider {
             setTitle("Change Bowler Mid-Over?")
             setMessage("Do you want to change the bowler in the middle of this over?")
             setPositiveButton("Yes") { _, _ ->
-                match?.isSharedOver = true
                 showBowlerSelectionDialog(null, true)
             }
             setNegativeButton("Dismiss", null)
@@ -1798,6 +2051,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
     }
 
     override fun handleWide() {
+        if (isOverCompleteDialogShowing || isOverTransitionPending) return
+        if (pendingBatsmanReplacementEnd != null || striker?.isOut == true || (nonStriker != null && nonStriker!!.isOut)) return
         val baseExtra = if (isRuleRunsOnWide) 1 else 0
         val originalStriker = striker
         
@@ -1831,7 +2086,6 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 cornerRadius = 65
                 setOnClickListener {
                     dialogRef[0]?.dismiss()
-                    if (r % 2 != 0) swapBatsmen()
                     showWicketOnWideDialog(baseExtra + r, originalStriker)
                 }
             }
@@ -1853,13 +2107,13 @@ class MainActivity : BaseActivity(), ScoringProvider {
         }
         linearLayout.addView(etRuns)
 
+        val wideTitle = if (isRuleRunsOnWide) "Wide: (1 WD + runs ran)" else "Wide: Runs Ran?"
         dialogRef[0] = ThemeManager.createDynamicBuilder(this)
-            .setTitle("Wide: Runs Ran?")
+            .setTitle(wideTitle)
             .setView(linearLayout)
             .setPositiveButton("Confirm") { _, _ ->
                 val input = etRuns.text.toString()
                 val r = if (input.isEmpty()) 0 else input.toInt()
-                if (r % 2 != 0) swapBatsmen()
                 showWicketOnWideDialog(baseExtra + r, originalStriker)
             }
             .setNegativeButton("Cancel", null)
@@ -1874,11 +2128,14 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val runsRan = wideRuns - widePenalty
         
         val optionsList = mutableListOf("None", "Run Out")
-        if (runsRan == 0) {
+        val bowlingTeam = if (teamABatting) teamBNames else teamANames
+        val bowlerName = bowler?.name ?: ""
+        val hasEligibleKeepers = bowlingTeam?.filterNotNull()?.any { it != bowlerName } == true
+        if (runsRan == 0 && !isFreeHitActive && hasEligibleKeepers) {
             optionsList.add("Stumped")
         }
         optionsList.add("Obstructing Field")
-        if (runsRan == 0) {
+        if (runsRan == 0 && !isFreeHitActive) {
             optionsList.add("Hit Wicket")
         }
         
@@ -1894,11 +2151,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     "Obstructing Field" -> showObstructingFieldFlowOnWide(wideRuns, facingBatsman)
                     "Hit Wicket" -> {
                         val dStr = "Hit Wicket b ${bowler?.name ?: "Bowler"}"
-                        commitWicket(striker, facingBatsman, dStr, BallType.WIDE, wideRuns, false, null, 0, true)
+                        commitWicket(striker, facingBatsman, dStr, BallType.WIDE, wideRuns, false, null, 0, true, dismissalType = DismissalType.HIT_WICKET)
                     }
                 }
             }
-            setCancelable(false)
+            setNegativeButton("Cancel", null)
+            setCancelable(true)
         }
     }
 
@@ -1906,6 +2164,10 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val bowlingTeam = if (teamABatting) teamBNames else teamANames
         val bowlerName = bowler?.name ?: ""
         val options = bowlingTeam?.filterNotNull()?.filter { it != bowlerName } ?: emptyList()
+        if (options.isEmpty()) {
+            Toast.makeText(this, "No wicketkeeper available", Toast.LENGTH_SHORT).show()
+            return
+        }
         val array = options.toTypedArray()
 
         showDynamicDialog {
@@ -1915,14 +2177,17 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 val outP = striker ?: return@setItems
                 val bName = bowler?.name ?: "Bowler"
                 val dStr = "st $keeper b $bName"
-                commitWicket(outP, facingBatsman, dStr, BallType.WIDE, wideRuns, false, keeper, 0, true)
+                commitWicket(outP, facingBatsman, dStr, BallType.WIDE, wideRuns, false, keeper, 0, true, dismissalType = DismissalType.STUMPED, primaryFielder = getPlayerFromCache(keeper))
             }
-            setCancelable(false)
+            setNegativeButton("Cancel", null)
+            setCancelable(true)
         }
     }
 
 
     override fun handleNoBall() {
+        if (isOverCompleteDialogShowing || isOverTransitionPending) return
+        if (pendingBatsmanReplacementEnd != null || striker?.isOut == true || (nonStriker != null && nonStriker!!.isOut)) return
         if (isRuleRunsOnBye) {
             val options = arrayOf("Off Bat", "Byes", "Leg-Byes")
             showDynamicDialog {
@@ -1971,7 +2236,6 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 setOnClickListener {
                     dialogRef[0]?.dismiss()
                     val originalStriker = striker
-                    if (r % 2 != 0) swapBatsmen()
                     showWicketOnNoBallDialog(nbPenalty + r, runType, r, originalStriker)
                 }
             }
@@ -1992,14 +2256,14 @@ class MainActivity : BaseActivity(), ScoringProvider {
         }
         linearLayout.addView(etRuns)
 
+        val nbTitle = if (isRuleRunsOnWide) "No-Ball: (1 NB + runs $runType)" else "No-Ball: Runs $runType?"
         dialogRef[0] = showDynamicDialog {
-            setTitle("No-Ball: Runs $runType?")
+            setTitle(nbTitle)
             setView(linearLayout)
             setPositiveButton("Confirm") { _, _ ->
                 val originalStriker = striker
                 val input = etRuns.text.toString()
                 val r = if (input.isEmpty()) 0 else input.toInt()
-                if (r % 2 != 0) swapBatsmen()
                 showWicketOnNoBallDialog(nbPenalty + r, runType, r, originalStriker)
             }
             setNegativeButton("Cancel", null)
@@ -2012,11 +2276,16 @@ class MainActivity : BaseActivity(), ScoringProvider {
             setTitle("Wicket on this No-Ball?")
             setItems(options) { _, w ->
                 val manualBatRuns = if ("Off Bat" == runType) runsRan else 0
+                val byeRuns = if ("Byes" == runType) runsRan else 0
+                val legByeRuns = if ("Leg-Byes" == runType) runsRan else 0
                 
                 when (w) {
-                    0 -> playBallWithPlayer(totalRuns, BallType.NO_BALL, false, facingBatsman, null, manualBatRuns)
-                    1 -> showRunOutFlowOnNoBall(totalRuns, manualBatRuns, facingBatsman)
-                    2 -> showObstructingFieldFlowOnNoBall(totalRuns, manualBatRuns, facingBatsman)
+                    0 -> {
+                        val isBoundary = ("Off Bat" == runType) && (manualBatRuns == 4 || manualBatRuns == 6)
+                        playBallWithPlayer(totalRuns, BallType.NO_BALL, false, facingBatsman, null, manualBatRuns, byeRuns = byeRuns, legByeRuns = legByeRuns, isBoundary = isBoundary)
+                    }
+                    1 -> showRunOutFlowOnNoBall(totalRuns, manualBatRuns, facingBatsman, byeRuns = byeRuns, legByeRuns = legByeRuns, runsRan = runsRan)
+                    2 -> showObstructingFieldFlowOnNoBall(totalRuns, manualBatRuns, facingBatsman, byeRuns = byeRuns, legByeRuns = legByeRuns, runsRan = runsRan)
                 }
             }
             setCancelable(false)
@@ -2024,6 +2293,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
     }
 
     override fun handleBye() {
+        if (isOverCompleteDialogShowing || isOverTransitionPending) return
+        if (pendingBatsmanReplacementEnd != null || striker?.isOut == true || (nonStriker != null && nonStriker!!.isOut)) return
         if (isRuleRunsOnBye) {
             showByesFlow()
         } else {
@@ -2061,7 +2332,6 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 setPadding(0, 0, 0, 0)
                 setOnClickListener {
                     dialogRef[0]?.dismiss()
-                    if (r % 2 != 0) swapBatsmen()
                     showWicketOnByeDialog(r, originalStriker)
                 }
             }
@@ -2099,7 +2369,6 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 etRuns.error = "Minimum 1 run required for Byes"
             } else {
                 dialogRef[0]?.dismiss()
-                if (r % 2 != 0) swapBatsmen()
                 showWicketOnByeDialog(r, originalStriker)
             }
         }
@@ -2123,6 +2392,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
     private fun showRunOutFlowForBye(runs: Int, facingBatsman: Player?) {
         val onFielderSelected: (Player, String, String) -> Unit = { outP, thrower, breaker ->
             val performCommit: (Boolean) -> Unit = { isStrikerEnd ->
+                if (runs % 2 != 0) swapBatsmen()
+
                 // Slot Correction (only for 2-batter mode)
                 if (nonStriker != null) {
                     if (isStrikerEnd && outP == nonStriker) {
@@ -2147,7 +2418,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 if (currentStriker == null) {
                     Toast.makeText(this, "No batsman available", Toast.LENGTH_SHORT).show()
                 } else {
-                    commitWicket(outP, currentStriker, dStr, BallType.BYE, runs, true, fielderForRecord, 0, isStrikerEnd)
+                    commitWicket(outP, currentStriker, dStr, BallType.BYE, runs, true, fielderForRecord, 0, isStrikerEnd, dismissalType = DismissalType.RUN_OUT, primaryFielder = getPlayerFromCache(thrower), secondaryFielder = getPlayerFromCache(breaker))
                 }
             }
 
@@ -2178,13 +2449,17 @@ class MainActivity : BaseActivity(), ScoringProvider {
             striker?.let { startFielderChain(it) }
         } else {
             showOutPlayerSelection("Who is Run Out?") { outP ->
-                if (outP != null) startFielderChain(outP)
+                if (outP != null) {
+                    startFielderChain(outP)
+                }
             }
         }
     }
 
     private fun showObstructingFieldFlowForBye(runs: Int, facingBatsman: Player?) {
         val performCommit: (Player, Boolean) -> Unit = { outP, isStrikerEnd ->
+            if (runs % 2 != 0) swapBatsmen()
+
             // Slot Correction
             if (nonStriker != null) {
                 if (isStrikerEnd && outP == nonStriker) {
@@ -2197,7 +2472,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             if (currentStriker == null) {
                 Toast.makeText(this, "No batsman available", Toast.LENGTH_SHORT).show()
             } else {
-                commitWicket(outP, currentStriker, "Obstructing the field", BallType.BYE, runs, false, null, 0, isStrikerEnd)
+                commitWicket(outP, currentStriker, "Obstructing the field", BallType.BYE, runs, false, null, 0, isStrikerEnd, dismissalType = DismissalType.OBSTRUCTING)
             }
         }
 
@@ -2205,7 +2480,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
             striker?.let { performCommit(it, true) }
         } else {
             showOutPlayerSelection("Which batsman Obstructed the field?") { outP ->
-                if (outP == null) return@showOutPlayerSelection
+                if (outP == null) {
+                    return@showOutPlayerSelection
+                }
                 showDynamicDialog {
                     setTitle("Which end did the Obstruction happened?")
                     setItems(arrayOf("Striker's End", "Non-Striker's End")) { _, end ->
@@ -2218,6 +2495,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
     }
 
     override fun handleLegBye() {
+        if (isOverCompleteDialogShowing || isOverTransitionPending) return
+        if (pendingBatsmanReplacementEnd != null || striker?.isOut == true || (nonStriker != null && nonStriker!!.isOut)) return
         if (isRuleRunsOnBye) {
             showLegByesFlow()
         } else {
@@ -2255,7 +2534,6 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 setPadding(0, 0, 0, 0)
                 setOnClickListener {
                     dialogRef[0]?.dismiss()
-                    if (r % 2 != 0) swapBatsmen()
                     showWicketOnLegByeDialog(r, originalStriker)
                 }
             }
@@ -2293,7 +2571,6 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 etRuns.error = "Minimum 1 run required for Leg Byes"
             } else {
                 dialogRef[0]?.dismiss()
-                if (r % 2 != 0) swapBatsmen()
                 showWicketOnLegByeDialog(r, originalStriker)
             }
         }
@@ -2317,6 +2594,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
     private fun showRunOutFlowForLegBye(runs: Int, facingBatsman: Player?) {
         val onFielderSelected: (Player, String, String) -> Unit = { outP, thrower, breaker ->
             val performCommit: (Boolean) -> Unit = { isStrikerEnd ->
+                if (runs % 2 != 0) swapBatsmen()
+
                 // Slot Correction (only for 2-batter mode)
                 if (nonStriker != null) {
                     if (isStrikerEnd && outP == nonStriker) {
@@ -2341,7 +2620,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 if (currentStriker == null) {
                     Toast.makeText(this, "No batsman available", Toast.LENGTH_SHORT).show()
                 } else {
-                    commitWicket(outP, currentStriker, dStr, BallType.LEG_BYE, runs, true, fielderForRecord, 0, isStrikerEnd)
+                    commitWicket(outP, currentStriker, dStr, BallType.LEG_BYE, runs, true, fielderForRecord, 0, isStrikerEnd, dismissalType = DismissalType.RUN_OUT, primaryFielder = getPlayerFromCache(thrower), secondaryFielder = getPlayerFromCache(breaker))
                 }
             }
 
@@ -2372,13 +2651,17 @@ class MainActivity : BaseActivity(), ScoringProvider {
             striker?.let { startFielderChain(it) }
         } else {
             showOutPlayerSelection("Who is Run Out?") { outP ->
-                if (outP != null) startFielderChain(outP)
+                if (outP != null) {
+                    startFielderChain(outP)
+                }
             }
         }
     }
 
     private fun showObstructingFieldFlowForLegBye(runs: Int, facingBatsman: Player?) {
         val performCommit: (Player, Boolean) -> Unit = { outP, isStrikerEnd ->
+            if (runs % 2 != 0) swapBatsmen()
+
             // Slot Correction
             if (nonStriker != null) {
                 if (isStrikerEnd && outP == nonStriker) {
@@ -2391,7 +2674,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             if (currentStriker == null) {
                 Toast.makeText(this, "No batsman available", Toast.LENGTH_SHORT).show()
             } else {
-                commitWicket(outP, currentStriker, "Obstructing the field", BallType.LEG_BYE, runs, false, null, 0, isStrikerEnd)
+                commitWicket(outP, currentStriker, "Obstructing the field", BallType.LEG_BYE, runs, false, null, 0, isStrikerEnd, dismissalType = DismissalType.OBSTRUCTING)
             }
         }
 
@@ -2399,7 +2682,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
             striker?.let { performCommit(it, true) }
         } else {
             showOutPlayerSelection("Which batsman Obstructed the field?") { outP ->
-                if (outP == null) return@showOutPlayerSelection
+                if (outP == null) {
+                    return@showOutPlayerSelection
+                }
                 showDynamicDialog {
                     setTitle("Which end did the Obstruction happened?")
                     setItems(arrayOf("Striker's End", "Non-Striker's End")) { _, end ->
@@ -2412,6 +2697,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
     }
 
     override fun handleOverthrow() {
+        if (isOverCompleteDialogShowing || isOverTransitionPending) return
+        if (pendingBatsmanReplacementEnd != null || striker?.isOut == true || (nonStriker != null && nonStriker!!.isOut)) return
         val innings = match?.currentInnings
         if (innings == null) {
             Toast.makeText(this, "Match not started", Toast.LENGTH_SHORT).show()
@@ -2539,8 +2826,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
             Toast.makeText(this, "High run count entered: $totalNewRuns. Please verify.", Toast.LENGTH_SHORT).show()
         }
 
-        // Record a NEW legal delivery
-        playBall(totalNewRuns, BallType.NORMAL, false)
+        // Record a NEW legal delivery with overthrowRuns and isBoundary = false
+        playBallWithPlayer(totalNewRuns, BallType.NORMAL, false, null, null, totalNewRuns, isBoundary = false, overthrowRuns = after)
         
         // Update the commentary entry that was just created by playBall to include breakdown
         if (commentary.isNotEmpty()) {
@@ -2555,19 +2842,26 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
 
     override fun handleWicketFlow() {
+        if (isOverCompleteDialogShowing || isOverTransitionPending) return
+        if (pendingBatsmanReplacementEnd != null || striker?.isOut == true || (nonStriker != null && nonStriker!!.isOut)) return
+        val bowlingTeam = if (teamABatting) teamBNames else teamANames
+        val bowlerName = bowler?.name ?: ""
+        val hasEligibleKeepers = bowlingTeam?.filterNotNull()?.any { it != bowlerName } == true
+
         val items = if (isFreeHitActive) {
             arrayOf("Run Out", "Obstructing the Field")
         } else {
-            arrayOf(
+            val list = mutableListOf(
                 "Bowled Out", 
                 "Caught Out", 
                 "Run Out", 
-                "Hit Out of The Ground", 
-                "Stumped", 
-                "LBW", 
-                "Hit Wicket", 
-                "Obstructing the Field",
+                "Hit Out of The Ground"
             )
+            if (hasEligibleKeepers) {
+                list.add("Stumped")
+            }
+            list.addAll(listOf("LBW", "Hit Wicket", "Obstructing the Field"))
+            list.toTypedArray()
         }
 
         showDynamicDialog {
@@ -2576,21 +2870,23 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 val type = items[w]
                 val bName = bowler?.name ?: "Bowler"
                 when (type) {
-                    "Bowled Out" -> commitWicket(striker, striker, "b $bName")
+                    "Bowled Out" -> commitWicket(striker, striker, "b $bName", dismissalType = DismissalType.BOWLED)
                     "Caught Out" -> showFielderSelection("Who caught it?", false) { fielder ->
                         val dStr = if (fielder == bName) "c & b $bName" else "c $fielder b $bName"
-                        commitWicket(striker, striker, dStr, fielder = fielder)
+                        commitWicket(striker, striker, dStr, fielder = fielder, dismissalType = DismissalType.CAUGHT, primaryFielder = getPlayerFromCache(fielder))
                     }
                     "Run Out" -> showRunOutFlow()
-                    "Hit Out of The Ground" -> commitWicket(striker, striker, "Hit Out Of The Ground b $bName")
+                    "Hit Out of The Ground" -> commitWicket(striker, striker, "Hit Out Of The Ground b $bName", dismissalType = DismissalType.HIT_OUT_OF_GROUND)
                     "Stumped" -> showFielderSelection("Who is the Wicketkeeper?", false, exclude = listOfNotNull(bowler?.name)) { keeper ->
-                        commitWicket(striker, striker, "st $keeper b $bName", fielder = keeper)
+                        commitWicket(striker, striker, "st $keeper b $bName", fielder = keeper, dismissalType = DismissalType.STUMPED, primaryFielder = getPlayerFromCache(keeper))
                     }
-                    "LBW" -> commitWicket(striker, striker, "LBW b $bName")
-                    "Hit Wicket" -> commitWicket(striker, striker, "Hit Wicket b $bName")
+                    "LBW" -> commitWicket(striker, striker, "LBW b $bName", dismissalType = DismissalType.LBW)
+                    "Hit Wicket" -> commitWicket(striker, striker, "Hit Wicket b $bName", dismissalType = DismissalType.HIT_WICKET)
                     "Obstructing the Field", -> showObstructingFieldFlow()
                 }
             }
+            setNegativeButton("Cancel", null)
+            setCancelable(true)
         }
     }
 
@@ -2689,10 +2985,11 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
     private fun processRunOutWithRuns(runs: Int, bt: BallType) {
         val originalStriker = striker
-        if (runs % 2 != 0) swapBatsmen()
 
         val onFielderSelected: (Player, String, String) -> Unit = { outP, thrower, breaker ->
             val performCommit: (Boolean) -> Unit = { isStrikerEnd ->
+                if (runs % 2 != 0) swapBatsmen()
+
                 // Slot Correction (only for 2-batter mode)
                 if (nonStriker != null) {
                     if (isStrikerEnd && outP == nonStriker) {
@@ -2715,7 +3012,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     else -> null
                 }
                 val manualBat = if (bt == BallType.NORMAL) runs else 0
-                commitWicket(outP, originalStriker, dStr, bt, runs, true, fielderForRecord, manualBat, isStrikerEnd)
+                commitWicket(outP, originalStriker, dStr, bt, runs, true, fielderForRecord, manualBat, isStrikerEnd, dismissalType = DismissalType.RUN_OUT, primaryFielder = getPlayerFromCache(thrower), secondaryFielder = getPlayerFromCache(breaker))
             }
 
             if (nonStriker == null) {
@@ -2817,12 +3114,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
     private fun processObstructingFieldWithRuns(runs: Int) {
         val originalStriker = striker
-        if (runs % 2 != 0) swapBatsmen()
 
         if (nonStriker == null) {
             // Single batter mode: Striker is the only one who can be out at Striker's End
             striker?.let { outP ->
-                commitWicket(outP, originalStriker, "Obstructed the field", BallType.NORMAL, runs, false, null, runs, true)
+                if (runs % 2 != 0) swapBatsmen()
+                commitWicket(outP, originalStriker, "Obstructed the field", BallType.NORMAL, runs, false, null, runs, true, dismissalType = DismissalType.OBSTRUCTING)
             }
         } else {
             showOutPlayerSelection("Who obstructed the field?") { outP ->
@@ -2832,6 +3129,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     setItems(arrayOf("Striker's End", "Non-Striker's End")) { _, end ->
                         val isStrikerEnd = (end == 0)
                         
+                        if (runs % 2 != 0) swapBatsmen()
+
                         // Slot Correction
                         if (isStrikerEnd && outP == nonStriker) {
                             swapBatsmen()
@@ -2839,7 +3138,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
                             swapBatsmen()
                         }
                         
-                        commitWicket(outP, originalStriker, "Obstructed the field", BallType.NORMAL, runs, false, null, runs, isStrikerEnd)
+                        commitWicket(outP, originalStriker, "Obstructed the field", BallType.NORMAL, runs, false, null, runs, isStrikerEnd, dismissalType = DismissalType.OBSTRUCTING)
                     }
                     setCancelable(false)
                 }
@@ -2850,28 +3149,56 @@ class MainActivity : BaseActivity(), ScoringProvider {
     private fun commitWicket(
         p: Player?,
         facingBatsman: Player?,
-        type: String,
+        type: String, // Kept for legacy display string 
         bt: BallType = BallType.NORMAL,
         runs: Int = 0,
         isRO: Boolean = false,
         fielder: String? = null,
         batRuns: Int = 0,
-        isStrikerReplacingOverride: Boolean? = null
+        isStrikerReplacingOverride: Boolean? = null,
+        dismissalType: DismissalType = DismissalType.OTHER,
+        primaryFielder: Player? = null,
+        secondaryFielder: Player? = null,
+        byeRuns: Int = 0,
+        legByeRuns: Int = 0
     ) {
         if (p == null) return
+        val currentBowler = bowler
+        if (currentBowler == null) {
+            Toast.makeText(this, "Please select a bowler first", Toast.LENGTH_SHORT).show()
+            val bowlingTeam = if (teamABatting) teamBNames else teamANames
+            if (bowlingTeam != null && bowlingTeam.filterNotNull().size > 1) {
+                showBowlerSelectionDialog(null, false)
+            }
+            return
+        }
         
         p.isOut = true
         p.dismissalInfo = type
-        if (!isRO && bowler != null) {
-            bowler?.wicketsTaken = (bowler?.wicketsTaken ?: 0) + 1
+        if (dismissalType.isBowlerWicket) {
+            currentBowler.wicketsTaken = currentBowler.wicketsTaken + 1
         }
         
-        playBallWithPlayer(runs, bt, true, facingBatsman, fielder, batRuns, p, isStrikerReplacingOverride)
+        val wd = WicketDetail(
+            dismissedPlayerId = p.id!!,
+            dismissalType = dismissalType,
+            bowlerId = currentBowler.id,
+            primaryFielderId = primaryFielder?.id,
+            secondaryFielderId = secondaryFielder?.id,
+            runsCompleted = runs,
+            isStrikerEnd = isStrikerReplacingOverride ?: true
+        )
+        
+        playBallWithPlayer(runs, bt, true, facingBatsman, fielder, batRuns, p, isStrikerReplacingOverride, wd, byeRuns = byeRuns, legByeRuns = legByeRuns, isBoundary = false)
     }
 
     private fun showRunOutFlowOnWide(wideRuns: Int, facingBatsman: Player?) {
         val onFielderSelected: (Player, String, String) -> Unit = { outP, thrower, breaker ->
             val performCommit: (Boolean) -> Unit = { isStrikerEnd ->
+                val widePenalty = if (isRuleRunsOnWide) 1 else 0
+                val runsRan = (wideRuns - widePenalty).coerceAtLeast(0)
+                if (runsRan % 2 != 0) swapBatsmen()
+
                 // Slot Correction (only for 2-batter mode)
                 if (nonStriker != null) {
                     if (isStrikerEnd && outP == nonStriker) {
@@ -2892,7 +3219,17 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 outP.isOut = true
                 outP.dismissalInfo = "Run Out ($fielder)"
                 
-                playBallWithPlayer(wideRuns, BallType.WIDE, true, facingBatsman, fielder, 0, outP, isStrikerEnd)
+                val wd = WicketDetail(
+                    dismissedPlayerId = outP.id!!,
+                    dismissalType = DismissalType.RUN_OUT,
+                    bowlerId = bowler?.id,
+                    primaryFielderId = getPlayerFromCache(thrower)?.id,
+                    secondaryFielderId = getPlayerFromCache(breaker)?.id,
+                    runsCompleted = wideRuns,
+                    isStrikerEnd = isStrikerEnd
+                )
+                
+                playBallWithPlayer(wideRuns, BallType.WIDE, true, facingBatsman, fielder, 0, outP, isStrikerEnd, wd)
             }
 
             if (nonStriker == null) {
@@ -2929,6 +3266,10 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
     private fun showObstructingFieldFlowOnWide(wideRuns: Int, facingBatsman: Player?) {
         val performCommit: (Player, Boolean) -> Unit = { outP, isStrikerEnd ->
+            val widePenalty = if (isRuleRunsOnWide) 1 else 0
+            val runsRan = (wideRuns - widePenalty).coerceAtLeast(0)
+            if (runsRan % 2 != 0) swapBatsmen()
+
             // Slot Correction
             if (nonStriker != null) {
                 if (isStrikerEnd && outP == nonStriker) {
@@ -2937,9 +3278,11 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     swapBatsmen()
                 }
             }
-            outP.isOut = true
-            outP.dismissalInfo = "Obstructed The Field"
-            playBallWithPlayer(wideRuns, BallType.WIDE, true, facingBatsman, null, 0, outP, isStrikerEnd)
+            commitWicket(
+                outP, facingBatsman, "Obstructed The Field", BallType.WIDE, wideRuns,
+                isStrikerReplacingOverride = isStrikerEnd,
+                dismissalType = DismissalType.OBSTRUCTING
+            )
         }
 
         if (nonStriker == null) {
@@ -2958,9 +3301,18 @@ class MainActivity : BaseActivity(), ScoringProvider {
         }
     }
 
-    private fun showRunOutFlowOnNoBall(totalRuns: Int, batRuns: Int, facingBatsman: Player?) {
+    private fun showRunOutFlowOnNoBall(
+        totalRuns: Int,
+        batRuns: Int,
+        facingBatsman: Player?,
+        byeRuns: Int = 0,
+        legByeRuns: Int = 0,
+        runsRan: Int = 0
+    ) {
         val onFielderSelected: (Player, String, String) -> Unit = { outP, thrower, breaker ->
             val performCommit: (Boolean) -> Unit = { isStrikerEnd ->
+                if (runsRan % 2 != 0) swapBatsmen()
+
                 // Slot Correction (only for 2-batter mode)
                 if (nonStriker != null) {
                     if (isStrikerEnd && outP == nonStriker) {
@@ -2981,7 +3333,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 }
                 
                 val fielderForRecord = if (breaker != "None") breaker else if (thrower != "None") thrower else null
-                commitWicket(outP, facingBatsman, dStr, BallType.NO_BALL, totalRuns, true, fielderForRecord, batRuns, isStrikerEnd)
+                commitWicket(
+                    outP, facingBatsman, dStr, BallType.NO_BALL, totalRuns, true, fielderForRecord,
+                    batRuns, isStrikerEnd, dismissalType = DismissalType.RUN_OUT,
+                    primaryFielder = getPlayerFromCache(thrower), secondaryFielder = getPlayerFromCache(breaker),
+                    byeRuns = byeRuns, legByeRuns = legByeRuns
+                )
             }
 
             if (nonStriker == null) {
@@ -3016,8 +3373,17 @@ class MainActivity : BaseActivity(), ScoringProvider {
         }
     }
 
-    private fun showObstructingFieldFlowOnNoBall(totalRuns: Int, batRuns: Int, facingBatsman: Player?) {
+    private fun showObstructingFieldFlowOnNoBall(
+        totalRuns: Int,
+        batRuns: Int,
+        facingBatsman: Player?,
+        byeRuns: Int = 0,
+        legByeRuns: Int = 0,
+        runsRan: Int = 0
+    ) {
         val performCommit: (Player, Boolean) -> Unit = { outP, isStrikerEnd ->
+            if (runsRan % 2 != 0) swapBatsmen()
+
             // Slot Correction
             if (nonStriker != null) {
                 if (isStrikerEnd && outP == nonStriker) {
@@ -3026,7 +3392,11 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     swapBatsmen()
                 }
             }
-            commitWicket(outP, facingBatsman, "Obstructing Field", BallType.NO_BALL, totalRuns, false, null, batRuns, isStrikerEnd)
+            commitWicket(
+                outP, facingBatsman, "Obstructing Field", BallType.NO_BALL, totalRuns, false, null,
+                batRuns, isStrikerEnd, dismissalType = DismissalType.OBSTRUCTING,
+                byeRuns = byeRuns, legByeRuns = legByeRuns
+            )
         }
 
         if (nonStriker == null) {
@@ -3096,15 +3466,25 @@ class MainActivity : BaseActivity(), ScoringProvider {
             names.addAll(allNames.filter { it !in exclude })
         }
 
+        if (names.isEmpty()) {
+            Toast.makeText(this, "No eligible fielders/wicketkeeper available", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val array = names.toTypedArray()
 
         showDynamicDialog {
             setTitle(title)
             setItems(array) { d, w -> callback(array[w]) }
+            setNegativeButton("Cancel", null)
+            setCancelable(true)
         }
     }
 
     override fun showBatsmanSelectionDialog(isStrikerReplacing: Boolean) {
+        pendingBatsmanReplacementEnd = isStrikerReplacing
+        viewModel?.pendingBatsmanReplacementEnd = isStrikerReplacing
+
         val battingTeam = if (teamABatting) teamANames else teamBNames
         val otherPartnerName = if (isStrikerReplacing) nonStriker?.name else striker?.name
         
@@ -3125,6 +3505,10 @@ class MainActivity : BaseActivity(), ScoringProvider {
             } else null
 
             if (lastBatter != null) {
+                pendingBatsmanReplacementEnd = null
+                viewModel?.pendingBatsmanReplacementEnd = null
+                activeBatsmanSelectionDialog = null
+
                 val innings = match?.currentInnings
                 if (innings != null) {
                     val lastMsg = "${lastBatter.name} is the last Batter Standing"
@@ -3133,10 +3517,16 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 }
                 updateUI()
                 saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
+                resumePendingOverTransitionIfNeeded()
                 return
             }
 
+            pendingBatsmanReplacementEnd = null
+            viewModel?.pendingBatsmanReplacementEnd = null
+            activeBatsmanSelectionDialog = null
+
             Toast.makeText(this, "No more batsmen available", Toast.LENGTH_SHORT).show()
+            resumePendingOverTransitionIfNeeded()
             return
         }
 
@@ -3151,9 +3541,13 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
         val array = options.toTypedArray()
 
-        showDynamicDialog {
+        activeBatsmanSelectionDialog?.dismiss()
+        val dialog = showDynamicDialog {
             setTitle(if (isStrikerReplacing) "Select Striker" else "Select Non-Striker")
             setItems(array) { d, w ->
+                pendingBatsmanReplacementEnd = null
+                viewModel?.pendingBatsmanReplacementEnd = null
+                activeBatsmanSelectionDialog = null
                 val selection = array[w]
                 if (selection == "None (Play Alone)") {
                     val oldBatter = if (isStrikerReplacing) striker else nonStriker
@@ -3186,9 +3580,17 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     val p = getPlayerFromCache(selection)
                     if (p != null) {
                         val oldBatter = if (isStrikerReplacing) striker else nonStriker
+                        if (oldBatter != null && (oldBatter == p || oldBatter.name.equals(p.name, ignoreCase = true))) {
+                            if (p.entryTime == 0L && !p.isOut) {
+                                p.entryTime = System.currentTimeMillis()
+                            }
+                            resumePendingOverTransitionIfNeeded()
+                            return@setItems
+                        }
+
                         val isMidInningsReplacement = oldBatter != null && !oldBatter.isOut && oldBatter.name != p.name
 
-                        if (oldBatter != null && oldBatter != p && oldBatter.entryTime > 0L) {
+                        if (oldBatter != null && oldBatter.entryTime > 0L) {
                             val elapsedMs = System.currentTimeMillis() - oldBatter.entryTime
                             val secsToAdd = (elapsedMs / 1000).toInt()
                             if (secsToAdd > 0) {
@@ -3249,9 +3651,11 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 }
                 updateUI()
                 saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
+                resumePendingOverTransitionIfNeeded()
             }
             setCancelable(false)
         }
+        activeBatsmanSelectionDialog = dialog
     }
 
     override fun showRetiredPlayerSelection(isHurt: Boolean) {
@@ -3273,36 +3677,43 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val info = if (isHurt) "retired hurt" else "retired out"
         val msg = if (isHurt) getString(R.string.retired_hurt_msg, p.name) else getString(R.string.retired_out_msg, p.name)
 
+        val currentInn = match?.currentInnings
         // Record the event in the Innings (adds dummy ball for Undo)
         // Pass the current bowler's name to avoid the "FIELD" bowler bug
-        match?.currentInnings?.recordRetired(p, !isHurt, info, striker?.name, nonStriker?.name, bowler?.name)
+        currentInn?.recordRetired(p, !isHurt, info, striker?.name, nonStriker?.name, bowler?.name)
         
         // Add commentary
-        match?.currentInnings?.addCommentary("FACT", msg, null, "FACT")
+        currentInn?.addCommentary("FACT", msg, null, "FACT")
         syncUnifiedCommentary()
 
         // Clear the slot
         if (wasStriker) striker = null else nonStriker = null
         
+        reconstructCurrentOverState(showLastCompletedIfBoundary = false)
         updateUI()
 
-        val battingTeam = if (teamABatting) teamANames else teamBNames
-        val available = battingTeam?.filterNotNull()?.filter { name ->
-            val player = getPlayerFromCache(name)
-            player != null && !player.isOut && name != striker?.name && name != nonStriker?.name
-        } ?: emptyList()
+        val isInningsComplete = currentInn?.let { checkInningsCompletion(it) } ?: false
+        if (!isInningsComplete) {
+            val battingTeam = if (teamABatting) teamANames else teamBNames
+            val available = battingTeam?.filterNotNull()?.filter { name ->
+                val player = getPlayerFromCache(name)
+                player != null && !player.isOut && name != striker?.name && name != nonStriker?.name
+            } ?: emptyList()
 
-        if (available.isEmpty() && striker == null && nonStriker == null) {
-            // No more batsmen at all -> Trigger completion flow
-            checkInningsCompletion(match?.currentInnings!!)
-        } else {
-            showBatsmanSelectionDialog(wasStriker)
+            if (available.isEmpty() && striker == null && nonStriker == null) {
+                // No more batsmen at all -> Trigger completion flow
+                currentInn?.let { checkInningsCompletion(it) }
+            } else {
+                showBatsmanSelectionDialog(wasStriker)
+            }
         }
         
         saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
     }
 
     override fun handlePenaltyFlow() {
+        if (isOverCompleteDialogShowing || isOverTransitionPending) return
+        if (pendingBatsmanReplacementEnd != null || striker?.isOut == true || (nonStriker != null && nonStriker!!.isOut)) return
         if (match == null) return
         val options = arrayOf("Award to Batting Team (Fielding Offence)", "Award to Fielding Team (Batting Offence)")
 
@@ -3387,7 +3798,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
         if (isFieldingOffence) {
             // Award to current batting team
-            currentInn.addPenalty(runs)
+            currentInn.addPenalty(runs, bowler?.name)
             val msg = "Penalty of $runs runs awarded to ${currentInn.battingTeam}."
             currentInn.addCommentary(currentInn.oversDisplay, msg, "P$runs", "FACT")
             commentary.add(0, currentInn.commentary[0]!!)
@@ -3396,13 +3807,19 @@ class MainActivity : BaseActivity(), ScoringProvider {
             if (isFirstInnings) {
                 // Awarded at start of next innings
                 m.pendingPenaltyForSecondInnings += runs
+                currentInn.balls.add(Ball(0, BallType.PENALTY, false, "PENALTY", bowler?.name ?: "FIELD", 0).apply {
+                    dismissalInfo = "pending_penalty:$runs"
+                })
                 val msg = "Penalty of $runs runs awarded to ${currentInn.bowlingTeam}. These runs will be added at the start of the next innings."
                 currentInn.addCommentary(currentInn.oversDisplay, msg, "P$runs", "FACT")
                 commentary.add(0, currentInn.commentary[0]!!)
             } else {
                 // Second innings -> Award to first innings team
                 val i1 = m.firstInnings ?: return
-                i1.addPenalty(runs)
+                i1.addPenalty(runs, bowler?.name)
+                currentInn.balls.add(Ball(0, BallType.PENALTY, false, "PENALTY", bowler?.name ?: "FIELD", 0).apply {
+                    dismissalInfo = "target_penalty:$runs"
+                })
                 
                 // Update target for second innings
                 currentInn.target = (currentInn.target ?: 0) + runs
@@ -3412,7 +3829,10 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 commentary.add(0, currentInn.commentary[0]!!)
             }
         }
+        reconstructCurrentOverState(showLastCompletedIfBoundary = false)
+        checkInningsCompletion(currentInn)
         updateUI()
+        saveMatchToDatabase(isFinished, isAbandoned, isLive = true)
     }
 
     override fun handleApplyDLS() {
@@ -3469,24 +3889,38 @@ class MainActivity : BaseActivity(), ScoringProvider {
         // --- DLS LOGIC CALCULATION ---
         val totalMatchOvers = m.totalOvers
         val i1OversBowled = i1.legalBalls / 6
+        val isPreMatchReduction = isFirstInnings && i1.legalBalls == 0
         
         // r1: Resources Team 1 actually had (100% minus what they lost to rain)
-        val r1 = (100.0 - m.resourcesLostTeam1).coerceAtLeast(1.0) 
+        val r1 = if (isPreMatchReduction) {
+            DLSUtility.getResource(revisedOvers, 0, totalMatchOvers)
+        } else {
+            (100.0 - m.resourcesLostTeam1).coerceAtLeast(1.0)
+        }
         
         // r2: Resources available to Team 2 for their revised innings
         val r2 = DLSUtility.getResource(revisedOvers, 0, totalMatchOvers)
         
         val team1FinalScore = i1.totalRuns
-        val calculatedTarget = DLSUtility.calculateRevisedTarget(team1FinalScore, r1, r2)
+        val calculatedTarget = if (isPreMatchReduction) {
+            team1FinalScore + 1
+        } else {
+            DLSUtility.calculateRevisedTarget(team1FinalScore, r1, r2, totalMatchOvers)
+        }
         
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(64, 32, 64, 32)
         }
 
-        val summaryText = "Resources Used by ${i1.battingTeam}: ${String.format(Locale.US, "%.1f%%", r1)}\n" +
-                         "Resources Available to ${currentInn.battingTeam}: ${String.format(Locale.US, "%.1f%%", r2)}\n" +
-                         "Match length: $revisedOvers overs"
+        val summaryText = if (isPreMatchReduction) {
+            "Pre-match Overs Reduction: Both teams will play $revisedOvers overs.\n" +
+            "Match length: $revisedOvers overs"
+        } else {
+            "Resources Used by ${i1.battingTeam}: ${String.format(Locale.US, "%.1f%%", r1)}\n" +
+            "Resources Available to ${currentInn.battingTeam}: ${String.format(Locale.US, "%.1f%%", r2)}\n" +
+            "Match length: $revisedOvers overs"
+        }
         
         val tvSummary = TextView(this).apply {
             text = summaryText
@@ -3538,35 +3972,42 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 if (isFirstInnings) {
                     i1.revisedMaxOvers = finalOvers
                     
-                    // Calculate resource loss for Team 1
-                    val currentOversLeft = (totalMatchOvers - i1OversBowled).coerceAtLeast(0)
-                    val revisedOversLeft = (finalOvers - i1OversBowled).coerceAtLeast(0)
-                    
-                    val resStop = DLSUtility.getResource(currentOversLeft, i1.totalWickets, totalMatchOvers)
-                    val resRestart = DLSUtility.getResource(revisedOversLeft, i1.totalWickets, totalMatchOvers)
-                    
-                    m.resourcesLostTeam1 += (resStop - resRestart).coerceAtLeast(0.0)
-                    
-                    // If the new limit is reached, end the innings and lock the target
-                    if (i1.legalBalls >= (finalOvers * 6)) {
-                        m.revisedTarget = finalTarget
-                        checkInningsCompletion(i1)
-                    } else {
-                        // Innings continues, target will be calculated at start of 2nd innings
+                    if (isPreMatchReduction) {
+                        m.resourcesLostTeam1 = 0.0
                         m.revisedTarget = null
+                    } else {
+                        // Calculate resource loss for Team 1
+                        val currentOversLeft = (totalMatchOvers - i1OversBowled).coerceAtLeast(0)
+                        val revisedOversLeft = (finalOvers - i1OversBowled).coerceAtLeast(0)
+                        
+                        val resStop = DLSUtility.getResource(currentOversLeft, i1.totalWickets, totalMatchOvers)
+                        val resRestart = DLSUtility.getResource(revisedOversLeft, i1.totalWickets, totalMatchOvers)
+                        
+                        m.resourcesLostTeam1 += (resStop - resRestart).coerceAtLeast(0.0)
+                        
+                        // If the new limit is reached, end the innings and lock the target
+                        if (i1.legalBalls >= (finalOvers * 6)) {
+                            m.revisedTarget = finalTarget
+                            checkInningsCompletion(i1)
+                        } else {
+                            // Innings continues, target will be calculated at start of 2nd innings
+                            m.revisedTarget = null
+                        }
                     }
                 } else {
                     currentInn.revisedMaxOvers = finalOvers
                     currentInn.revisedTarget = finalTarget
+                    m.revisedTarget = finalTarget
                 }
                 
                 val msg = if (isFirstInnings) {
-                    "DLS Applied: 1st Innings revised to $finalOvers overs."
+                    "DLS Applied: Match revised to $finalOvers overs."
                 } else {
                     "DLS Applied: Match revised to $finalOvers overs. Target: $finalTarget."
                 }
                 currentInn.addCommentary(currentInn.oversDisplay, msg, null, "FACT")
-                
+                syncUnifiedCommentary()
+                saveMatchToDatabase(isFinished = false, isAbandoned = false, isLive = true)
                 updateUI()
                 Toast.makeText(this@MainActivity, "DLS Applied successfully", Toast.LENGTH_SHORT).show()
             }
@@ -3580,17 +4021,18 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
         val initialPlayerStats = mutableMapOf<String, Player>()
         val allPlayers = (teamANames ?: emptyList()) + (teamBNames ?: emptyList())
-        allPlayers.forEach { name ->
+        allPlayers.forEach { rawName ->
+            val name = rawName?.trim()
             if (!name.isNullOrBlank()) {
                 val p = Player(name)
-                p.id = nameToIdMap[name] ?: playerStatCache[name]?.id
-                val cached = playerStatCache[name]
+                p.id = nameToIdMap[name] ?: (if (rawName != null) nameToIdMap[rawName] else null) ?: playerStatCache[name]?.id ?: (if (rawName != null) playerStatCache[rawName]?.id else null)
+                val cached = playerStatCache[name] ?: (if (rawName != null) playerStatCache[rawName] else null)
                 if (cached != null) {
                     p.entryTime = cached.entryTime
                     p.exitTime = cached.exitTime
                     p.minutesPlayed = cached.minutesPlayed
                 }
-                initialPlayerStats[name] = p
+                initialPlayerStats[p.id ?: name] = p
             }
         }
 
@@ -3600,10 +4042,12 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val i1 = m.firstInnings
         if (i1 != null) {
             val i1Balls = ArrayList(i1.balls)
-            val firstBallI1 = i1Balls.firstOrNull() ?: if (currentInn === i1) undoneBall else null
-            val initStriker1 = firstBallI1?.batsmanName
+            val firstBallI1 = i1Balls.firstOrNull { it.type != BallType.PENALTY }
+                ?: if (currentInn === i1 && undoneBall?.type != BallType.PENALTY) undoneBall else null
+            val initStriker1 = firstBallI1?.batsmanName ?: if (currentInn === i1) striker?.name else null
             val initNonStriker1 = firstBallI1?.nonStrikerName?.takeIf { it != initStriker1 }
-            val initBowler1 = firstBallI1?.bowlerName
+                ?: if (currentInn === i1 && nonStriker?.name != initStriker1) nonStriker?.name else null
+            val initBowler1 = firstBallI1?.bowlerName ?: if (currentInn === i1) bowler?.name else null
 
             val i1State = MatchState(
                 innings = Innings(i1.battingTeam, i1.bowlingTeam, i1.maxOvers, i1.maxWickets).apply {
@@ -3613,33 +4057,75 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 currentStrikerName = initStriker1,
                 currentNonStrikerName = initNonStriker1,
                 currentBowlerName = initBowler1,
-                isRuleRunsOnWide = m.ruleRunsOnWide
+                isRuleRunsOnWide = m.ruleRunsOnWide,
+                isRuleFreeHit = m.ruleFreeHit
             )
 
-            val i1Events = i1Balls.map { ball ->
-                ScoringEvent.BallBowled(
-                    ball = ball,
-                    facingBatsmanName = ball.batsmanName,
-                    bowlerName = ball.bowlerName,
-                    outPlayerName = ball.outPlayerName,
-                    fielderName = ball.fielderName
-                )
+            val i1Events = i1Balls.mapNotNull { ball ->
+                if (ball.type == BallType.PENALTY) {
+                    val retiredHurt = ball.wicketDetail?.dismissalType == DismissalType.RETIRED_HURT ||
+                        (ball.wicketDetail == null && ball.dismissalInfo?.contains("retired hurt", ignoreCase = true) == true)
+                    val retiredOut = ball.wicketDetail?.dismissalType == DismissalType.RETIRED_OUT ||
+                        (ball.wicketDetail == null && ball.dismissalInfo?.contains("retired out", ignoreCase = true) == true)
+                    if (retiredHurt || retiredOut) {
+                        ScoringEvent.PlayerRetired(
+                            playerName = ball.wicketDetail?.dismissedPlayerId?.let { getPlayerById(it)?.name }
+                                ?: ball.outPlayerName ?: ball.batsmanName ?: "Batsman",
+                            isHurt = retiredHurt,
+                            dismissalText = if (retiredHurt) "retired hurt" else "retired out",
+                            playerId = ball.wicketDetail?.dismissedPlayerId
+                        )
+                    } else if (ball.runs > 0) {
+                        ScoringEvent.PenaltyAdded(
+                            runs = ball.runs,
+                            teamName = i1.battingTeam
+                        )
+                    } else {
+                        null
+                    }
+                } else {
+                    ScoringEvent.BallBowled(
+                        ball = ball,
+                        facingBatsmanName = ball.batsmanName,
+                        bowlerName = ball.bowlerName,
+                        outPlayerName = ball.outPlayerName,
+                        fielderName = ball.fielderName,
+                        isStrikerEnd = ball.wicketDetail?.isStrikerEnd ?: true,
+                        facingBatsmanId = ball.batsmanId,
+                        bowlerId = ball.bowlerId,
+                        nonStrikerId = ball.nonStrikerId,
+                        outPlayerId = ball.wicketDetail?.dismissedPlayerId ?: ball.outPlayerName,
+                        primaryFielderName = ball.wicketDetail?.primaryFielderId?.let { getPlayerById(it)?.name ?: it },
+                        secondaryFielderName = ball.wicketDetail?.secondaryFielderId?.let { getPlayerById(it)?.name ?: it },
+                        isExplicitSolo = (ball.nonStrikerName == null && ball.nonStrikerId == null)
+                    )
+                }
             }
 
             val newStateI1 = MatchEngine.rebuildState(i1State, i1Events)
 
             i1.balls.clear()
-            i1.balls.addAll(newStateI1.innings.balls)
+            i1.balls.addAll(i1Balls)
             i1.fallOfWickets.clear()
             i1.fallOfWickets.addAll(newStateI1.innings.fallOfWickets)
             i1.partnerships.clear()
             i1.partnerships.addAll(newStateI1.innings.partnerships)
             i1.recalculateState()
 
+            m.pendingPenaltyForSecondInnings = i1.balls.filter {
+                it.type == BallType.PENALTY && it.dismissalInfo?.startsWith("pending_penalty:") == true
+            }.sumOf {
+                it.dismissalInfo?.substringAfter("pending_penalty:")?.toIntOrNull() ?: 0
+            }
+
             runningPlayerStats = newStateI1.playerStats.toMutableMap()
             if (currentInn === i1) {
-                runningPlayerStats.forEach { (name, player) ->
-                    playerStatCache[name] = player
+                runningPlayerStats.forEach { (id, player) ->
+                    val key = player.name?.trim() ?: id
+                    playerStatCache[key] = player
+                    if (player.name != null && player.name != key) {
+                        playerStatCache[player.name!!] = player
+                    }
                 }
                 return newStateI1
             }
@@ -3649,7 +4135,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val i2 = m.secondInnings
         if (i2 != null && currentInn === i2) {
             val i2Balls = ArrayList(i2.balls)
-            val firstBallI2 = i2Balls.firstOrNull() ?: undoneBall
+            val firstBallI2 = i2Balls.firstOrNull { it.type != BallType.PENALTY }
+                ?: if (undoneBall?.type != BallType.PENALTY) undoneBall else null
             val initStriker2 = firstBallI2?.batsmanName ?: striker?.name
             val initNonStriker2 = firstBallI2?.nonStrikerName?.takeIf { it != initStriker2 }
                 ?: if (nonStriker?.name != initStriker2) nonStriker?.name else null
@@ -3663,31 +4150,67 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 currentStrikerName = initStriker2,
                 currentNonStrikerName = initNonStriker2,
                 currentBowlerName = initBowler2,
-                isRuleRunsOnWide = m.ruleRunsOnWide
+                isRuleRunsOnWide = m.ruleRunsOnWide,
+                isRuleFreeHit = m.ruleFreeHit
             )
 
-            val i2Events = i2Balls.map { ball ->
-                ScoringEvent.BallBowled(
-                    ball = ball,
-                    facingBatsmanName = ball.batsmanName,
-                    bowlerName = ball.bowlerName,
-                    outPlayerName = ball.outPlayerName,
-                    fielderName = ball.fielderName
-                )
+            val i2Events = i2Balls.mapNotNull { ball ->
+                if (ball.type == BallType.PENALTY) {
+                    val retiredHurt = ball.wicketDetail?.dismissalType == DismissalType.RETIRED_HURT ||
+                        (ball.wicketDetail == null && ball.dismissalInfo?.contains("retired hurt", ignoreCase = true) == true)
+                    val retiredOut = ball.wicketDetail?.dismissalType == DismissalType.RETIRED_OUT ||
+                        (ball.wicketDetail == null && ball.dismissalInfo?.contains("retired out", ignoreCase = true) == true)
+                    if (retiredHurt || retiredOut) {
+                        ScoringEvent.PlayerRetired(
+                            playerName = ball.wicketDetail?.dismissedPlayerId?.let { getPlayerById(it)?.name }
+                                ?: ball.outPlayerName ?: ball.batsmanName ?: "Batsman",
+                            isHurt = retiredHurt,
+                            dismissalText = if (retiredHurt) "retired hurt" else "retired out",
+                            playerId = ball.wicketDetail?.dismissedPlayerId
+                        )
+                    } else if (ball.runs > 0) {
+                        ScoringEvent.PenaltyAdded(
+                            runs = ball.runs,
+                            teamName = i2.battingTeam
+                        )
+                    } else {
+                        null
+                    }
+                } else {
+                    ScoringEvent.BallBowled(
+                        ball = ball,
+                        facingBatsmanName = ball.batsmanName,
+                        bowlerName = ball.bowlerName,
+                        outPlayerName = ball.outPlayerName,
+                        fielderName = ball.fielderName,
+                        isStrikerEnd = ball.wicketDetail?.isStrikerEnd ?: true,
+                        facingBatsmanId = ball.batsmanId,
+                        bowlerId = ball.bowlerId,
+                        nonStrikerId = ball.nonStrikerId,
+                        outPlayerId = ball.wicketDetail?.dismissedPlayerId ?: ball.outPlayerName,
+                        primaryFielderName = ball.wicketDetail?.primaryFielderId?.let { getPlayerById(it)?.name ?: it },
+                        secondaryFielderName = ball.wicketDetail?.secondaryFielderId?.let { getPlayerById(it)?.name ?: it },
+                        isExplicitSolo = (ball.nonStrikerName == null && ball.nonStrikerId == null)
+                    )
+                }
             }
 
             val newStateI2 = MatchEngine.rebuildState(i2State, i2Events)
 
             i2.balls.clear()
-            i2.balls.addAll(newStateI2.innings.balls)
+            i2.balls.addAll(i2Balls)
             i2.fallOfWickets.clear()
             i2.fallOfWickets.addAll(newStateI2.innings.fallOfWickets)
             i2.partnerships.clear()
             i2.partnerships.addAll(newStateI2.innings.partnerships)
             i2.recalculateState()
 
-            newStateI2.playerStats.forEach { (name, player) ->
-                playerStatCache[name] = player
+            newStateI2.playerStats.forEach { (id, player) ->
+                val key = player.name?.trim() ?: id
+                playerStatCache[key] = player
+                if (player.name != null && player.name != key) {
+                    playerStatCache[player.name!!] = player
+                }
             }
 
             return newStateI2
@@ -3700,6 +4223,17 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val currentInn = match?.currentInnings ?: return
 
         isOverCompleteDialogShowing = false
+        isOverTransitionPending = false
+        isOverCompleteMaiden = false
+        viewModel?.let {
+            it.isOverCompleteDialogShowing = false
+            it.isOverTransitionPending = false
+            it.isOverCompleteMaiden = false
+            it.pendingBatsmanReplacementEnd = null
+        }
+        pendingBatsmanReplacementEnd = null
+        activeBatsmanSelectionDialog?.dismiss()
+        activeBatsmanSelectionDialog = null
         activeOverSummaryDialog?.dismiss()
         activeOverSummaryDialog = null
         activeInningsCompleteDialog?.dismiss()
@@ -3741,20 +4275,48 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
         val last = innings.balls.removeAt(innings.balls.size - 1)
 
-        innings.removeLastBallCommentary()
+        val m = match
+        if (m != null && last.dismissalInfo?.startsWith("pending_penalty:") == true) {
+            val pRuns = last.dismissalInfo?.substringAfter("pending_penalty:")?.toIntOrNull() ?: 0
+            m.pendingPenaltyForSecondInnings = (m.pendingPenaltyForSecondInnings - pRuns).coerceAtLeast(0)
+        }
+        if (m != null && last.dismissalInfo?.startsWith("target_penalty:") == true) {
+            val pRuns = last.dismissalInfo?.substringAfter("target_penalty:")?.toIntOrNull() ?: 0
+            innings.target = (innings.target ?: 0) - pRuns
+            m.firstInnings?.let { firstInn ->
+                val pIdx = firstInn.balls.indexOfLast { it.type == BallType.PENALTY && it.runs == pRuns }
+                if (pIdx != -1) {
+                    firstInn.balls.removeAt(pIdx)
+                    firstInn.recalculateState()
+                }
+            }
+        }
+
+        innings.removeLastBallCommentary(last)
         syncUnifiedCommentary()
+
+        val prevStriker = striker
+        val prevNonStriker = nonStriker
+        val prevBowler = bowler
 
         // Rebuild state from remaining events via Event Sourcing Engine
         val newState = rebuildMatchStateFromEvents(undoneBall = last)
 
         if (newState != null) {
             this.isFreeHitActive = newState.isFreeHitActive
-            striker = newState.currentStrikerName?.let { getPlayerFromCache(it) }
-            nonStriker = newState.currentNonStrikerName?.let { getPlayerFromCache(it) }
+
+            val isPenalty = last.type == BallType.PENALTY
+            val isRetirement = last.wicketDetail?.dismissalType == DismissalType.RETIRED_HURT ||
+                last.wicketDetail?.dismissalType == DismissalType.RETIRED_OUT ||
+                (last.type == BallType.PENALTY && last.dismissalInfo?.contains("retired", ignoreCase = true) == true)
+            val isDummyBall = isPenalty || isRetirement
+
+            striker = newState.currentStrikerName?.let { getPlayerFromCache(it) } ?: if (isPenalty) prevStriker else null
+            nonStriker = newState.currentNonStrikerName?.let { getPlayerFromCache(it) } ?: if (isPenalty) prevNonStriker else null
 
             // If striker is null (because a wicket occurred on preceding ball in remaining state)
             // and last (the undone ball) was faced by a valid active replacement batsman, restore them
-            if (striker == null && last.batsmanName != null) {
+            if (!isDummyBall && striker == null && last.batsmanName != null) {
                 val candidate = getPlayerFromCache(last.batsmanName)
                 if (candidate != null && !candidate.isOut && candidate.name != nonStriker?.name) {
                     striker = candidate
@@ -3762,7 +4324,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             }
 
             // If nonStriker is null and last had a valid non-out non-striker, restore them
-            if (nonStriker == null && last.nonStrikerName != null) {
+            if (!isDummyBall && nonStriker == null && last.nonStrikerName != null) {
                 val candidate = getPlayerFromCache(last.nonStrikerName)
                 if (candidate != null && !candidate.isOut && candidate.name != striker?.name) {
                     nonStriker = candidate
@@ -3775,25 +4337,29 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
             // Determine bowler for remaining state based on over boundary and team size
             val remainingBalls = innings.balls
-            val previousOverBowler = remainingBalls.lastOrNull()?.bowlerName
+            val previousOverBowler = remainingBalls.lastOrNull { it.type != BallType.PENALTY }?.bowlerName
             val bowlingTeam = if (teamABatting) teamBNames else teamANames
             val hasMultipleBowlers = (bowlingTeam?.filterNotNull()?.size ?: 0) > 1
 
             val isOverBoundary = newState.innings.legalBalls > 0 && newState.innings.legalBalls % 6 == 0
 
             if (isOverBoundary) {
-                if (last.bowlerName != null && last.bowlerName != previousOverBowler) {
+                if (isPenalty && prevBowler != null && prevBowler.name != previousOverBowler) {
+                    bowler = prevBowler
+                } else if (!isDummyBall && last.bowlerName != null && last.bowlerName != previousOverBowler) {
                     bowler = getPlayerFromCache(last.bowlerName)
                 } else if (hasMultipleBowlers) {
                     bowler = null
                 } else {
-                    bowler = newState.currentBowlerName?.let { getPlayerFromCache(it) }
+                    bowler = newState.currentBowlerName?.let { getPlayerFromCache(it) } ?: if (isPenalty) prevBowler else null
                 }
             } else {
-                if (last.bowlerName != null) {
+                if (!isDummyBall && last.bowlerName != null && last.bowlerName != "FIELD" && last.bowlerName != "RETIRED") {
                     bowler = getPlayerFromCache(last.bowlerName)
                 } else {
                     bowler = newState.currentBowlerName?.let { getPlayerFromCache(it) }
+                        ?: remainingBalls.lastOrNull { it.type != BallType.PENALTY }?.bowlerName?.let { getPlayerFromCache(it) }
+                        ?: if (isPenalty) prevBowler else null
                 }
             }
 
@@ -3804,11 +4370,17 @@ class MainActivity : BaseActivity(), ScoringProvider {
             this.isFreeHitActive = false
         }
 
-        currentBowlerInSpell = innings.balls.lastOrNull()?.bowlerName
+        currentBowlerInSpell = innings.balls.lastOrNull { it.type != BallType.PENALTY }?.bowlerName
 
         if (!innings.isComplete) {
             isFinished = false
             tvFinalResultBanner?.visibility = View.GONE
+            innings.completionTime = 0L
+            if (innings === match?.secondInnings) {
+                match?.secondInningsEndTime = 0L
+            } else if (innings === match?.firstInnings) {
+                match?.firstInningsEndTime = 0L
+            }
         }
 
         reconstructCurrentOverState(showLastCompletedIfBoundary = false)
@@ -3971,9 +4543,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
                     db?.statsDao()?.deleteStatsByMatch(matchId)
                     for (p in finalStatsList) {
                         val teamName = if (teamANames?.contains(p.name) == true) teamAName else teamBName
-                        if (p.id.isNullOrBlank()) {
+                        if (p.id.isNullOrBlank() || p.id?.startsWith("local_") == true) {
                             val trimmedPName = p.name?.trim()
-                            p.id = nameToIdMap[trimmedPName] ?: nameToIdMap[p.name] ?: db?.playerDao()?.getPlayerByName(trimmedPName)?.id
+                            p.id = nameToIdMap[trimmedPName] ?: nameToIdMap[p.name] ?: db?.playerDao()?.getPlayerByName(trimmedPName)?.id ?: p.id
                         }
                         val s = PlayerMatchStatEntity.fromPlayer(p, matchId, teamName)
                         s.gullyId = entity.gullyId
@@ -4168,6 +4740,10 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val innings = match?.currentInnings
         if (innings === match?.secondInnings) {
             innings?.addCommentary("0.0", "SECOND INNINGS", null, "SETUP_FACT")
+            if ((innings?.penalties ?: 0) > 0) {
+                val penaltyMsg = "Penalty of ${innings?.penalties} runs awarded to ${innings?.battingTeam}."
+                innings?.addCommentary("0.0", penaltyMsg, "P${innings?.penalties}", "FACT")
+            }
             
         val introMsg = if (nonStriker != null) {
             "${striker?.name} and ${nonStriker?.name} are at the crease. ${striker?.name} is on strike. ${bowler?.name} will open the attack"
@@ -4198,7 +4774,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
         scoreText?.text = "${innings.totalRuns}/${innings.totalWickets}"
 
         val oversLimit = innings.revisedMaxOvers ?: innings.maxOvers
-        oversText?.text = "Overs: ${innings.oversDisplay} / $oversLimit"
+        val isOversReduced = innings.revisedMaxOvers != null && innings.revisedMaxOvers != match?.totalOvers
+        val dlsSuffix = if (isOversReduced) " [DLS]" else ""
+        oversText?.text = "Overs: ${innings.oversDisplay} / $oversLimit$dlsSuffix"
 
         val crr = innings.currentRunRate
         tvRateValue?.text = String.format(Locale.US, "%.2f", crr)
@@ -4226,7 +4804,11 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 if (ballsLeft >= 0) {
                     val rrr = if (ballsLeft > 0) (needed.toDouble() / ballsLeft) * 6 else 0.0
                     tvRateValue?.text = String.format(Locale.US, "%.2f", rrr)
-                    tvAnalysisLabel?.text = "$needed RUNS NEEDED IN $ballsLeft BALLS"
+                    val isDlsTarget = (match?.resourcesLostTeam1 ?: 0.0) > 0.0 ||
+                        match?.revisedTarget != null ||
+                        innings.revisedTarget != null
+                    val dlsSuffix = if (isDlsTarget) " (DLS TARGET)" else ""
+                    tvAnalysisLabel?.text = "$needed RUNS NEEDED IN $ballsLeft BALLS$dlsSuffix"
                 } else {
                     tvAnalysisLabel?.text = "INNINGS OVER"
                 }
@@ -4500,6 +5082,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
         }
         
         val bgColor = when {
+            b.startsWith("P") -> "#D81B60".toColorInt()
             b.endsWith("W") -> "#B71C1C".toColorInt()
             b == "6" -> "#2E7D32".toColorInt()
             b == "4" -> "#EF6C00".toColorInt()
@@ -4517,7 +5100,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
         val tv = TextView(ctx).apply {
             tag = "custom_color"
             text = b
-            setTextColor(ThemeManager.getContrastColor(bgColor))
+            val isColoredBall = b.startsWith("P") || b == "4" || b == "6" || b.contains("WD", ignoreCase = true) || b.contains("NB") ||
+                                b == "W" || b.endsWith("W") || b.endsWith("LB") || b.endsWith("B")
+            setTextColor(if (isColoredBall) Color.WHITE else ThemeManager.getContrastColor(bgColor))
             
             // Standardize text size and prevent wrapping
             val baseSize = if (isCommentary) 10f else 11f
@@ -4638,6 +5223,13 @@ class MainActivity : BaseActivity(), ScoringProvider {
                             }
                             standard.tvFactText?.text = fromHtml(formatted)
                         }
+                        text.contains("DLS", ignoreCase = true) && text.contains("Target", ignoreCase = true) -> {
+                            standard.ivFactIcon?.setImageResource(R.drawable.ic_stat_target)
+                            standard.tvFactTag?.text = "DLS REVISED TARGET"
+                            val formatted = text.replace("DLS Target:", "<b>DLS Target:</b>")
+                                .replace("Target:", "<b>Target:</b>")
+                            standard.tvFactText?.text = fromHtml(formatted)
+                        }
                         text.contains("Target", ignoreCase = true) -> {
                             standard.ivFactIcon?.setImageResource(R.drawable.ic_stat_target)
                             standard.tvFactTag?.text = "MATCH TARGET"
@@ -4709,8 +5301,8 @@ class MainActivity : BaseActivity(), ScoringProvider {
                             standard.tvFactText?.text = fromHtml(formatted)
                         }
                         text.contains("DLS", ignoreCase = true) -> {
-                            standard.ivFactIcon?.setImageResource(R.drawable.ic_stat_target)
-                            standard.tvFactTag?.text = "DLS REVISED TARGET"
+                            standard.ivFactIcon?.setImageResource(R.drawable.ic_info)
+                            standard.tvFactTag?.text = "DLS APPLIED"
                             val formatted = text.replace("FACT:", "").trim()
                             standard.tvFactText?.text = fromHtml("<b>$formatted</b>")
                         }
@@ -4959,6 +5551,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
 
                 val iconLayout = standard.itemView.findViewById<View>(R.id.layoutCommIcon)
                 val bgColor = when {
+                    h.startsWith("P") -> "#D81B60".toColorInt()
                     h == "6" -> "#2E7D32".toColorInt()
                     h == "4" -> "#EF6C00".toColorInt()
                     h.endsWith("WD") || h.endsWith("Wd") -> "#FFB300".toColorInt()
@@ -4973,7 +5566,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
                 
                 iconLayout.backgroundTintList = android.content.res.ColorStateList.valueOf(bgColor)
                 standard.tvBallEvent.tag = "custom_color"
-                standard.tvBallEvent.setTextColor(ThemeManager.getContrastColor(bgColor))
+                val isColoredBall = h.startsWith("P") || h == "4" || h == "6" || h.contains("WD", ignoreCase = true) || h.contains("NB") ||
+                                    h == "W" || h.endsWith("W") || h.endsWith("LB") || h.endsWith("B")
+                standard.tvBallEvent.setTextColor(if (isColoredBall) Color.WHITE else ThemeManager.getContrastColor(bgColor))
             }
         }
 
@@ -5096,6 +5691,7 @@ class MainActivity : BaseActivity(), ScoringProvider {
             }
             
             val bgColor = when {
+                b.startsWith("P") -> "#D81B60".toColorInt()
                 b.endsWith("W") -> "#B71C1C".toColorInt()
                 b == "6" -> "#2E7D32".toColorInt()
                 b == "4" -> "#EF6C00".toColorInt()
@@ -5113,7 +5709,9 @@ class MainActivity : BaseActivity(), ScoringProvider {
             val tv = TextView(ctx).apply {
                 tag = "custom_color"
                 text = b
-                setTextColor(ThemeManager.getContrastColor(bgColor))
+                val isColoredBall = b.startsWith("P") || b == "4" || b == "6" || b.contains("WD", ignoreCase = true) || b.contains("NB") ||
+                                    b == "W" || b.endsWith("W") || b.endsWith("LB") || b.endsWith("B")
+                setTextColor(if (isColoredBall) Color.WHITE else ThemeManager.getContrastColor(bgColor))
                 textSize = 10f
                 setTypeface(null, Typeface.BOLD)
                 gravity = android.view.Gravity.CENTER

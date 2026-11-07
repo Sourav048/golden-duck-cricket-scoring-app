@@ -19,6 +19,10 @@ class ScoringViewModel : ViewModel() {
     var overRuns: Int = 0
     var overBowlerRuns: Int = 0
     var overWickets: Int = 0
+    var isOverTransitionPending: Boolean = false
+    var isOverCompleteDialogShowing: Boolean = false
+    var isOverCompleteMaiden: Boolean = false
+    var pendingBatsmanReplacementEnd: Boolean? = null
     var teamANames: ArrayList<String?>? = null
     var teamBNames: ArrayList<String?>? = null
     var nameToIdMap: MutableMap<String?, String?> = mutableMapOf()

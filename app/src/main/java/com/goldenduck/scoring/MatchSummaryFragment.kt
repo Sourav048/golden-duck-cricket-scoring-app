@@ -113,11 +113,16 @@ class MatchSummaryFragment : Fragment() {
                 }
 
                 val card = v.findViewById<MaterialCardView>(R.id.cardPotmPhotoFrame)
-                ivPhoto.strokeColor?.let {
-                    card?.setStrokeColor(it)
-                    card?.strokeWidth = 8
-                    ivPhoto.strokeWidth = 0f
+                val prestigeColor = getColorForPlayer(v.context, potmStat.playerId, potmStat.playerName)
+                val strokePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2.5f, v.resources.displayMetrics).toInt()
+                if (prestigeColor != 0) {
+                    card?.setStrokeColor(ColorStateList.valueOf(prestigeColor))
+                    card?.strokeWidth = strokePx
+                } else {
+                    card?.setStrokeColor(ColorStateList.valueOf(0xFFD4AF37.toInt()))
+                    card?.strokeWidth = strokePx
                 }
+                ivPhoto.strokeWidth = 0f
 
                 AppDatabase.ioExecutor.execute {
                     try {
@@ -146,13 +151,17 @@ class MatchSummaryFragment : Fragment() {
                                     } else {
                                         photoUri.hashCode().toString()
                                     }
+                                    ivPhoto.imageTintList = null
                                     Glide.with(requireContext()).load(photoUri)
                                         .signature(ObjectKey(sig))
-                                        .placeholder(android.R.drawable.ic_menu_gallery)
-                                        .error(android.R.drawable.ic_menu_gallery)
+                                        .placeholder(R.drawable.ic_person_placeholder)
+                                        .error(R.drawable.ic_person_placeholder)
                                         .into(ivPhoto)
                                 } else {
-                                    ivPhoto.setImageResource(android.R.drawable.ic_menu_gallery)
+                                    val typedValue = TypedValue()
+                                    val tint = if (v.context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurfaceVariant, typedValue, true)) typedValue.data else -0x777778
+                                    ivPhoto.imageTintList = ColorStateList.valueOf(tint)
+                                    ivPhoto.setImageResource(R.drawable.ic_person_placeholder)
                                 }
                             } catch (e: Exception) { Log.e("SUMMARY", "Glide error: ${e.message}") }
                         }

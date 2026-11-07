@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardTileRoot"
+    style="@style/Widget.Material3.CardView.Elevated"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="1.5dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="?attr/colorOutline"
+    app:cardBackgroundColor="?attr/colorSurfaceVariant">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="13dp">
+
+        <!-- Top Row: Icon Badge & Arrow -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <FrameLayout
+                android:id="@+id/flTileIconBg"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:tag="custom_color"
+                android:background="@drawable/bg_category_icon_badge"
+                android:padding="8dp">
+
+                <ImageView
+                    android:id="@+id/ivTileIcon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_stat_fire"
+                    android:tag="custom_color"
+                    app:tint="@color/category_icon_tint"
+                    android:contentDescription="@null" />
+            </FrameLayout>
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="?attr/colorOnSurfaceVariant"
+                android:contentDescription="@null" />
+        </RelativeLayout>
+
+        <!-- Middle: Title -->
+        <TextView
+            android:id="@+id/tvTileTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            tools:text="Best Strike Rate"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
+            android:ellipsize="end"
+            android:maxLines="1" />
+
+        <!-- Bottom: Subtitle -->
+        <TextView
+            android:id="@+id/tvTileSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            tools:text="Runs per 100 balls"
+            android:textSize="11.5sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:ellipsize="end"
+            android:maxLines="1" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

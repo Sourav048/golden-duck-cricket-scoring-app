@@ -390,13 +390,14 @@ class PlayerCompareActivity : BaseActivity() {
                         }
                     }
                 }
-                if (s.ballsBowled > 0) {
+                val didBowl = s.ballsBowled > 0 || s.wicketsTaken > 0 || s.runsConceded > 0 || s.widesConceded > 0 || s.noBallsConceded > 0
+                if (didBowl) {
                     bowlInns++
                     wickets += s.wicketsTaken
                     rConceded += s.runsConceded
                     bowlBalls += s.ballsBowled
                     if (s.wicketsTaken >= 5) w5++ else if (s.wicketsTaken >= 3) w3++ else if (s.wicketsTaken >= 2) w2++
-                    if (s.wicketsTaken > bbiW || (s.wicketsTaken == bbiW && s.runsConceded < bbiR)) {
+                    if (s.wicketsTaken > bbiW || (s.wicketsTaken == bbiW && s.runsConceded < bbiR) || (bbiW == 0 && bbiR == 0 && s.wicketsTaken > 0)) {
                         bbiW = s.wicketsTaken
                         bbiR = s.runsConceded
                     }

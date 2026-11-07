@@ -152,7 +152,7 @@ object ChatNotificationHelper {
         }
 
         val gullyPrefs = context.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
-        val myUserId = gullyPrefs.getString("chat_sender_id", null)
+        val myUserId = gullyPrefs.getString("chat_sender_id", null) ?: ScoringApp.instance?.getOrCreateUserId()
 
         // 2. Do NOT notify for messages sent by MYSELF
         if (!myUserId.isNullOrEmpty() && senderId == myUserId) {
@@ -469,11 +469,13 @@ object ChatNotificationHelper {
 
     private fun isMessageDismissed(prefs: SharedPreferences, msgId: String?, senderName: String, text: String): Boolean {
         val dismissedSet = prefs.getStringSet("dismissed_msg_keys", emptySet()) ?: emptySet()
-        if (!msgId.isNullOrBlank() && dismissedSet.contains("id:$msgId")) {
-            return true
+        if (!msgId.isNullOrBlank()) {
+            return dismissedSet.contains("id:$msgId")
         }
-        val textKey = "key:${senderName.trim()}:${text.trim()}"
-        return dismissedSet.contains(textKey)
+        val currentMinute = System.currentTimeMillis() / 60000
+        val textKeyNow = "key:${senderName.trim()}:${text.trim()}:$currentMinute"
+        val textKeyPrev = "key:${senderName.trim()}:${text.trim()}:${currentMinute - 1}"
+        return dismissedSet.contains(textKeyNow) || dismissedSet.contains(textKeyPrev)
     }
 
     private fun markMessagesAsDismissed(prefs: SharedPreferences, messages: List<QueueMessage>) {
@@ -481,9 +483,9 @@ object ChatNotificationHelper {
         for (m in messages) {
             if (m.msgId.isNotBlank()) {
                 dismissedSet.add("id:${m.msgId}")
-            }
-            if (m.senderName.isNotBlank() && m.text.isNotBlank()) {
-                dismissedSet.add("key:${m.senderName.trim()}:${m.text.trim()}")
+            } else if (m.senderName.isNotBlank() && m.text.isNotBlank()) {
+                val minute = m.timestamp / 60000
+                dismissedSet.add("key:${m.senderName.trim()}:${m.text.trim()}:$minute")
             }
         }
         while (dismissedSet.size > 200) {
@@ -558,7 +560,7 @@ object ChatNotificationHelper {
                     .load(profilePicUrl)
                     .circleCrop()
                     .submit(128, 128)
-                    .get(2, TimeUnit.SECONDS)
+                    .get(1500, TimeUnit.MILLISECONDS)
                 if (bitmap != null) {
                     return IconCompat.createWithBitmap(bitmap)
                 }

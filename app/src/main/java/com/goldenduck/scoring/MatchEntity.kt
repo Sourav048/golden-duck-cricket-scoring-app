@@ -127,6 +127,8 @@ class MatchEntity {
     var revisedTarget: Int? = null
     @JvmField
     var revisedOvers: Int? = null
+    @JvmField
+    var resourcesLostTeam1: Double = 0.0
 
     var isLive: Boolean = false
     var startNotificationSent: Boolean = false
@@ -172,6 +174,8 @@ class MatchEntity {
         m.secondInningsStartTime = secondInningsStartTime
         m.secondInningsEndTime = secondInningsEndTime
         m.isStartNotificationSent = startNotificationSent
+        m.resourcesLostTeam1 = resourcesLostTeam1
+        m.revisedTarget = revisedTarget
 
         // Restore additional resumption state
         // NOTE: Striker/Non-Striker/Bowler names are handled in MainActivity.resumeMatch 
@@ -322,6 +326,7 @@ class MatchEntity {
 
         copy.revisedTarget = this.revisedTarget
         copy.revisedOvers = this.revisedOvers
+        copy.resourcesLostTeam1 = this.resourcesLostTeam1
 
         copy.isLive = isLiveOverride ?: this.isLive
         copy.startNotificationSent = this.startNotificationSent
@@ -369,6 +374,8 @@ class MatchEntity {
             entity.secondInningsStartTime = m.secondInningsStartTime
             entity.secondInningsEndTime = m.secondInningsEndTime
             entity.startNotificationSent = m.isStartNotificationSent
+            entity.resourcesLostTeam1 = m.resourcesLostTeam1
+            entity.revisedTarget = m.revisedTarget
             
             m.firstInnings?.let { i ->
                 entity.firstInningsTeam = i.battingTeam
@@ -391,7 +398,9 @@ class MatchEntity {
                 entity.fowJson2 = ArrayList(i.fallOfWickets)
                 entity.pshipJson2 = ArrayList(i.partnerships)
                 entity.commentaryJson2 = ArrayList(i.commentary)
-                entity.revisedTarget = i.revisedTarget
+                if (i.revisedTarget != null) {
+                    entity.revisedTarget = i.revisedTarget
+                }
                 entity.revisedOvers = i.revisedMaxOvers
             }
             

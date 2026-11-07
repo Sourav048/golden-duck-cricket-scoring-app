@@ -188,7 +188,13 @@ class PlayerEntryActivity : BaseActivity() {
             val aJ = savedInstanceState.getStringArrayList("teamAJerseys")
             val aI = savedInstanceState.getStringArrayList("teamAIds")
             if (aN != null && aP != null && aJ != null && aI != null) {
-                for (i in aN.indices) addPlayerCard(0, aN[i], aJ[i], aP[i], aI[i])
+                for (i in aN.indices) {
+                    val p = TempPlayer(aI.getOrNull(i), aN[i], aJ.getOrNull(i) ?: "0", aP.getOrNull(i)?.takeIf { it.isNotBlank() })
+                    if (!isDuplicatePlayer(p.id, p.name, p.jersey)) {
+                        teamAPlayers.add(p)
+                        teamAContainer?.let { c -> renderPlayerCard(c, p, teamAPlayers) }
+                    }
+                }
             }
 
             val bN = savedInstanceState.getStringArrayList("teamBNames")
@@ -196,7 +202,13 @@ class PlayerEntryActivity : BaseActivity() {
             val bJ = savedInstanceState.getStringArrayList("teamBJerseys")
             val bI = savedInstanceState.getStringArrayList("teamBIds")
             if (bN != null && bP != null && bJ != null && bI != null) {
-                for (i in bN.indices) addPlayerCard(1, bN[i], bJ[i], bP[i], bI[i])
+                for (i in bN.indices) {
+                    val p = TempPlayer(bI.getOrNull(i), bN[i], bJ.getOrNull(i) ?: "0", bP.getOrNull(i)?.takeIf { it.isNotBlank() })
+                    if (!isDuplicatePlayer(p.id, p.name, p.jersey)) {
+                        teamBPlayers.add(p)
+                        teamBContainer?.let { c -> renderPlayerCard(c, p, teamBPlayers) }
+                    }
+                }
             }
         }
 
@@ -208,7 +220,11 @@ class PlayerEntryActivity : BaseActivity() {
             aNames?.let {
                 for (i in it.indices) {
                     val j = if (aJerseys != null && aJerseys.size > i) aJerseys[i] else "0"
-                    addPlayerCard(0, it[i], j, aPhotos?.getOrNull(i), aIds?.getOrNull(i))
+                    val p = TempPlayer(aIds?.getOrNull(i), it[i], j, aPhotos?.getOrNull(i)?.takeIf { ph -> ph.isNotBlank() })
+                    if (!isDuplicatePlayer(p.id, p.name, p.jersey)) {
+                        teamAPlayers.add(p)
+                        teamAContainer?.let { c -> renderPlayerCard(c, p, teamAPlayers) }
+                    }
                 }
             }
 
@@ -219,7 +235,11 @@ class PlayerEntryActivity : BaseActivity() {
             bNames?.let {
                 for (i in it.indices) {
                     val j = if (bJerseys != null && bJerseys.size > i) bJerseys[i] else "0"
-                    addPlayerCard(1, it[i], j, bPhotos?.getOrNull(i), bIds?.getOrNull(i))
+                    val p = TempPlayer(bIds?.getOrNull(i), it[i], j, bPhotos?.getOrNull(i)?.takeIf { ph -> ph.isNotBlank() })
+                    if (!isDuplicatePlayer(p.id, p.name, p.jersey)) {
+                        teamBPlayers.add(p)
+                        teamBContainer?.let { c -> renderPlayerCard(c, p, teamBPlayers) }
+                    }
                 }
             }
         }
@@ -264,9 +284,44 @@ class PlayerEntryActivity : BaseActivity() {
             pendingRunnable?.let { handler.removeCallbacks(it) }
         }
 
+        val etSearch = view.findViewById<EditText>(R.id.etSearchAvailablePlayers)
+        var availableList: List<PlayerEntity> = emptyList()
+        var isAllLoaded = false
+
+        adapter.onEmptyStateChanged = { isEmpty, query ->
+            if (isEmpty) {
+                rvAvailablePlayers.visibility = View.GONE
+                tvEmpty.visibility = View.VISIBLE
+                if (query.isNotBlank()) {
+                    tvEmpty.text = "No players found matching \"$query\" in this league.\nTap 'Add New Player' above."
+                } else {
+                    tvEmpty.text = "No available players to add.\nTap 'Add New Player' above."
+                }
+            } else {
+                rvAvailablePlayers.visibility = View.VISIBLE
+                tvEmpty.visibility = View.GONE
+            }
+        }
+
+        etSearch?.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val q = s?.toString() ?: ""
+                if (!isAllLoaded && availableList.isNotEmpty()) {
+                    pendingRunnable?.let { handler.removeCallbacks(it) }
+                    adapter.setAllAvailable(availableList)
+                    isAllLoaded = true
+                    pbLoading?.visibility = View.GONE
+                }
+                adapter.filter(q)
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
+
         btnAddNewPlayerTop.setOnClickListener {
             dialog.dismiss()
-            showAddNewPlayerSingleDialog(team)
+            val query = etSearch?.text?.toString()?.trim()
+            showAddNewPlayerSingleDialog(team, query)
         }
 
         btnDismiss.setOnClickListener {
@@ -303,25 +358,31 @@ class PlayerEntryActivity : BaseActivity() {
                 }
             }
 
+            availableList = available
+            val hasQuery = etSearch?.text?.toString()?.isNotBlank() == true
+
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 adapter.setPointsMap(overallScoreMap)
-            }
-
-            if (available.isEmpty()) {
-                runOnUiThread {
-                    if (isFinishing || isDestroyed) return@runOnUiThread
+                if (hasQuery) {
+                    isAllLoaded = true
+                    pbLoading?.visibility = View.GONE
+                    adapter.setAllAvailable(available)
+                } else if (available.isEmpty()) {
                     pbLoading?.visibility = View.GONE
                     rvAvailablePlayers.visibility = View.GONE
                     tvEmpty.visibility = View.VISIBLE
                 }
+            }
+
+            if (hasQuery || available.isEmpty()) {
                 return@execute
             }
 
             var index = 0
             val cascadeRunnable = object : Runnable {
                 override fun run() {
-                    if (isFinishing || isDestroyed) return
+                    if (isFinishing || isDestroyed || isAllLoaded) return
                     if (index < available.size) {
                         if (index == 0) {
                             pbLoading?.visibility = View.GONE
@@ -332,6 +393,8 @@ class PlayerEntryActivity : BaseActivity() {
                         index++
                         if (index < available.size) {
                             handler.postDelayed(this, 30) // 30ms interval between each player insertion
+                        } else {
+                            isAllLoaded = true
                         }
                     }
                 }
@@ -351,10 +414,12 @@ class PlayerEntryActivity : BaseActivity() {
 
             if (targetContainer != null) {
                 for (p in selectedPlayers) {
-                    val resolvedPhoto = p.photoUri.takeIf { !it.isNullOrBlank() } ?: p.photoUrl
-                    val temp = TempPlayer(p.id, p.name, p.jerseyNumber, resolvedPhoto)
-                    targetList.add(temp)
-                    renderPlayerCard(targetContainer, temp, targetList)
+                    if (!isDuplicatePlayer(p.id, p.name, p.jerseyNumber)) {
+                        val resolvedPhoto = p.photoUri.takeIf { !it.isNullOrBlank() } ?: p.photoUrl
+                        val temp = TempPlayer(p.id, p.name, p.jerseyNumber, resolvedPhoto)
+                        targetList.add(temp)
+                        renderPlayerCard(targetContainer, temp, targetList)
+                    }
                 }
                 refreshStartButton()
             }
@@ -363,12 +428,17 @@ class PlayerEntryActivity : BaseActivity() {
         }
     }
 
-    private fun showAddNewPlayerSingleDialog(team: Int) {
+    private fun showAddNewPlayerSingleDialog(team: Int, initialName: String? = null) {
         currentTeam = team
         pendingId = null
         val view = layoutInflater.inflate(R.layout.dialog_add_player, null)
         val nameInput = view.findViewById<EditText>(R.id.playerNameInput)
         val jerseyInput = view.findViewById<EditText>(R.id.playerJerseyInput)
+
+        if (!initialName.isNullOrBlank()) {
+            nameInput.setText(initialName)
+            nameInput.setSelection(initialName.length)
+        }
 
         view.findViewById<View>(R.id.quickAddContainer)?.visibility = View.GONE
         view.findViewById<View>(R.id.quickAddDivider)?.visibility = View.GONE
@@ -424,13 +494,14 @@ class PlayerEntryActivity : BaseActivity() {
             launchGallery()
         }
 
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { positiveBtn ->
             val name = nameInput.text.toString().trim()
             val jersey = jerseyInput.text.toString().trim()
             if (name.isNotEmpty() && jersey.isNotEmpty()) {
                 if (isDuplicatePlayer(null, name, jersey)) {
                     Toast.makeText(this@PlayerEntryActivity, "Player already added!", Toast.LENGTH_SHORT).show()
                 } else {
+                    positiveBtn.isEnabled = false
                     addPlayerCard(currentTeam, name, jersey, pendingPhotoUri, null, dialog)
                 }
             } else {
@@ -446,17 +517,59 @@ class PlayerEntryActivity : BaseActivity() {
         private val onSelectionChanged: (Int) -> Unit
     ) : RecyclerView.Adapter<SelectSquadPlayerAdapter.Holder>() {
 
+        private val masterList = ArrayList(availablePlayers)
         private val displayList = ArrayList(availablePlayers)
         private var pointsMap: Map<String, Int> = emptyMap()
+        private var currentQuery: String = ""
+        var onEmptyStateChanged: ((isEmpty: Boolean, query: String) -> Unit)? = null
 
         fun setPointsMap(map: Map<String, Int>) {
             this.pointsMap = map
             notifyDataSetChanged()
         }
 
+        fun setAllAvailable(players: List<PlayerEntity>) {
+            masterList.clear()
+            masterList.addAll(players)
+            applyFilter()
+        }
+
         fun addPlayer(player: PlayerEntity) {
-            displayList.add(player)
-            notifyItemInserted(displayList.size - 1)
+            masterList.add(player)
+            val q = currentQuery.trim()
+            if (q.isEmpty() || matchesQuery(player, q)) {
+                displayList.add(player)
+                notifyItemInserted(displayList.size - 1)
+                onEmptyStateChanged?.invoke(displayList.isEmpty(), currentQuery)
+            }
+        }
+
+        fun filter(query: String) {
+            currentQuery = query
+            applyFilter()
+        }
+
+        private fun matchesQuery(p: PlayerEntity, q: String): Boolean {
+            val name = p.name ?: ""
+            val jersey = p.jerseyNumber ?: ""
+            return name.contains(q, ignoreCase = true) || jersey.contains(q, ignoreCase = true)
+        }
+
+        private fun applyFilter() {
+            val q = currentQuery.trim()
+            displayList.clear()
+            if (q.isEmpty()) {
+                val (selected, unselected) = masterList.partition { selectedSet.contains(it) }
+                displayList.addAll(selected)
+                displayList.addAll(unselected)
+            } else {
+                val matched = masterList.filter { matchesQuery(it, q) }
+                val (selected, unselected) = matched.partition { selectedSet.contains(it) }
+                displayList.addAll(selected)
+                displayList.addAll(unselected)
+            }
+            notifyDataSetChanged()
+            onEmptyStateChanged?.invoke(displayList.isEmpty(), currentQuery)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
@@ -510,8 +623,8 @@ class PlayerEntryActivity : BaseActivity() {
                     }
                 } else {
                     selectedSet.remove(item)
-                    val targetPos = selectedSet.size
-                    if (currentPos != targetPos) {
+                    val targetPos = selectedSet.count { displayList.contains(it) }
+                    if (currentPos != targetPos && targetPos < displayList.size) {
                         displayList.removeAt(currentPos)
                         displayList.add(targetPos, item)
                         notifyItemMoved(currentPos, targetPos)
@@ -537,9 +650,9 @@ class PlayerEntryActivity : BaseActivity() {
 
     private fun isDuplicatePlayer(id: String?, name: String?, jersey: String? = null): Boolean {
         val n = name?.trim() ?: ""
-        if (n.isEmpty()) return false
         return (teamAPlayers + teamBPlayers).any { p ->
-            (id != null && p.id == id) || (p.name?.trim()?.equals(n, ignoreCase = true) == true)
+            (id != null && id.isNotEmpty() && p.id == id) ||
+            (n.isNotEmpty() && p.name?.trim()?.equals(n, ignoreCase = true) == true)
         }
     }
 
@@ -607,6 +720,7 @@ class PlayerEntryActivity : BaseActivity() {
                     runOnUiThread {
                         if (!isFinishing && !isDestroyed) {
                             Toast.makeText(this@PlayerEntryActivity, "Internet connection required to create a new player.", Toast.LENGTH_LONG).show()
+                            dialogToDismiss?.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
                         }
                     }
                     return@execute
@@ -622,6 +736,7 @@ class PlayerEntryActivity : BaseActivity() {
                                 .setMessage("This player already exists in some other Gully. Change your name a little bit to create a new player.")
                                 .setPositiveButton("Dismiss") { d, _ -> d.dismiss() }
                                 .show()
+                            dialogToDismiss?.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
                         } else {
                             // Unique player name: Create and Sync
                             AppDatabase.ioExecutor.execute {
@@ -632,6 +747,17 @@ class PlayerEntryActivity : BaseActivity() {
                                 val resolvedPhoto = finalEntity.photoUri.takeIf { !it.isNullOrBlank() } ?: finalEntity.photoUrl
                                 runOnUiThread {
                                     if (isFinishing || isDestroyed) return@runOnUiThread
+
+                                    if (isDuplicatePlayer(finalEntity.id, finalEntity.name, finalEntity.jerseyNumber)) {
+                                        pendingId = null
+                                        pendingName = ""
+                                        pendingJersey = ""
+                                        pendingPhotoUri = null
+                                        dialogToDismiss?.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
+                                        dialogToDismiss?.dismiss()
+                                        return@runOnUiThread
+                                    }
+
                                     val player = TempPlayer(finalEntity.id, finalEntity.name, finalEntity.jerseyNumber, resolvedPhoto)
                                     playerList.add(player)
                                     renderPlayerCard(container, player, playerList)
@@ -665,6 +791,17 @@ class PlayerEntryActivity : BaseActivity() {
                 val resolvedPhoto = finalEntity.photoUri.takeIf { !it.isNullOrBlank() } ?: finalEntity.photoUrl
                 runOnUiThread {
                     if (isFinishing || isDestroyed) return@runOnUiThread
+
+                    if (isDuplicatePlayer(finalEntity.id, finalEntity.name, finalEntity.jerseyNumber)) {
+                        pendingId = null
+                        pendingName = ""
+                        pendingJersey = ""
+                        pendingPhotoUri = null
+                        dialogToDismiss?.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
+                        dialogToDismiss?.dismiss()
+                        return@runOnUiThread
+                    }
+
                     val player = TempPlayer(finalEntity.id, finalEntity.name, finalEntity.jerseyNumber, resolvedPhoto)
                     playerList.add(player)
                     renderPlayerCard(container, player, playerList)
@@ -685,7 +822,7 @@ class PlayerEntryActivity : BaseActivity() {
         val safeName = player.name ?: "Unknown"
         val safeJersey = player.jersey ?: "0"
         card.findViewById<TextView>(R.id.playerName).text = "$safeName\n#$safeJersey"
-        
+
         val ivPhoto = card.findViewById<ImageView>(R.id.playerPhoto)
         val photoUri = player.photoUri
         if (!photoUri.isNullOrEmpty()) {

@@ -124,6 +124,172 @@ class MatchEngineTest {
     }
 
     @Test
+    fun testRemoveLastBallCommentary_undoingRetirement_preservesPrecedingBallCommentary() {
+        val innings = Innings("Red Team", "Blue Team", 20, 10)
+        innings.addCommentary("0.1", "D to A, No Run", null, "BALL")
+        innings.addCommentary("0.2", "D to A, No Run", null, "BALL")
+        innings.addCommentary("0.3", "D to A, 1 Run", null, "BALL")
+        innings.addCommentary("0.4", "D to B, 1 Run", null, "BALL")
+
+        val playerA = Player("A").apply { id = "pA" }
+        innings.recordRetired(playerA, false, "retired hurt", "A", "B", "D")
+        innings.addCommentary("FACT", "A is Retired Hurt", null, "FACT")
+
+        assertEquals(5, innings.commentary.size)
+        assertEquals("A is Retired Hurt", innings.commentary[0]?.text)
+
+        // Undo retirement dummy ball
+        val dummyBall = innings.balls.removeAt(innings.balls.size - 1)
+        innings.removeLastBallCommentary(dummyBall)
+
+        // Preceding ball 0.4 MUST be preserved
+        assertEquals(4, innings.commentary.size)
+        assertEquals("0.4", innings.commentary[0]?.over)
+        assertEquals("D to B, 1 Run", innings.commentary[0]?.text)
+    }
+
+    @Test
+    fun testRemoveLastBallCommentary_undoingBallAfterRetirement_preservesRetirementFact() {
+        val innings = Innings("Red Team", "Blue Team", 20, 10)
+        innings.addCommentary("0.4", "D to B, 1 Run", null, "BALL")
+
+        val playerA = Player("A").apply { id = "pA" }
+        innings.recordRetired(playerA, false, "retired hurt", "A", "B", "D")
+        innings.addCommentary("FACT", "A is Retired Hurt", null, "FACT")
+
+        val dotBall = Ball(0, BallType.NORMAL, false, "C", "D", 0, "B")
+        innings.balls.add(dotBall)
+        innings.addCommentary("0.5", "D to C, No Run", null, "BALL")
+
+        assertEquals(3, innings.commentary.size)
+        assertEquals("0.5", innings.commentary[0]?.over)
+
+        // Undo dot ball 0.5
+        val undoneBall = innings.balls.removeAt(innings.balls.size - 1)
+        innings.removeLastBallCommentary(undoneBall)
+
+        // Dot ball removed, but retirement fact AND ball 0.4 MUST both be preserved
+        assertEquals(2, innings.commentary.size)
+        assertEquals("A is Retired Hurt", innings.commentary[0]?.text)
+        assertEquals("FACT", innings.commentary[0]?.type)
+        assertEquals("0.4", innings.commentary[1]?.over)
+        assertEquals("D to B, 1 Run", innings.commentary[1]?.text)
+    }
+
+    @Test
+    fun testRemoveLastBallCommentary_undoingRetirement_removesIncomingBatterEntryCommentary() {
+        val innings = Innings("Red Team", "Blue Team", 20, 10)
+        innings.addCommentary("0.1", "D to A, No Run", null, "BALL")
+        innings.addCommentary("0.2", "D to A, No Run", null, "BALL")
+        innings.addCommentary("0.3", "D to A, 1 Run", null, "BALL")
+
+        val playerB = Player("B").apply { id = "pB" }
+        innings.recordRetired(playerB, true, "retired out", "B", "A", "D")
+        innings.addCommentary("FACT", "B is retired out", null, "FACT")
+        innings.addCommentary("0.3", "C comes to the crease", null, "FACT")
+
+        assertEquals(5, innings.commentary.size)
+        assertEquals("C comes to the crease", innings.commentary[0]?.text)
+        assertEquals("B is retired out", innings.commentary[1]?.text)
+
+        // Undo retirement dummy ball
+        val dummyBall = innings.balls.removeAt(innings.balls.size - 1)
+        innings.removeLastBallCommentary(dummyBall)
+
+        // Both "C comes to the crease" and "B is retired out" MUST be removed
+        assertEquals(3, innings.commentary.size)
+        assertEquals("0.3", innings.commentary[0]?.over)
+        assertEquals("D to A, 1 Run", innings.commentary[0]?.text)
+    }
+
+    @Test
+    fun testRemoveLastBallCommentary_undoingBallAfterRetirement_preservesIncomingBatterCommentary() {
+        val innings = Innings("Red Team", "Blue Team", 20, 10)
+        innings.addCommentary("0.3", "D to A, 1 Run", null, "BALL")
+
+        val playerB = Player("B").apply { id = "pB" }
+        innings.recordRetired(playerB, true, "retired out", "B", "A", "D")
+        innings.addCommentary("FACT", "B is retired out", null, "FACT")
+        innings.addCommentary("0.3", "C comes to the crease", null, "FACT")
+
+        val dotBall = Ball(0, BallType.NORMAL, false, "C", "D", 0, "A")
+        innings.balls.add(dotBall)
+        innings.addCommentary("0.4", "D to C, No Run", null, "BALL")
+
+        assertEquals(4, innings.commentary.size)
+        assertEquals("0.4", innings.commentary[0]?.over)
+
+        // Undo dot ball 0.4
+        val undoneBall = innings.balls.removeAt(innings.balls.size - 1)
+        innings.removeLastBallCommentary(undoneBall)
+
+        // Dot ball removed, but "C comes to the crease", "B is retired out", and ball 0.3 MUST be preserved
+        assertEquals(3, innings.commentary.size)
+        assertEquals("C comes to the crease", innings.commentary[0]?.text)
+        assertEquals("B is retired out", innings.commentary[1]?.text)
+        assertEquals("0.3", innings.commentary[2]?.over)
+    }
+
+    @Test
+    fun testRemoveLastBallCommentary_undoingPenalty_preservesPrecedingBallCommentary() {
+        val innings = Innings("Red Team", "Blue Team", 20, 10)
+        innings.addCommentary("0.1", "D to A, No Run", null, "BALL")
+        innings.addCommentary("0.2", "D to A, No Run", null, "BALL")
+        innings.addCommentary("0.3", "D to A, 1 Run", null, "BALL")
+
+        innings.addPenalty(5, "D")
+        innings.addCommentary("0.3", "Penalty of 5 runs awarded to Red Team.", "P5", "FACT")
+
+        assertEquals(4, innings.commentary.size)
+        assertEquals("Penalty of 5 runs awarded to Red Team.", innings.commentary[0]?.text)
+
+        // Undo penalty ball
+        val dummyBall = innings.balls.removeAt(innings.balls.size - 1)
+        innings.removeLastBallCommentary(dummyBall)
+
+        // Only the penalty FACT card is removed; ball 0.3, 0.2, 0.1 are preserved
+        assertEquals(3, innings.commentary.size)
+        assertEquals("0.3", innings.commentary[0]?.over)
+        assertEquals("D to A, 1 Run", innings.commentary[0]?.text)
+        assertEquals("0.2", innings.commentary[1]?.over)
+        assertEquals("0.1", innings.commentary[2]?.over)
+    }
+
+    @Test
+    fun testProcessBallBowled_penaltyBall_doesNotCreateGhostPlayers() {
+        val initialState = MatchState(
+            innings = Innings("Red Team", "Blue Team", 20, 10),
+            playerStats = mapOf(
+                "A" to Player("A"),
+                "B" to Player("B"),
+                "D" to Player("D")
+            ),
+            currentStrikerName = "A",
+            currentNonStrikerName = "B",
+            currentBowlerName = "D"
+        )
+
+        // 3 balls bowled
+        val b1 = Ball(0, BallType.NORMAL, false, "A", "D", 0, "B")
+        val b2 = Ball(0, BallType.NORMAL, false, "A", "D", 0, "B")
+        val b3 = Ball(1, BallType.NORMAL, false, "A", "D", 1, "B")
+        val s1 = MatchEngine.rebuildState(initialState, listOf(
+            ScoringEvent.BallBowled(b1, "A", "D"),
+            ScoringEvent.BallBowled(b2, "A", "D"),
+            ScoringEvent.BallBowled(b3, "A", "D")
+        ))
+
+        // Award penalty
+        val s2 = MatchEngine.reduce(s1, ScoringEvent.PenaltyAdded(5, "Red Team"))
+
+        assertEquals("B", s2.currentStrikerName)
+        assertEquals("A", s2.currentNonStrikerName)
+        assertEquals("D", s2.currentBowlerName)
+        assertFalse(s2.playerStats.containsKey("FIELD"))
+        assertFalse(s2.playerStats.containsKey("PENALTY"))
+    }
+
+    @Test
     fun testSoloBatter_oddRunDoesNotAssignStrikerAsNonStriker() {
         val initialState = MatchState(
             innings = Innings("Spain", "Argentina", 20, 10),
@@ -190,6 +356,21 @@ class MatchEngineTest {
         // Undo No Ball (empty events)
         val stateAfterUndo = MatchEngine.rebuildState(initialState, emptyList())
         assertFalse(stateAfterUndo.isFreeHitActive)
+    }
+
+    @Test
+    fun testNoBall_whenFreeHitRuleDisabled_doesNotTriggerFreeHit() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            currentStrikerName = "Batter A",
+            currentNonStrikerName = "Batter B",
+            currentBowlerName = "Bowler 1",
+            isRuleFreeHit = false
+        )
+
+        val noBall = Ball(1, BallType.NO_BALL, false, "Batter A", "Bowler 1", 0, "Batter B")
+        val stateAfterNoBall = MatchEngine.reduce(initialState, ScoringEvent.BallBowled(noBall, "Batter A", "Bowler 1"))
+        assertFalse("Free Hit should NOT be active when isRuleFreeHit is false", stateAfterNoBall.isFreeHitActive)
     }
 
     @Test
@@ -405,7 +586,7 @@ class MatchEngineTest {
 
         // Batter A gets Bowled Out
         val wicketBall = Ball(0, BallType.NORMAL, true, "Batter A", "Bowler 1", 0, "Batter B").apply {
-            dismissalInfo = "b Bowler 1"
+            wicketDetail = WicketDetail("Batter A", DismissalType.BOWLED, bowlerId = "Bowler 1")
             outPlayerName = "Batter A"
         }
         val event = ScoringEvent.BallBowled(wicketBall, "Batter A", "Bowler 1", "Batter A")
@@ -500,7 +681,7 @@ class MatchEngineTest {
 
         // Catch by Fielder 1
         val caughtBall = Ball(0, BallType.NORMAL, true, "Batter A", "Bowler 1", 0, "Batter B").apply {
-            dismissalInfo = "c Fielder 1 b Bowler 1"
+            wicketDetail = WicketDetail("Batter A", DismissalType.CAUGHT, bowlerId = "Bowler 1", primaryFielderId = "Fielder 1")
         }
         val stateAfterCatch = MatchEngine.reduce(initialState, ScoringEvent.BallBowled(caughtBall, "Batter A", "Bowler 1", "Batter A", "Fielder 1"))
 
@@ -508,7 +689,7 @@ class MatchEngineTest {
 
         // Stumping by Keeper
         val stumpedBall = Ball(0, BallType.NORMAL, true, "Batter B", "Bowler 1", 0, "Batter A").apply {
-            dismissalInfo = "st Keeper b Bowler 1"
+            wicketDetail = WicketDetail("Batter B", DismissalType.STUMPED, bowlerId = "Bowler 1", primaryFielderId = "Keeper")
         }
         val stateAfterStump = MatchEngine.reduce(stateAfterCatch, ScoringEvent.BallBowled(stumpedBall, "Batter B", "Bowler 1", "Batter B", "Keeper"))
 
@@ -531,13 +712,13 @@ class MatchEngineTest {
         )
 
         val bowledBall = Ball(0, BallType.NORMAL, true, "Batter 1", "Bowler 1", 0).apply {
-            dismissalInfo = "b Bowler 1"
+            wicketDetail = WicketDetail("Batter 1", DismissalType.BOWLED, bowlerId = "Bowler 1")
         }
         val caughtBall = Ball(0, BallType.NORMAL, true, "Batter 2", "Bowler 1", 0).apply {
-            dismissalInfo = "c Fielder 1 b Bowler 1"
+            wicketDetail = WicketDetail("Batter 2", DismissalType.CAUGHT, bowlerId = "Bowler 1", primaryFielderId = "Fielder 1")
         }
         val runOutBall = Ball(1, BallType.NORMAL, true, "Batter 1", "Bowler 1", 0).apply {
-            dismissalInfo = "Run Out (Fielder 1)"
+            wicketDetail = WicketDetail("Batter 1", DismissalType.RUN_OUT, primaryFielderId = "Fielder 1")
         }
 
         val events = listOf(
@@ -791,7 +972,7 @@ class MatchEngineTest {
 
         // 6th ball is a Wicket of Batter A
         val b6Wicket = Ball(0, BallType.NORMAL, true, "Batter A", "Bowler F", 0, "Batter B").apply {
-            dismissalInfo = "b Bowler F"
+            wicketDetail = WicketDetail("Batter A", DismissalType.BOWLED, bowlerId = "Bowler F")
             outPlayerName = "Batter A"
         }
 
@@ -810,4 +991,483 @@ class MatchEngineTest {
         assertEquals("Batter B", stateAfterOver1.currentStrikerName)
         assertNull(stateAfterOver1.currentNonStrikerName)
     }
+
+    @Test
+    fun testNoBallWithSix_creditsBowlerSixesConceded() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            playerStats = mapOf(
+                "Bowler F" to Player("Bowler F"),
+                "Batter A" to Player("Batter A"),
+                "Batter B" to Player("Batter B")
+            ),
+            currentStrikerName = "Batter A",
+            currentNonStrikerName = "Batter B",
+            currentBowlerName = "Bowler F"
+        )
+
+        // No-ball with 6 off the bat (total 7 runs)
+        val nbBall = Ball(7, BallType.NO_BALL, false, "Batter A", "Bowler F", 6)
+        val event = ScoringEvent.BallBowled(nbBall, "Batter A", "Bowler F")
+
+        val stateAfter = MatchEngine.reduce(initialState, event)
+        val bowler = stateAfter.playerStats["Bowler F"]!!
+
+        assertEquals(1, bowler.sixesConceded)
+        assertEquals(7, stateAfter.innings.totalRuns)
+    }
+
+    @Test
+    fun testNoBallWithFiveRuns_doesNotCreditBowlerSixesConceded() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            playerStats = mapOf(
+                "Bowler F" to Player("Bowler F"),
+                "Batter A" to Player("Batter A"),
+                "Batter B" to Player("Batter B")
+            ),
+            currentStrikerName = "Batter A",
+            currentNonStrikerName = "Batter B",
+            currentBowlerName = "Bowler F"
+        )
+
+        // No-ball with 5 off the bat (total 6 runs: 5 bat + 1 extra)
+        val nbBall = Ball(6, BallType.NO_BALL, false, "Batter A", "Bowler F", 5)
+        val event = ScoringEvent.BallBowled(nbBall, "Batter A", "Bowler F")
+
+        val stateAfter = MatchEngine.reduce(initialState, event)
+        val bowler = stateAfter.playerStats["Bowler F"]!!
+
+        assertEquals(0, bowler.sixesConceded)
+        assertEquals(6, stateAfter.innings.totalRuns)
+    }
+
+    @Test
+    fun testPendingPenaltyForSecondInnings_restoredFromFirstInningsBalls_andAppliedToSecondInnings() {
+        val match = Match("Team A", "Team B", 2, 2, 2)
+        match.startFirstInnings("Team A", "Team B")
+        val firstInn = match.firstInnings!!
+        // Add a pending penalty of 5 runs awarded in 1st innings to fielding team
+        firstInn.balls.add(Ball(0, BallType.PENALTY, false, "PENALTY", "FIELD", 0).apply {
+            dismissalInfo = "pending_penalty:5"
+        })
+
+        // Simulate restore from DB (first.balls -> restoreInnings)
+        val restoredMatch = Match("Team A", "Team B", 2, 2, 2)
+        restoredMatch.restoreInnings(firstInn, null)
+
+        assertEquals(5, restoredMatch.pendingPenaltyForSecondInnings)
+
+        // Starting 2nd innings must immediately apply the 5 penalty runs
+        restoredMatch.startSecondInnings()
+
+        val secondInn = restoredMatch.secondInnings!!
+        assertEquals(5, secondInn.totalRuns)
+        assertEquals(5, secondInn.penalties)
+        assertEquals(0, restoredMatch.pendingPenaltyForSecondInnings)
+    }
+
+    @Test
+    fun testRunOutAtNonStrikerEnd_withOneRun_survivingBatterIsStriker() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            playerStats = mapOf(
+                "A" to Player("A").apply { id = "A" },
+                "B" to Player("B").apply { id = "B" },
+                "D" to Player("D").apply { id = "D" }
+            ),
+            currentStrikerName = "A",
+            currentNonStrikerName = "B",
+            currentBowlerName = "D"
+        )
+
+        // 1 run completed, A run out at Non-Striker's end (isStrikerEnd = false)
+        val runOutBall = Ball(1, BallType.NORMAL, true, "A", "D", 1, "B").apply {
+            wicketDetail = WicketDetail(
+                dismissedPlayerId = "A",
+                dismissalType = DismissalType.RUN_OUT,
+                bowlerId = "D",
+                runsCompleted = 1,
+                isStrikerEnd = false
+            )
+        }
+
+        val event = ScoringEvent.BallBowled(runOutBall, "A", "D", "A", nonStrikerId = "B")
+        val stateAfter = MatchEngine.reduce(initialState, event)
+
+        // Surviving batter B crossed during the 1 run and reached the Striker's end!
+        assertEquals("B", stateAfter.currentStrikerName)
+        // Non-striker's end is vacated for incoming batter C
+        assertNull(stateAfter.currentNonStrikerName)
+    }
+
+    @Test
+    fun testRunOutAtNonStrikerEnd_withZeroRuns_survivingBatterIsStriker() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            playerStats = mapOf(
+                "A" to Player("A").apply { id = "A" },
+                "B" to Player("B").apply { id = "B" },
+                "D" to Player("D").apply { id = "D" }
+            ),
+            currentStrikerName = "A",
+            currentNonStrikerName = "B",
+            currentBowlerName = "D"
+        )
+
+        // 0 runs completed, A run out at Non-Striker's end (isStrikerEnd = false)
+        val runOutBall = Ball(0, BallType.NORMAL, true, "A", "D", 0, "B").apply {
+            wicketDetail = WicketDetail(
+                dismissedPlayerId = "A",
+                dismissalType = DismissalType.RUN_OUT,
+                bowlerId = "D",
+                runsCompleted = 0,
+                isStrikerEnd = false
+            )
+        }
+
+        val event = ScoringEvent.BallBowled(runOutBall, "A", "D", "A", nonStrikerId = "B", isStrikerEnd = false)
+        val stateAfter = MatchEngine.reduce(initialState, event)
+
+        // A was out at non-striker's end; surviving batter B is at striker's end!
+        assertEquals("B", stateAfter.currentStrikerName)
+        // Non-striker's end is vacated for incoming batter C
+        assertNull(stateAfter.currentNonStrikerName)
+    }
+
+    @Test
+    fun testRunOutAtStrikerEnd_withZeroRuns_nonStrikerDismissed_survivingBatterIsNonStriker() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            playerStats = mapOf(
+                "A" to Player("A").apply { id = "A" },
+                "B" to Player("B").apply { id = "B" },
+                "D" to Player("D").apply { id = "D" }
+            ),
+            currentStrikerName = "A",
+            currentNonStrikerName = "B",
+            currentBowlerName = "D"
+        )
+
+        // 0 runs completed, B (non-striker) run out at Striker's end (isStrikerEnd = true)
+        val runOutBall = Ball(0, BallType.NORMAL, true, "A", "D", 0, "B").apply {
+            wicketDetail = WicketDetail(
+                dismissedPlayerId = "B",
+                dismissalType = DismissalType.RUN_OUT,
+                bowlerId = "D",
+                runsCompleted = 0,
+                isStrikerEnd = true
+            )
+        }
+
+        val event = ScoringEvent.BallBowled(runOutBall, "A", "D", "B", nonStrikerId = "B", isStrikerEnd = true)
+        val stateAfter = MatchEngine.reduce(initialState, event)
+
+        // B was out at striker's end; striker's end is vacated for incoming batter C!
+        assertNull(stateAfter.currentStrikerName)
+        // Surviving batter A remains at non-striker's end!
+        assertEquals("A", stateAfter.currentNonStrikerName)
+    }
+
+    @Test
+    fun testRebuildState_preservesEarnedMaidenOver() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            playerStats = mapOf(
+                "A" to Player("A").apply { id = "A" },
+                "B" to Player("B").apply { id = "B" },
+                "D" to Player("D").apply { id = "D" }
+            ),
+            currentStrikerName = "A",
+            currentNonStrikerName = "B",
+            currentBowlerName = "D"
+        )
+
+        // Bowler D bowls 6 consecutive dots (a maiden over)
+        val maidenEvents = (1..6).map {
+            val ball = Ball(0, BallType.NORMAL, false, "A", "D", 0, "B")
+            ScoringEvent.BallBowled(ball, "A", "D", "A", nonStrikerId = "B")
+        }
+
+        val stateAfterMaiden = MatchEngine.rebuildState(initialState, maidenEvents)
+        val bowlerD = stateAfterMaiden.getPlayer("D")!!
+
+        // D must have earned 1 maiden over
+        assertEquals(1, bowlerD.maidens)
+    }
+
+    @Test
+    fun testRebuildState_sharedOverDeniedMaiden() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            playerStats = mapOf(
+                "A" to Player("A").apply { id = "A" },
+                "B" to Player("B").apply { id = "B" },
+                "D" to Player("D").apply { id = "D" },
+                "E" to Player("E").apply { id = "E" }
+            ),
+            currentStrikerName = "A",
+            currentNonStrikerName = "B",
+            currentBowlerName = "D"
+        )
+
+        // Bowler D bowls 3 dots, Bowler E bowls 3 dots (shared over)
+        val events = (1..3).map {
+            val ball = Ball(0, BallType.NORMAL, false, "A", "D", 0, "B")
+            ScoringEvent.BallBowled(ball, "A", "D", "A", nonStrikerId = "B")
+        } + (4..6).map {
+            val ball = Ball(0, BallType.NORMAL, false, "A", "E", 0, "B")
+            ScoringEvent.BallBowled(ball, "A", "E", "A", nonStrikerId = "B")
+        }
+
+        val stateAfterOver = MatchEngine.rebuildState(initialState, events)
+        val bowlerD = stateAfterOver.getPlayer("D")!!
+        val bowlerE = stateAfterOver.getPlayer("E")!!
+
+        // Neither bowler should earn a maiden in a shared over
+        assertEquals(0, bowlerD.maidens)
+        assertEquals(0, bowlerE.maidens)
+    }
+
+    @Test
+    fun testRebuildState_preservesPreviousInningsMilestonesDuringSecondInningsRebuild() {
+        // Initial state for 2nd innings has bowler D with 1 maiden and 1 hattrick from 1st innings
+        val initialState = MatchState(
+            innings = Innings("Team B", "Team A", 20, 10),
+            playerStats = mapOf(
+                "A" to Player("A").apply { id = "A" },
+                "B" to Player("B").apply { id = "B" },
+                "D" to Player("D").apply { id = "D"; maidens = 1; hattricks = 1 }
+            ),
+            currentStrikerName = "A",
+            currentNonStrikerName = "B",
+            currentBowlerName = "D"
+        )
+
+        // 2nd innings rebuild with 0 balls (e.g. undoing the only ball in 2nd innings)
+        val stateAfterUndo = MatchEngine.rebuildState(initialState, emptyList())
+        val bowlerD = stateAfterUndo.getPlayer("D")!!
+
+        assertEquals(1, bowlerD.maidens)
+        assertEquals(1, bowlerD.hattricks)
+    }
+
+    @Test
+    fun testHigherRevisedTarget_doesNotEndChasePrematurelyOnOriginalTarget() {
+        val innings = Innings("Team A", "Team B", 20, 10).apply {
+            target = 7
+            revisedTarget = 12
+            totalRuns = 7
+        }
+
+        // Reaching original target 7 should NOT complete innings when revisedTarget is 12!
+        assertFalse(innings.isComplete)
+
+        // Only when totalRuns >= 12 should it complete
+        innings.totalRuns = 12
+        assertTrue(innings.isComplete)
+    }
+
+    @Test
+    fun testPlayAlone_preservesSoloStateAndDoesNotBringBackPartnerOnRebuild() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            playerStats = mapOf(
+                "A" to Player("A").apply { id = "A" },
+                "B" to Player("B").apply { id = "B" },
+                "D" to Player("D").apply { id = "D" }
+            ),
+            currentStrikerName = "A",
+            currentNonStrikerName = "B",
+            currentBowlerName = "D"
+        )
+
+        // Ball 1: dot ball with B at non-striker
+        val ball1 = Ball(0, BallType.NORMAL, false, "A", "D", 0, "B").apply {
+            batsmanId = "A"; bowlerId = "D"; nonStrikerId = "B"
+        }
+        val event1 = ScoringEvent.BallBowled(ball1, "A", "D", "A", nonStrikerId = "B", facingBatsmanId = "A", bowlerId = "D")
+
+        // Ball 2: Batter A plays alone, scores 1 run
+        val ball2 = Ball(1, BallType.NORMAL, false, "A", "D", 1, null).apply {
+            batsmanId = "A"; bowlerId = "D"; nonStrikerId = null
+        }
+        val event2 = ScoringEvent.BallBowled(ball2, "A", "D", null, nonStrikerId = null, facingBatsmanId = "A", bowlerId = "D", isExplicitSolo = true)
+
+        val stateAfter = MatchEngine.rebuildState(initialState, listOf(event1, event2))
+
+        // A must still be the striker playing alone, B must NOT be brought back on strike!
+        assertEquals("A", stateAfter.currentStrikerName)
+        assertNull(stateAfter.currentNonStrikerName)
+    }
+
+    @Test
+    fun testSixConsecutiveWickets_awardsTwoHattricksConsistently() {
+        val initialState = MatchState(
+            innings = Innings("Team A", "Team B", 20, 10),
+            playerStats = (1..7).associate { "Bat$it" to Player("Bat$it").apply { id = "Bat$it" } } +
+                    mapOf("D" to Player("D").apply { id = "D" }),
+            currentStrikerName = "Bat1",
+            currentNonStrikerName = "Bat2",
+            currentBowlerName = "D"
+        )
+
+        val events = (1..6).map { i ->
+            val outBatter = "Bat$i"
+            val nextBatter = "Bat${i + 1}"
+            val ball = Ball(0, BallType.NORMAL, true, outBatter, "D", 0, "Bat7").apply {
+                batsmanId = outBatter
+                bowlerId = "D"
+                nonStrikerId = "Bat7"
+                wicketDetail = WicketDetail(outBatter, DismissalType.BOWLED, "D")
+            }
+            ScoringEvent.BallBowled(
+                ball, outBatter, "D", nextBatter,
+                outPlayerId = outBatter,
+                bowlerId = "D",
+                facingBatsmanId = outBatter,
+                nonStrikerId = "Bat7"
+            )
+        }
+
+        val stateAfter = MatchEngine.rebuildState(initialState, events)
+        val bowlerD = stateAfter.getPlayer("D")!!
+
+        // 6 consecutive wickets must award exactly 2 hat-tricks (wickets 1-2-3 and wickets 4-5-6)
+        assertEquals(2, bowlerD.hattricks)
+    }
+
+    @Test
+    fun testDLSResourceLossAndTarget_preservedAcrossMatchEntityPersistence() {
+        val i1 = Innings("Team A", "Team B", 20, 10).apply {
+            totalRuns = 45
+            revisedMaxOvers = 10
+        }
+        val match = Match("Team A", "Team B", 20, 11, 11).apply {
+            resourcesLostTeam1 = 25.5
+            revisedTarget = 48
+            restoreInnings(i1, null)
+        }
+
+        val entity = MatchEntity.fromMatch(match)
+        assertEquals(25.5, entity.resourcesLostTeam1, 0.001)
+        assertEquals(48, entity.revisedTarget)
+
+        val restoredMatch = entity.toMatch()
+        assertEquals(25.5, restoredMatch.resourcesLostTeam1, 0.001)
+        assertEquals(48, restoredMatch.revisedTarget)
+
+        // Starting 2nd innings after resumption must use the restored DLS state
+        restoredMatch.startSecondInnings()
+        assertEquals(48, restoredMatch.secondInnings?.target)
+    }
+
+    @Test
+    fun testDLSResourceLoss_calculatesDLSTargetAfterResumptionWhenRevisedTargetNull() {
+        val i1 = Innings("Team A", "Team B", 20, 10).apply {
+            totalRuns = 50
+            revisedMaxOvers = 10
+        }
+        val match = Match("Team A", "Team B", 20, 11, 11).apply {
+            resourcesLostTeam1 = 25.0
+            revisedTarget = null
+            restoreInnings(i1, null)
+        }
+
+        val entity = MatchEntity.fromMatch(match)
+        val restoredMatch = entity.toMatch()
+
+        restoredMatch.startSecondInnings()
+        val r1 = (100.0 - 25.0).coerceAtLeast(0.0)
+        val r2 = DLSUtility.getResource(10, 0, 20)
+        val expectedTarget = DLSUtility.calculateRevisedTarget(50, r1, r2, 20)
+
+        assertEquals(expectedTarget, restoredMatch.secondInnings?.target)
+    }
+
+    @Test
+    fun testPreMatchReduction_threeOversToOneOver_targetIsNineRuns() {
+        // Matches the user's exact scenario:
+        // Match originally 3 overs, reduced to 1 over before first ball.
+        // Team 1 scores 8 runs in 1 over (6 balls).
+        val i1 = Innings("Team A", "Team B", 3, 10).apply {
+            revisedMaxOvers = 1
+            totalRuns = 8
+            legalBalls = 6
+        }
+        val match = Match("Team A", "Team B", 3, 11, 11).apply {
+            // Before play started, pre-match reduction means no resources lost during play
+            resourcesLostTeam1 = 0.0
+            revisedTarget = null
+            restoreInnings(i1, null)
+        }
+
+        match.startSecondInnings()
+        // Team 2 must need 9 runs (8 + 1) in 1 over, NEVER 90!
+        assertEquals(9, match.secondInnings?.target)
+        assertEquals(1, match.secondInnings?.revisedMaxOvers)
+    }
+
+    @Test
+    fun testDLS_GConstant_scaledForShortMatches() {
+        // 50 overs -> 245
+        assertEquals(245.0, DLSUtility.getGConstant(50), 0.01)
+        // 20 overs -> 160
+        assertEquals(160.0, DLSUtility.getGConstant(20), 0.01)
+        // 3 overs -> ~24.0 (8 RPO)
+        assertEquals(24.0, DLSUtility.getGConstant(3), 0.01)
+
+        // Equal resources must always yield score + 1
+        assertEquals(9, DLSUtility.calculateRevisedTarget(8, 33.33, 33.33, 3))
+    }
+
+    @Test
+    fun testNoBallByesSeparation_ICC_Rule() {
+        val innings = Innings("Team A", "Team B", 20, 10)
+        val batsman = Player("Batsman A").apply { id = "p1" }
+        val nonStriker = Player("Batsman B").apply { id = "p2" }
+        val bowler = Player("Bowler C").apply { id = "p3" }
+
+        // 1 No-Ball penalty + 4 Byes = 5 total runs
+        innings.addBall(
+            runs = 5,
+            type = BallType.NO_BALL,
+            isWicket = false,
+            batsman = batsman,
+            bowler = bowler,
+            fielder = null,
+            manualBatRuns = 0,
+            outPlayer = null,
+            nonStriker = nonStriker,
+            byeRuns = 4,
+            legByeRuns = 0
+        )
+
+        assertEquals(5, innings.totalRuns)
+        assertEquals(1, innings.noBalls)
+        assertEquals(4, innings.byes)
+        assertEquals(0, innings.legByes)
+        assertEquals(0, batsman.runsScored)
+        assertEquals(1, batsman.ballsFaced)
+        assertEquals(1, bowler.runsConceded) // Bowler conceded ONLY the 1 penalty run, not the byes
+        assertEquals(1, bowler.noBallsConceded)
+
+        // Test recalculateState preserves separation
+        innings.recalculateState()
+        assertEquals(5, innings.totalRuns)
+        assertEquals(1, innings.noBalls)
+        assertEquals(4, innings.byes)
+
+        // Test undo
+        innings.undoLastBall(batsman, bowler)
+        assertEquals(0, innings.totalRuns)
+        assertEquals(0, innings.noBalls)
+        assertEquals(0, innings.byes)
+        assertEquals(0, bowler.runsConceded)
+        assertEquals(0, bowler.noBallsConceded)
+        assertEquals(0, batsman.ballsFaced)
+    }
 }
+
+
+

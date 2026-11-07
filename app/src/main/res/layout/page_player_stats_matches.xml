@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="24dp">
+
+    <!-- Overall Team Win & Impact Summary Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardMatchesSummary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="1dp"
+        app:cardBackgroundColor="?attr/colorSurfaceVariant"
+        app:strokeWidth="1dp"
+        app:strokeColor="#1E808080">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingVertical="12dp"
+            android:paddingHorizontal="6dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MATCHES"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:letterSpacing="0.08" />
+
+                <TextView
+                    android:id="@+id/tvMatchTabTotalMatches"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical"
+                android:background="?attr/colorOutlineVariant"
+                android:alpha="0.4" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WON"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:letterSpacing="0.08" />
+
+                <TextView
+                    android:id="@+id/tvMatchTabWonMatches"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#81C784"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical"
+                android:background="?attr/colorOutlineVariant"
+                android:alpha="0.4" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1.2"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="WIN %"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:letterSpacing="0.08" />
+
+                <TextView
+                    android:id="@+id/tvMatchTabWinRate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0.0%"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical"
+                android:background="?attr/colorOutlineVariant"
+                android:alpha="0.4" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="POTM"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:letterSpacing="0.08" />
+
+                <TextView
+                    android:id="@+id/tvMatchTabPotmCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFD700"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Empty State -->
+    <TextView
+        android:id="@+id/tvPlayerMatchesEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No match records found for this player"
+        android:textSize="13sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:gravity="center"
+        android:paddingVertical="32dp"
+        android:visibility="gone" />
+
+    <!-- Match History List Container -->
+    <LinearLayout
+        android:id="@+id/layoutMatchesListContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+
+</LinearLayout>

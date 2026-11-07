@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="10dp"
+    app:strokeWidth="1.2dp"
+    app:strokeColor="#4080DEEA"
+    app:cardBackgroundColor="#F017202F">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:maxWidth="280dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <TextView
+            android:id="@+id/tvBubbleTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="STAT TITLE"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#80DEEA"
+            android:letterSpacing="0.08" />
+
+        <TextView
+            android:id="@+id/tvBubbleDescription"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Detailed description of what this stat means in matches."
+            android:textSize="12.5sp"
+            android:textColor="#E2E8F0"
+            android:lineSpacingExtra="2dp"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/tvBubbleFormula"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Formula: Runs / Balls"
+            android:textSize="11sp"
+            android:textColor="#94A3B8"
+            android:textStyle="italic"
+            android:layout_marginTop="6dp" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

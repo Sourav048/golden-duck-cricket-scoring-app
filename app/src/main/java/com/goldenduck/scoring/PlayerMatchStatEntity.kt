@@ -90,9 +90,10 @@ class PlayerMatchStatEntity {
     companion object {
         fun fromPlayer(p: Player, matchId: String, teamName: String?): PlayerMatchStatEntity {
             val s = PlayerMatchStatEntity()
-            s.id = if (!p.id.isNullOrEmpty()) "${matchId}_${p.id}" else "${matchId}_${p.name}" 
+            val validPlayerId = p.id!! // It is guaranteed to be non-null because of the custom getter in Player.kt
+            s.id = "${matchId}_${validPlayerId}" 
             s.gullyId = p.gullyId
-            s.playerId = p.id
+            s.playerId = validPlayerId
             s.matchId = matchId
             s.playerName = p.name
             s.teamName = teamName

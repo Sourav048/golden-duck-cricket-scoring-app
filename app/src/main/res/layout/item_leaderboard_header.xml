@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingTop="12dp"
+    android:paddingBottom="8dp"
+    android:paddingHorizontal="4dp">
+
+    <TextView
+        android:id="@+id/tvSectionTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="STANDINGS"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:letterSpacing="0.08"
+        tools:text="STANDINGS (RANK 4+)" />
+
+    <TextView
+        android:id="@+id/tvSectionCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_stat_value_pill"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="3dp"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="6 Players" />
+
+</LinearLayout>

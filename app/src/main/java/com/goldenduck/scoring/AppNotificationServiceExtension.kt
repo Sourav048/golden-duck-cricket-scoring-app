@@ -164,7 +164,7 @@ class AppNotificationServiceExtension : INotificationServiceExtension {
 
             // Do NOT generate an unread notification for messages sent by MYSELF
             val gullyPrefs = event.context.getSharedPreferences("gully_prefs", Context.MODE_PRIVATE)
-            val myUserId = gullyPrefs.getString("chat_sender_id", null)
+            val myUserId = gullyPrefs.getString("chat_sender_id", null) ?: ScoringApp.instance?.getOrCreateUserId()
             if (!myUserId.isNullOrEmpty() && senderId == myUserId) {
                 Log.d("NotifExtension", "Ignoring notification for self-sent message.")
                 return

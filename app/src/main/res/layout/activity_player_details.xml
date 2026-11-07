@@ -6,8 +6,11 @@
     android:background="?attr/android:windowBackground">
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollPlayerDetails"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:overScrollMode="never">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -19,48 +22,68 @@
                 android:id="@+id/layoutPlayerHeader"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?attr/colorPrimary"
-                android:paddingTop="32dp"
-                android:paddingBottom="56dp"
-                android:paddingHorizontal="24dp">
+                android:background="@drawable/bg_player_profile_header"
+                android:tag="custom_color"
+                android:paddingTop="36dp"
+                android:paddingBottom="44dp"
+                android:paddingHorizontal="20dp">
 
                 <ImageButton
                     android:id="@+id/btnBackProfile"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/ic_menu_revert"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_header_action_button"
+                    android:src="@drawable/ic_arrow_back"
                     app:tint="#FFFFFF"
+                    android:padding="9dp"
+                    android:scaleType="fitCenter"
                     android:layout_alignParentStart="true"
                     android:contentDescription="Back" />
 
                 <ImageButton
                     android:id="@+id/btnPlayerDetailsMenu"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/ic_menu_more"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_header_action_button"
+                    android:src="@drawable/ic_more_vert"
                     app:tint="#FFFFFF"
+                    android:padding="8dp"
+                    android:scaleType="fitCenter"
                     android:layout_alignParentEnd="true"
                     android:contentDescription="Options" />
+
+                <ImageButton
+                    android:id="@+id/btnSharePlayerCard"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_header_action_button"
+                    android:src="@drawable/ic_share"
+                    app:tint="#FFFFFF"
+                    android:padding="9dp"
+                    android:scaleType="fitCenter"
+                    android:layout_toStartOf="@id/btnPlayerDetailsMenu"
+                    android:layout_marginEnd="8dp"
+                    android:visibility="gone"
+                    android:contentDescription="Share Player Card" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_marginTop="16dp">
+                    android:layout_marginTop="8dp">
 
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardPhotoFrame"
-                        android:layout_width="150dp"
-                        android:layout_height="150dp"
-                        app:cardCornerRadius="45dp"
+                        android:layout_width="136dp"
+                        android:layout_height="136dp"
+                        app:cardCornerRadius="68dp"
                         app:cardElevation="10dp"
-                        app:cardBackgroundColor="#FFFFFF"
-                        app:strokeWidth="4dp"
-                        app:strokeColor="#FFFFFF"
+                        app:cardBackgroundColor="#141A26"
+                        app:strokeWidth="3dp"
+                        app:strokeColor="#35FFFFFF"
                         app:contentPadding="0dp">
+
                         <com.google.android.material.imageview.ShapeableImageView
                             android:id="@+id/ivDetailPhoto"
                             android:layout_width="match_parent"
@@ -76,80 +99,328 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Player Name"
-                        android:textSize="30sp"
+                        android:textSize="26sp"
                         android:textStyle="bold"
                         android:textColor="#FFFFFF"
-                        android:layout_marginTop="20dp" />
+                        android:letterSpacing="0.015"
+                        android:shadowColor="#80000000"
+                        android:shadowRadius="6"
+                        android:shadowDy="2"
+                        android:gravity="center"
+                        android:layout_marginTop="16dp" />
 
                     <TextView
                         android:id="@+id/tvDetailJerseyDisplay"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="#00"
-                        android:textSize="18sp"
-                        android:textColor="#FFFFFF" />
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="#D1D5DB"
+                        android:background="@drawable/bg_jersey_pill"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="3dp"
+                        android:letterSpacing="0.05"
+                        android:layout_marginTop="6dp" />
 
                     <TextView
                         android:id="@+id/tvDetailSubTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="LOCAL PROFILE"
+                        android:text="GLOBAL CAREER PROFILE"
                         android:textSize="11sp"
                         android:textStyle="bold"
-                        android:textColor="#FFFFFF"
-                        android:background="#20FFFFFF"
-                        android:paddingHorizontal="10dp"
+                        android:textColor="#80DEEA"
+                        android:background="@drawable/bg_global_profile_badge"
+                        android:paddingHorizontal="12dp"
                         android:paddingVertical="4dp"
+                        android:letterSpacing="0.08"
                         android:layout_marginTop="8dp"
                         android:visibility="gone" />
 
-                    <!-- Ranking Chips Row -->
+                    <!-- Ranking Section Header -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="LEAGUE RANKINGS"
+                        android:textSize="10.5sp"
+                        android:textStyle="bold"
+                        android:textColor="#94A3B8"
+                        android:letterSpacing="0.1"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="6dp" />
+
+                    <!-- Ranking Chips Grid -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:gravity="center"
-                        android:layout_marginTop="24dp">
+                        android:gravity="center">
 
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginVertical="4dp"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="0dp"
-                            app:cardBackgroundColor="#25FFFFFF">
-                            <TextView android:id="@+id/tvRankOverall" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingVertical="8dp" android:paddingHorizontal="16dp" android:tag="custom_color" android:text="Overall Ranking:- #-" android:textSize="13sp" android:textStyle="bold" android:textColor="#FFFFFF" />
-                        </com.google.android.material.card.MaterialCardView>
+                            android:orientation="horizontal"
+                            android:gravity="center">
 
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginVertical="4dp"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="0dp"
-                            app:cardBackgroundColor="#25FFFFFF">
-                            <TextView android:id="@+id/tvRankBatting" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingVertical="8dp" android:paddingHorizontal="16dp" android:tag="custom_color" android:text="Batting Ranking:- #-" android:textSize="13sp" android:textStyle="bold" android:textColor="#FFFFFF" />
-                        </com.google.android.material.card.MaterialCardView>
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardRankOverall"
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="wrap_content"
+                                android:layout_margin="4dp"
+                                app:cardCornerRadius="14dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="#20FFFFFF"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="#30FFFFFF">
 
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginVertical="4dp"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="0dp"
-                            app:cardBackgroundColor="#25FFFFFF">
-                            <TextView android:id="@+id/tvRankBowling" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingVertical="8dp" android:paddingHorizontal="16dp" android:tag="custom_color" android:text="Bowling Ranking:- #-" android:textSize="13sp" android:textStyle="bold" android:textColor="#FFFFFF" />
-                        </com.google.android.material.card.MaterialCardView>
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical"
+                                    android:paddingVertical="9dp"
+                                    android:paddingHorizontal="9dp">
 
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="wrap_content"
+                                    <FrameLayout
+                                        android:layout_width="32dp"
+                                        android:layout_height="32dp"
+                                        android:background="@drawable/badge_circle_gold">
+                                        <ImageView
+                                            android:layout_width="16dp"
+                                            android:layout_height="16dp"
+                                            android:layout_gravity="center"
+                                            android:src="@drawable/ic_trophy"
+                                            app:tint="#FFFFFF"
+                                            android:importantForAccessibility="no" />
+                                    </FrameLayout>
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_weight="1"
+                                        android:layout_height="wrap_content"
+                                        android:orientation="vertical"
+                                        android:layout_marginStart="8dp">
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="OVERALL"
+                                            android:textSize="9.5sp"
+                                            android:textStyle="bold"
+                                            android:textColor="#94A3B8"
+                                            android:letterSpacing="0.08" />
+
+                                        <TextView
+                                            android:id="@+id/tvRankOverall"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:tag="custom_color"
+                                            android:text="Rank #-"
+                                            android:textSize="14sp"
+                                            android:textStyle="bold"
+                                            android:textColor="#FFFFFF" />
+                                    </LinearLayout>
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardRankBatting"
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="wrap_content"
+                                android:layout_margin="4dp"
+                                app:cardCornerRadius="14dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="#20FFFFFF"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="#30FFFFFF">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical"
+                                    android:paddingVertical="9dp"
+                                    android:paddingHorizontal="9dp">
+
+                                    <FrameLayout
+                                        android:layout_width="32dp"
+                                        android:layout_height="32dp"
+                                        android:background="@drawable/badge_circle_orange">
+                                        <ImageView
+                                            android:layout_width="16dp"
+                                            android:layout_height="16dp"
+                                            android:layout_gravity="center"
+                                            android:src="@drawable/ic_stat_bat"
+                                            app:tint="#FFFFFF"
+                                            android:importantForAccessibility="no" />
+                                    </FrameLayout>
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_weight="1"
+                                        android:layout_height="wrap_content"
+                                        android:orientation="vertical"
+                                        android:layout_marginStart="8dp">
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="BATTING"
+                                            android:textSize="9.5sp"
+                                            android:textStyle="bold"
+                                            android:textColor="#94A3B8"
+                                            android:letterSpacing="0.08" />
+
+                                        <TextView
+                                            android:id="@+id/tvRankBatting"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:tag="custom_color"
+                                            android:text="Rank #-"
+                                            android:textSize="14sp"
+                                            android:textStyle="bold"
+                                            android:textColor="#FFFFFF" />
+                                    </LinearLayout>
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginVertical="4dp"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="0dp"
-                            app:cardBackgroundColor="#25FFFFFF">
-                            <TextView android:id="@+id/tvPotmTotal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingVertical="8dp" android:paddingHorizontal="16dp" android:tag="custom_color" android:text="Career Total POTM: 0" android:textSize="13sp" android:textStyle="bold" android:textColor="#FFFFFF" />
-                        </com.google.android.material.card.MaterialCardView>
+                            android:orientation="horizontal"
+                            android:gravity="center">
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardRankBowling"
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="wrap_content"
+                                android:layout_margin="4dp"
+                                app:cardCornerRadius="14dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="#20FFFFFF"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="#30FFFFFF">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical"
+                                    android:paddingVertical="9dp"
+                                    android:paddingHorizontal="9dp">
+
+                                    <FrameLayout
+                                        android:layout_width="32dp"
+                                        android:layout_height="32dp"
+                                        android:background="@drawable/badge_circle_purple">
+                                        <ImageView
+                                            android:layout_width="16dp"
+                                            android:layout_height="16dp"
+                                            android:layout_gravity="center"
+                                            android:src="@drawable/ic_stat_ball"
+                                            app:tint="#FFFFFF"
+                                            android:importantForAccessibility="no" />
+                                    </FrameLayout>
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_weight="1"
+                                        android:layout_height="wrap_content"
+                                        android:orientation="vertical"
+                                        android:layout_marginStart="8dp">
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="BOWLING"
+                                            android:textSize="9.5sp"
+                                            android:textStyle="bold"
+                                            android:textColor="#94A3B8"
+                                            android:letterSpacing="0.08" />
+
+                                        <TextView
+                                            android:id="@+id/tvRankBowling"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:tag="custom_color"
+                                            android:text="Rank #-"
+                                            android:textSize="14sp"
+                                            android:textStyle="bold"
+                                            android:textColor="#FFFFFF" />
+                                    </LinearLayout>
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardPotmTotal"
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="wrap_content"
+                                android:layout_margin="4dp"
+                                app:cardCornerRadius="14dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="#20FFFFFF"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="#30FFFFFF">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical"
+                                    android:paddingVertical="9dp"
+                                    android:paddingHorizontal="9dp">
+
+                                    <FrameLayout
+                                        android:layout_width="32dp"
+                                        android:layout_height="32dp"
+                                        android:background="@drawable/badge_circle_gold">
+                                        <ImageView
+                                            android:layout_width="16dp"
+                                            android:layout_height="16dp"
+                                            android:layout_gravity="center"
+                                            android:src="@drawable/ic_stat_star"
+                                            app:tint="#FFFFFF"
+                                            android:importantForAccessibility="no" />
+                                    </FrameLayout>
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_weight="1"
+                                        android:layout_height="wrap_content"
+                                        android:orientation="vertical"
+                                        android:layout_marginStart="8dp">
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="POTM"
+                                            android:textSize="9.5sp"
+                                            android:textStyle="bold"
+                                            android:textColor="#94A3B8"
+                                            android:letterSpacing="0.08" />
+
+                                        <TextView
+                                            android:id="@+id/tvPotmTotal"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:tag="custom_color"
+                                            android:text="0 Awards"
+                                            android:textSize="14sp"
+                                            android:textStyle="bold"
+                                            android:textColor="#FFFFFF" />
+                                    </LinearLayout>
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+
+                        </LinearLayout>
+
                     </LinearLayout>
                 </LinearLayout>
             </RelativeLayout>
@@ -159,102 +430,141 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp"
-                android:layout_marginTop="-28dp"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="28dp"
+                android:layout_marginTop="-24dp"
                 android:background="@drawable/rounded_corner_overlay">
 
-                <!-- Batting Section -->
-                <TextView
+                <View
+                    android:layout_width="36dp"
+                    android:layout_height="4dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="10dp"
+                    android:alpha="0.25"
+                    android:background="@drawable/bg_bottom_sheet_drag_handle" />
+
+                <!-- Recent Form Guide Section -->
+                <LinearLayout
+                    android:id="@+id/layoutRecentFormSection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🏏 BATTING CAREER"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:textColor="?attr/colorPrimary"
-                    android:alpha="0.8"
-                    android:letterSpacing="0.1"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="12dp" />
+                    android:orientation="vertical"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="14dp"
+                    android:visibility="gone">
 
-                <GridLayout
+                    <!-- Header Row: Title & Toggle Buttons -->
+                    <RelativeLayout
+                        android:id="@+id/layoutRecentFormHeaderRow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="4dp"
+                        android:layout_marginBottom="8dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_alignParentStart="true"
+                            android:layout_centerVertical="true">
+
+                            <ImageView
+                                android:id="@+id/ivFormDisciplineIcon"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:src="@drawable/ic_stat_bat"
+                                app:tint="?attr/colorPrimary"
+                                android:importantForAccessibility="no" />
+
+                            <TextView
+                                android:id="@+id/tvRecentFormTitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="RECENT FORM (LAST 5)"
+                                android:textSize="10.5sp"
+                                android:textStyle="bold"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:letterSpacing="0.1"
+                                android:layout_marginStart="6dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true"
+                            android:background="@drawable/bg_form_toggle_track"
+                            android:padding="2.5dp">
+
+                            <TextView
+                                android:id="@+id/btnFormToggleBatting"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:minWidth="46dp"
+                                android:gravity="center"
+                                android:text="BAT"
+                                android:textSize="10.5sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/colorOnPrimary"
+                                android:background="@drawable/bg_form_toggle_active"
+                                android:paddingHorizontal="11dp"
+                                android:paddingVertical="4dp" />
+
+                            <TextView
+                                android:id="@+id/btnFormToggleBowling"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:minWidth="46dp"
+                                android:gravity="center"
+                                android:text="BOWL"
+                                android:textSize="10.5sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_secondary"
+                                android:background="@android:color/transparent"
+                                android:paddingHorizontal="11dp"
+                                android:paddingVertical="4dp" />
+                        </LinearLayout>
+                    </RelativeLayout>
+
+                    <!-- 5 Form Pills Swiper (Batting & Bowling) -->
+                    <androidx.viewpager2.widget.ViewPager2
+                        android:id="@+id/viewPagerRecentForm"
+                        android:layout_width="match_parent"
+                        android:layout_height="86dp"
+                        android:overScrollMode="never" />
+
+                </LinearLayout>
+
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/tabLayoutStats"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:columnCount="3"
-                    android:useDefaultMargins="true">
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBatMatches" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBatInnings" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBatRuns" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBatHighest" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBatAvg" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBatSR" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBatFours" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBatSixes" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBatNotOut" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBatDucks" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBat30s" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBat50s" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBat80s" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBat100s" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                </GridLayout>
+                    android:background="@android:color/transparent"
+                    android:contentDescription="Player Statistics Tabs"
+                    app:tabMode="auto"
+                    app:tabGravity="fill"
+                    app:tabInlineLabel="true"
+                    app:tabIconTint="@color/tab_icon_color_selector"
+                    app:tabIndicator="@drawable/bg_tab_indicator_rounded"
+                    app:tabIndicatorAnimationMode="elastic"
+                    app:tabIndicatorColor="?attr/colorPrimary"
+                    app:tabIndicatorFullWidth="false"
+                    app:tabIndicatorGravity="bottom"
+                    app:tabIndicatorHeight="3.5dp"
+                    app:tabSelectedTextColor="?attr/colorPrimary"
+                    app:tabTextColor="?attr/colorOnSurfaceVariant"
+                    app:tabRippleColor="@null" />
 
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="?attr/colorOutline" android:layout_marginVertical="24dp" android:alpha="0.2" />
-
-                <!-- Bowling Section -->
-                <TextView
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/viewPagerStats"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🥎 BOWLING CAREER"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:textColor="?attr/colorPrimary"
-                    android:alpha="0.8"
-                    android:letterSpacing="0.1"
-                    android:layout_marginBottom="12dp" />
-
-                <GridLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:columnCount="3"
-                    android:useDefaultMargins="true">
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowlMatches" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowlInnings" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowlWickets" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowlAvg" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowlEco" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowlBBI" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowlMaidens" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowlHattricks" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowl2w" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowl3w" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowl5w" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxBowlSixesConceded" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                </GridLayout>
-
-                <View android:layout_width="match_parent" android:layout_height="1dp" android:background="?attr/colorOutline" android:layout_marginVertical="24dp" android:alpha="0.2" />
-
-                <!-- Fielding Section -->
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="🧤 FIELDING CAREER"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:textColor="?attr/colorPrimary"
-                    android:alpha="0.8"
-                    android:letterSpacing="0.1"
-                    android:layout_marginBottom="12dp" />
-
-                <GridLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:columnCount="3"
-                    android:useDefaultMargins="true"
-                    android:layout_marginBottom="40dp">
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxFieldMatches" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxFieldCatches" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxFieldStumpings" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                    <include layout="@layout/item_stat_box" android:id="@+id/boxFieldRunOuts" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" />
-                </GridLayout>
+                    android:minHeight="420dp"
+                    android:layout_marginTop="8dp" />
 
             </LinearLayout>
         </LinearLayout>

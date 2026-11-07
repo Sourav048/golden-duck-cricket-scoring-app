@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="16dp">
+
+    <!-- ── STANDARD STATS ── -->
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:columnCount="3"
+        android:useDefaultMargins="true">
+
+        <include
+            android:id="@+id/boxFieldMatches"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+        <include
+            android:id="@+id/boxFieldCatches"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+        <include
+            android:id="@+id/boxFieldStumpings"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+        <include
+            android:id="@+id/boxFieldRunOuts"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+    </GridLayout>
+
+    <!-- ── SECTION DIVIDER ── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="6dp"
+        android:paddingHorizontal="4dp">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"
+            android:background="?attr/colorOutlineVariant"
+            android:alpha="0.5" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ADVANCED STATS"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"
+            android:letterSpacing="0.1"
+            android:paddingHorizontal="10dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"
+            android:background="?attr/colorOutlineVariant"
+            android:alpha="0.5" />
+
+    </LinearLayout>
+
+    <!-- ── EXTRA STATS ── -->
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:columnCount="3"
+        android:useDefaultMargins="true">
+
+        <include
+            android:id="@+id/boxFieldTotalDismissals"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+        <include
+            android:id="@+id/boxFieldDismissalsPerMatch"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+        <include
+            android:id="@+id/boxFieldImpactPts"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+        <include
+            android:id="@+id/boxFieldCatchesPerMatch"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+        <include
+            android:id="@+id/boxFieldCatchShare"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+        <include
+            android:id="@+id/boxFieldMatchesPerCatch"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+        <include
+            android:id="@+id/boxFieldRunOutsPerMatch"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+        <include
+            android:id="@+id/boxFieldRunOutShare"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+        <include
+            android:id="@+id/boxFieldMatchesPerRO"
+            layout="@layout/item_stat_box"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1" />
+
+    </GridLayout>
+
+</LinearLayout>

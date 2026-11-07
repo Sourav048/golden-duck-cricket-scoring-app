@@ -10,7 +10,14 @@ sealed class ScoringEvent {
         val bowlerName: String?,
         val outPlayerName: String? = null,
         val fielderName: String? = null,
-        val isStrikerEnd: Boolean = true
+        val isStrikerEnd: Boolean = true,
+        val facingBatsmanId: String? = null,
+        val bowlerId: String? = null,
+        val nonStrikerId: String? = null,
+        val outPlayerId: String? = null,
+        val primaryFielderName: String? = null,
+        val secondaryFielderName: String? = null,
+        val isExplicitSolo: Boolean = false
     ) : ScoringEvent()
 
     data class PenaltyAdded(
@@ -21,7 +28,8 @@ sealed class ScoringEvent {
     data class PlayerRetired(
         val playerName: String,
         val isHurt: Boolean,
-        val dismissalText: String
+        val dismissalText: String,
+        val playerId: String? = null
     ) : ScoringEvent()
 
     data class StrikeSwapped(

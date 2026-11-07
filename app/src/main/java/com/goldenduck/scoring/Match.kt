@@ -76,17 +76,22 @@ class Match {
         if (maxW <= 0) maxW = 1
 
         val matchOvers = i1.revisedMaxOvers ?: totalOvers
+        val lockedTarget = this.revisedTarget
 
         secondInnings = Innings(i1.bowlingTeam, i1.battingTeam, matchOvers, maxW).apply {
-            target = if (revisedTarget != null) {
-                revisedTarget
+            if (i1.revisedMaxOvers != null) {
+                this.revisedMaxOvers = i1.revisedMaxOvers
+            }
+            if (lockedTarget != null) {
+                this.revisedTarget = lockedTarget
+                this.target = lockedTarget
             } else if (resourcesLostTeam1 > 0) {
                 val r1 = (100.0 - resourcesLostTeam1).coerceAtLeast(0.0)
                 // Use original totalOvers as base for Team 2 as well
                 val r2 = DLSUtility.getResource(matchOvers, 0, totalOvers)
-                DLSUtility.calculateRevisedTarget(i1.totalRuns, r1, r2)
+                this.target = DLSUtility.calculateRevisedTarget(i1.totalRuns, r1, r2, totalOvers)
             } else {
-                i1.totalRuns + 1
+                this.target = i1.totalRuns + 1
             }
 
             if (pendingPenaltyForSecondInnings > 0) {
@@ -102,6 +107,16 @@ class Match {
         firstInnings = first
         secondInnings = second
         currentInnings = second ?: first
+        if (second == null && first != null && pendingPenaltyForSecondInnings == 0) {
+            val pendingFromBalls = first.balls.filter {
+                it.type == BallType.PENALTY && it.dismissalInfo?.startsWith("pending_penalty:") == true
+            }.sumOf {
+                it.dismissalInfo?.substringAfter("pending_penalty:")?.toIntOrNull() ?: 0
+            }
+            if (pendingFromBalls > 0) {
+                pendingPenaltyForSecondInnings = pendingFromBalls
+            }
+        }
     }
 
     val target: Int

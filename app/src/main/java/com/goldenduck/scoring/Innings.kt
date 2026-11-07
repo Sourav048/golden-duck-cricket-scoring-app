@@ -77,7 +77,7 @@ class Innings {
     fun recordRetired(p: Player, isWicket: Boolean, info: String, sName: String?, nsName: String?, bName: String? = null) {
         val now = System.currentTimeMillis()
         if (isWicket) totalWickets++
-        else if (info == "retired hurt") retiredHurtCount++
+        else retiredHurtCount++
         
         p.isOut = isWicket
         p.dismissalInfo = info
@@ -97,12 +97,18 @@ class Innings {
         val ball = Ball(0, BallType.PENALTY, isWicket, sName, actualBowler, 0, nsName).apply {
             this.outPlayerName = p.name
             this.dismissalInfo = info
+            batsmanId = p.id.takeIf { sName == p.name }
+            nonStrikerId = p.id.takeIf { nsName == p.name }
+            wicketDetail = WicketDetail(
+                dismissedPlayerId = p.id!!,
+                dismissalType = if (isWicket) DismissalType.RETIRED_OUT else DismissalType.RETIRED_HURT
+            )
         }
         balls.add(ball)
     }
 
     fun playerReturned(p: Player?) {
-        if (p?.dismissalInfo == "retired hurt" && retiredHurtCount > 0) {
+        if (p?.dismissalInfo?.trim().equals("retired hurt", ignoreCase = true) && retiredHurtCount > 0) {
             retiredHurtCount--
         }
     }
@@ -134,12 +140,37 @@ class Innings {
         legByes = 0
         penalties = 0
         retiredHurtCount = 0
+        val outstandingRetirements = mutableMapOf<String, String?>()
+        fun normalizedName(name: String?): String? = name?.trim()?.lowercase(java.util.Locale.ROOT)
+        fun markReturned(id: String?, name: String?) {
+            val normalized = normalizedName(name)
+            if (id != null) outstandingRetirements.remove("id:$id")
+            if (normalized != null) {
+                outstandingRetirements.remove("name:$normalized")
+                if (id == null) {
+                    outstandingRetirements.entries.removeAll { it.value == normalized }
+                }
+            }
+        }
         for (b in balls) {
             totalRuns += b.runs
             if (b.isWicket) totalWickets++
-            if (b.dismissalInfo == "retired hurt") {
-                retiredHurtCount++
+            val isRetiredHurt = b.wicketDetail?.dismissalType == DismissalType.RETIRED_HURT ||
+                (b.wicketDetail == null && b.dismissalInfo?.trim().equals("retired hurt", ignoreCase = true))
+            if (isRetiredHurt) {
+                val retiredId = b.wicketDetail?.dismissedPlayerId
+                val retiredName = normalizedName(when {
+                    retiredId != null && retiredId == b.batsmanId -> b.batsmanName
+                    retiredId != null && retiredId == b.nonStrikerId -> b.nonStrikerName
+                    else -> b.outPlayerName ?: b.batsmanName
+                })
+                val key = retiredId?.let { "id:$it" } ?: "name:$retiredName"
+                outstandingRetirements[key] = retiredName
+            } else if (b.type != BallType.PENALTY) {
+                markReturned(b.batsmanId, b.batsmanName)
+                markReturned(b.nonStrikerId, b.nonStrikerName)
             }
+            retiredHurtCount = outstandingRetirements.size
             when (b.type) {
                 BallType.NORMAL -> {
                     legalBalls++
@@ -151,7 +182,12 @@ class Innings {
                     battingRuns += (b.runs - penalty)
                 }
                 BallType.NO_BALL -> {
-                    noBalls += (b.runs - b.batRuns)
+                    val byeR = b.byeRuns
+                    val legByeR = b.legByeRuns
+                    val nbPenalty = (b.runs - b.batRuns - byeR - legByeR).coerceAtLeast(0)
+                    noBalls += nbPenalty
+                    byes += byeR
+                    legByes += legByeR
                     battingRuns += b.batRuns
                 }
                 BallType.BYE -> {
@@ -170,8 +206,8 @@ class Innings {
 
     val isComplete: Boolean
         get() {
-            target?.let { t -> if (totalRuns >= t) return true }
-            revisedTarget?.let { rt -> if (totalRuns >= rt) return true }
+            val effectiveTarget = revisedTarget ?: target
+            effectiveTarget?.let { t -> if (totalRuns >= t) return true }
 
             if (maxWickets > 0 && totalWickets >= maxWickets) {
                 // If there are Retired Hurt players who could return, the innings is not complete 
@@ -201,6 +237,12 @@ class Innings {
         if (balls.isEmpty()) return
         val savedBalls = ArrayList(balls)
         val savedCommentary = ArrayList(commentary)
+        val namesById = mutableMapOf<String, String>()
+        savedBalls.forEach { b ->
+            b.batsmanId?.let { id -> b.batsmanName?.let { namesById[id] = it } }
+            b.nonStrikerId?.let { id -> b.nonStrikerName?.let { namesById[id] = it } }
+            b.bowlerId?.let { id -> b.bowlerName?.let { namesById[id] = it } }
+        }
 
         balls.clear()
         partnerships.clear()
@@ -222,9 +264,9 @@ class Innings {
         var currentNonStrikerName: String? = null
 
         for (b in savedBalls) {
-            val facingName = b.batsmanName ?: "Batsman"
+            val facingName = b.batsmanName ?: b.batsmanId?.let { namesById[it] } ?: "Batsman"
 
-            var nsName = b.nonStrikerName
+            var nsName = b.nonStrikerName ?: b.nonStrikerId?.let { namesById[it] }
             if (nsName.isNullOrEmpty()) {
                 nsName = if (!currentNonStrikerName.isNullOrEmpty() && currentNonStrikerName != facingName) {
                     currentNonStrikerName
@@ -238,7 +280,30 @@ class Innings {
             val b1 = Player(facingName)
             val b2 = nsName?.let { Player(it) }
             val bowler = Player(b.bowlerName ?: "Bowler")
-            val outP = b.outPlayerName?.let { Player(it) } ?: if (b.isWicket) b1 else null
+            val dismissedName = b.wicketDetail?.dismissedPlayerId?.let { namesById[it] }
+                ?: b.outPlayerName
+            val outP = dismissedName?.let { Player(it) } ?: if (b.isWicket) b1 else null
+            val retirementType = b.wicketDetail?.dismissalType
+            val isRetirement = retirementType == DismissalType.RETIRED_HURT ||
+                retirementType == DismissalType.RETIRED_OUT ||
+                (b.wicketDetail == null && b.dismissalInfo?.contains("retired", ignoreCase = true) == true)
+
+            if (b.type == BallType.PENALTY) {
+                if (isRetirement) {
+                    val retiredPlayer = outP ?: b1
+                    recordRetired(retiredPlayer, b.isWicket, b.dismissalInfo ?: "retired hurt", facingName, nsName, b.bowlerName)
+                    var newS: String? = facingName
+                    var newNS: String? = nsName
+                    val outName = dismissedName ?: facingName
+                    if (newS == outName) newS = null
+                    if (newNS == outName) newNS = null
+                    currentStrikerName = newS ?: newNS
+                    currentNonStrikerName = newNS ?: newS
+                } else {
+                    addPenalty(b.runs, b.bowlerName)
+                }
+                continue
+            }
 
             addBall(
                 runs = b.runs,
@@ -255,8 +320,8 @@ class Innings {
             var newS: String? = facingName
             var newNS: String? = nsName
 
-            if (b.isWicket) {
-                val outName = b.outPlayerName ?: facingName
+            if (b.isWicket || isRetirement) {
+                val outName = dismissedName ?: facingName
                 if (newS == outName) newS = null
                 if (newNS == outName) newNS = null
             }
@@ -265,6 +330,10 @@ class Innings {
             currentNonStrikerName = newNS ?: newS
         }
 
+        // Rebuilding derived partnerships must never rewrite persisted dismissal IDs or text.
+        balls.clear()
+        balls.addAll(savedBalls)
+        recalculateState()
         commentary.clear()
         commentary.addAll(savedCommentary)
     }
@@ -275,8 +344,55 @@ class Innings {
         commentary.add(0, entry)
     }
 
-    fun removeLastBallCommentary() {
+    fun removeLastBallCommentary(undoneBall: Ball? = null) {
         if (commentary.isEmpty()) return
+
+        val isRetirement = undoneBall?.let {
+            it.wicketDetail?.dismissalType == DismissalType.RETIRED_HURT ||
+                it.wicketDetail?.dismissalType == DismissalType.RETIRED_OUT ||
+                (it.type == BallType.PENALTY && it.dismissalInfo?.contains("retired", ignoreCase = true) == true)
+        } ?: (commentary.firstOrNull()?.text?.contains("Retired", ignoreCase = true) == true &&
+                commentary.firstOrNull()?.type == "FACT")
+
+        if (isRetirement) {
+            // Remove any replacement batsman entry facts added after this retirement,
+            // as well as the retirement FACT entry itself
+            var i = 0
+            while (i < commentary.size) {
+                val entry = commentary[i]
+                if (entry?.type == "FACT" && entry.text?.contains("Retired", ignoreCase = true) == true) {
+                    commentary.removeAt(i)
+                    break
+                } else if (entry?.type == "FACT" && (
+                    entry.text?.contains("comes to the crease", ignoreCase = true) == true ||
+                    entry.text?.contains("Replacing", ignoreCase = true) == true ||
+                    entry.text?.contains("last Batter Standing", ignoreCase = true) == true
+                )) {
+                    commentary.removeAt(i)
+                } else {
+                    i++
+                }
+            }
+            return
+        }
+
+        val isPenalty = undoneBall?.let {
+            it.type == BallType.PENALTY && !isRetirement
+        } ?: false
+
+        if (isPenalty) {
+            // Only remove the penalty FACT entry without touching preceding deliveries
+            val idx = commentary.indexOfFirst { entry ->
+                entry?.type == "FACT" && (
+                    entry.text?.contains("Penalty", ignoreCase = true) == true ||
+                    entry.highlight?.startsWith("P") == true
+                )
+            }
+            if (idx != -1) {
+                commentary.removeAt(idx)
+            }
+            return
+        }
 
         var i = 0
         var foundBall = false
@@ -289,22 +405,37 @@ class Innings {
             } else if (type == "SETUP_FACT" || type == "SQUAD_FACT") {
                 // Skip over permanent match/squad facts and keep searching down the list
                 i++
+            } else if (commentary[i]?.text?.contains("Retired", ignoreCase = true) == true ||
+                commentary[i]?.text?.contains("Penalty", ignoreCase = true) == true ||
+                commentary[i]?.highlight?.startsWith("P") == true
+            ) {
+                // Preserve retirement and penalty events when undoing a delivery bowled after them
+                i++
             } else {
                 // Remove OVER_SUMMARY, per-ball FACTs, or other temporary post-ball commentary
                 commentary.removeAt(i)
             }
         }
 
-        // Remove any trailing per-ball FACT (e.g. Bowler attack message)
+        // Remove any trailing per-ball FACT (e.g. Bowler attack message), but preserve retirement, penalty and batsman entry facts
         while (i < commentary.size && commentary[i]?.type == "FACT") {
+            if (commentary[i]?.text?.contains("Retired", ignoreCase = true) == true ||
+                commentary[i]?.text?.contains("comes to the crease", ignoreCase = true) == true ||
+                commentary[i]?.text?.contains("Replacing", ignoreCase = true) == true ||
+                commentary[i]?.text?.contains("last Batter Standing", ignoreCase = true) == true ||
+                commentary[i]?.text?.contains("Penalty", ignoreCase = true) == true ||
+                commentary[i]?.highlight?.startsWith("P") == true
+            ) {
+                break
+            }
             commentary.removeAt(i)
         }
     }
 
-    fun addPenalty(runs: Int) {
+    fun addPenalty(runs: Int, bName: String? = null) {
         totalRuns += runs
         penalties += runs
-        balls.add(Ball(runs, BallType.PENALTY, isWicket = false, "PENALTY", "FIELD", 0))
+        balls.add(Ball(runs, BallType.PENALTY, isWicket = false, "PENALTY", bName ?: "FIELD", 0))
     }
 
     fun addBall(
@@ -317,20 +448,42 @@ class Innings {
         manualBatRuns: Int,
         outPlayer: Player? = null,
         nonStriker: Player? = null,
+        wicketDetail: WicketDetail? = null,
+        playerNameResolver: ((String) -> String)? = null,
+        byeRuns: Int = 0,
+        legByeRuns: Int = 0,
+        overthrowRuns: Int = 0,
+        isBoundary: Boolean = (type == BallType.NORMAL || type == BallType.NO_BALL) && ((manualBatRuns > 0 && (manualBatRuns == 4 || manualBatRuns == 6)) || (type == BallType.NORMAL && (runs == 4 || runs == 6))) && overthrowRuns == 0 && !isWicket
     ) {
         if (this.isComplete) return
 
         val actualOut = outPlayer ?: batsman
 
-        val ball = Ball(runs, type, isWicket, batsman.name, bowler.name, manualBatRuns, nonStriker?.name).apply {
+        val ball = Ball(runs, type, isWicket, batsman.name, bowler.name, manualBatRuns, nonStriker?.name, byeRuns, legByeRuns, overthrowRuns, isBoundary).apply {
             fielderName = fielder
+            batsmanId = batsman.id
+            bowlerId = bowler.id
+            nonStrikerId = nonStriker?.id
+            outPlayerName = actualOut.name
+            this.wicketDetail = wicketDetail
             if (isWicket) {
-                if (actualOut.dismissalInfo.isNotEmpty() && actualOut.dismissalInfo != "not out") {
-                    this.dismissalInfo = actualOut.dismissalInfo
-                } else if (!this.dismissalInfo.isNullOrEmpty() && this.dismissalInfo != "not out") {
+                if (wicketDetail != null) {
+                    this.dismissalInfo = wicketDetail.toDisplayString { id -> 
+                        playerNameResolver?.invoke(id) ?: run {
+                            if (id == batsman.id) batsman.name ?: id 
+                            else if (id == bowler.id) bowler.name ?: id 
+                            else if (id == nonStriker?.id) nonStriker.name ?: id 
+                            else id
+                        }
+                    }
                     actualOut.dismissalInfo = this.dismissalInfo!!
+                } else {
+                    if (actualOut.dismissalInfo.isNotEmpty() && actualOut.dismissalInfo != "not out") {
+                        this.dismissalInfo = actualOut.dismissalInfo
+                    } else if (!this.dismissalInfo.isNullOrEmpty() && this.dismissalInfo != "not out") {
+                        actualOut.dismissalInfo = this.dismissalInfo!!
+                    }
                 }
-                outPlayerName = actualOut.name
             }
         }
         balls.add(ball)
@@ -377,11 +530,13 @@ class Innings {
                 batsman.runsScored += runs
                 battingRuns += runs
                 batsman.ballsFaced++
-                when (runs) {
-                    4 -> batsman.fours++
-                    6 -> batsman.sixes++
-                    0 -> bowler.dotBalls++
+                if (isBoundary && overthrowRuns == 0) {
+                    when (runs) {
+                        4 -> batsman.fours++
+                        6 -> batsman.sixes++
+                    }
                 }
+                if (runs == 0) bowler.dotBalls++
                 bowler.runsConceded += runs
             }
             BallType.WIDE -> {
@@ -390,17 +545,23 @@ class Innings {
                 bowler.widesConceded += runs
             }
             BallType.NO_BALL -> {
-                val extraR = runs - manualBatRuns
-                noBalls += extraR
+                val byeR = byeRuns
+                val legByeR = legByeRuns
+                val nbPenalty = (runs - manualBatRuns - byeR - legByeR).coerceAtLeast(0)
+                noBalls += nbPenalty
+                byes += byeR
+                legByes += legByeR
                 battingRuns += manualBatRuns
                 batsman.runsScored += manualBatRuns
                 batsman.ballsFaced++
-                when (manualBatRuns) {
-                    4 -> batsman.fours++
-                    6 -> batsman.sixes++
+                if (isBoundary && overthrowRuns == 0) {
+                    when (manualBatRuns) {
+                        4 -> batsman.fours++
+                        6 -> batsman.sixes++
+                    }
                 }
-                bowler.runsConceded += runs
-                bowler.noBallsConceded += extraR
+                bowler.runsConceded += (manualBatRuns + nbPenalty)
+                bowler.noBallsConceded += nbPenalty
             }
             BallType.BYE -> {
                 legalBalls++
@@ -465,11 +626,13 @@ class Innings {
                 facingBatsman.runsScored -= last.runs
                 battingRuns -= last.runs
                 facingBatsman.ballsFaced--
-                when (last.runs) {
-                    4 -> facingBatsman.fours--
-                    6 -> facingBatsman.sixes--
-                    0 -> bowler?.let { it.dotBalls-- }
+                if (last.isBoundary && last.overthrowRuns == 0) {
+                    when (last.runs) {
+                        4 -> facingBatsman.fours--
+                        6 -> facingBatsman.sixes--
+                    }
                 }
+                if (last.runs == 0) bowler?.let { it.dotBalls-- }
                 bowler?.let { it.runsConceded -= last.runs }
             }
             BallType.WIDE -> {
@@ -480,18 +643,24 @@ class Innings {
                 }
             }
             BallType.NO_BALL -> {
-                val extraR = last.runs - last.batRuns
-                noBalls -= extraR
+                val byeR = last.byeRuns
+                val legByeR = last.legByeRuns
+                val nbPenalty = (last.runs - last.batRuns - byeR - legByeR).coerceAtLeast(0)
+                noBalls -= nbPenalty
+                byes -= byeR
+                legByes -= legByeR
                 battingRuns -= last.batRuns
                 facingBatsman.runsScored -= last.batRuns
                 facingBatsman.ballsFaced--
-                when (last.batRuns) {
-                    4 -> facingBatsman.fours--
-                    6 -> facingBatsman.sixes--
+                if (last.isBoundary && last.overthrowRuns == 0) {
+                    when (last.batRuns) {
+                        4 -> facingBatsman.fours--
+                        6 -> facingBatsman.sixes--
+                    }
                 }
                 bowler?.let {
-                    it.runsConceded -= last.runs
-                    it.noBallsConceded -= extraR
+                    it.runsConceded -= (last.batRuns + nbPenalty)
+                    it.noBallsConceded -= nbPenalty
                 }
             }
             BallType.BYE -> {
@@ -512,9 +681,13 @@ class Innings {
             else -> {}
         }
 
-        if (last.isWicket || last.dismissalInfo?.contains("retired") == true) {
+        val retirementType = last.wicketDetail?.dismissalType
+        val isRetiredHurt = retirementType == DismissalType.RETIRED_HURT ||
+            (last.wicketDetail == null && last.dismissalInfo.equals("retired hurt", ignoreCase = true))
+        if (last.isWicket || isRetiredHurt || retirementType == DismissalType.RETIRED_OUT ||
+            last.dismissalInfo?.contains("retired", ignoreCase = true) == true) {
             if (last.isWicket && totalWickets > 0) totalWickets--
-            else if (last.dismissalInfo == "retired hurt" && retiredHurtCount > 0) retiredHurtCount--
+            else if (isRetiredHurt && retiredHurtCount > 0) retiredHurtCount--
             
             val actualOut = outPlayer ?: facingBatsman
             actualOut.isOut = false
@@ -525,7 +698,13 @@ class Innings {
             actualOut.entryTime = System.currentTimeMillis()
             
             if (last.isWicket) {
-                bowler?.let { if (it.wicketsTaken > 0) it.wicketsTaken-- }
+                val isBowlerWicket = last.wicketDetail?.dismissalType?.isBowlerWicket ?: run {
+                    val info = last.dismissalInfo.orEmpty()
+                    !info.contains("Run Out", ignoreCase = true) &&
+                        !info.contains("Obstruct", ignoreCase = true) &&
+                        !info.contains("Retired", ignoreCase = true)
+                }
+                if (isBowlerWicket) bowler?.let { if (it.wicketsTaken > 0) it.wicketsTaken-- }
                 if (fallOfWickets.isNotEmpty()) fallOfWickets.removeAt(fallOfWickets.size - 1)
             }
         }

@@ -1,5 +1,6 @@
 package com.goldenduck.scoring
 
+import android.graphics.Color
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
@@ -114,13 +115,13 @@ class TeamOversListFragment : Fragment() {
     }
 
     private fun getActualBowler(innings: Innings, currentIndex: Int): String {
-        // Look at the ball at currentIndex. If it's not "FIELD", return it.
+        // Look at the ball at currentIndex. If it's not "FIELD" or "PENALTY", return it.
         val currentBall = innings.balls.getOrNull(currentIndex)
-        if (currentBall != null && currentBall.bowlerName != "FIELD" && currentBall.bowlerName != "PENALTY") {
-            return currentBall.bowlerName ?: "Bowler"
+        if (currentBall != null && currentBall.bowlerName != null && currentBall.bowlerName != "FIELD" && currentBall.bowlerName != "PENALTY") {
+            return currentBall.bowlerName!!
         }
         
-        // If it is "FIELD", search backwards for the most recent valid bowler name in this innings
+        // If it is "FIELD" or "PENALTY", search backwards for the most recent valid bowler name in this innings
         for (j in currentIndex downTo 0) {
             val b = innings.balls[j]
             if (b.bowlerName != null && b.bowlerName != "FIELD" && b.bowlerName != "PENALTY") {
@@ -128,7 +129,7 @@ class TeamOversListFragment : Fragment() {
             }
         }
         
-        // If still not found, search forwards (in case retirement happened before first ball)
+        // If still not found, search forwards (in case retirement/penalty happened before first ball)
         for (j in currentIndex until innings.balls.size) {
             val b = innings.balls[j]
             if (b.bowlerName != null && b.bowlerName != "FIELD" && b.bowlerName != "PENALTY") {
@@ -136,17 +137,29 @@ class TeamOversListFragment : Fragment() {
             }
         }
 
-        return currentBall?.bowlerName ?: "Bowler"
+        val provider = activity as? ScoringProvider
+        return provider?.bowler?.name ?: currentBall?.bowlerName ?: "Bowler"
     }
 
     private fun extractBatterNames(balls: List<Ball>): String {
         val names = LinkedHashSet<String>()
         balls.forEach { b ->
-            b.batsmanName?.let { names.add(it) }
+            if (b.type != BallType.PENALTY && b.batsmanName != null && b.batsmanName != "PENALTY") {
+                names.add(b.batsmanName!!)
+            }
         }
         val list = names.toList()
         return when {
-            list.isEmpty() -> "-"
+            list.isEmpty() -> {
+                val provider = activity as? ScoringProvider
+                val s = provider?.striker?.name
+                val ns = provider?.nonStriker?.name
+                when {
+                    s != null && ns != null -> "$s & $ns"
+                    s != null -> s
+                    else -> "-"
+                }
+            }
             list.size == 1 -> list[0]
             else -> "${list[0]} & ${list[1]}" // Just show top 2 participants
         }
@@ -209,13 +222,14 @@ class TeamOversListFragment : Fragment() {
             }
 
             val bgColor = when {
+                b.type == BallType.PENALTY -> "#D81B60".toColorInt()
                 b.isWicket || b.dismissalInfo?.contains("retired", ignoreCase = true) == true -> "#D32F2F".toColorInt()
-                b.runs == 6 -> "#2E7D32".toColorInt()
-                b.runs == 4 -> "#EF6C00".toColorInt()
                 b.type == BallType.WIDE -> "#FFB300".toColorInt()
                 b.type == BallType.NO_BALL -> "#7B1FA2".toColorInt()
                 b.type == BallType.BYE -> "#455A64".toColorInt()
                 b.type == BallType.LEG_BYE -> "#303F9F".toColorInt()
+                (b.type == BallType.NORMAL && b.runs == 6) || b.batRuns == 6 -> "#2E7D32".toColorInt()
+                (b.type == BallType.NORMAL && b.runs == 4) || b.batRuns == 4 -> "#EF6C00".toColorInt()
                 else -> ThemeManager.getThemeColor(ctx, com.google.android.material.R.attr.colorSurface)
             }
 
@@ -231,8 +245,10 @@ class TeamOversListFragment : Fragment() {
                 val widePenalty = if (match?.ruleRunsOnWide == false) 0 else 1
                 
                 text = when {
-                    b.dismissalInfo == "retired hurt" -> "RH"
-                    b.dismissalInfo == "retired out" -> "RO"
+                    b.dismissalInfo?.trim().equals("retired hurt", ignoreCase = true) ||
+                        b.wicketDetail?.dismissalType == DismissalType.RETIRED_HURT -> "RH"
+                    b.dismissalInfo?.trim().equals("retired out", ignoreCase = true) ||
+                        b.wicketDetail?.dismissalType == DismissalType.RETIRED_OUT -> "RO"
                     b.isWicket -> {
                         val runsRan = when (b.type) {
                             BallType.WIDE -> b.runs - widePenalty
@@ -256,11 +272,14 @@ class TeamOversListFragment : Fragment() {
                         val runsRan = b.runs - nbPenalty
                         if (runsRan <= 0) "NB" else "${runsRan}NB"
                     }
+                    b.type == BallType.PENALTY -> "P${b.runs}"
                     b.runs == 0 && b.type == BallType.NORMAL -> "•"
                     else -> b.runs.toString()
                 }
                 
-                setTextColor(ThemeManager.getContrastColor(bgColor))
+                val isColoredBall = b.type == BallType.PENALTY || b.runs == 4 || b.runs == 6 || b.type == BallType.WIDE || b.type == BallType.NO_BALL ||
+                                    b.isWicket || b.type == BallType.BYE || b.type == BallType.LEG_BYE
+                setTextColor(if (isColoredBall) Color.WHITE else ThemeManager.getContrastColor(bgColor))
                 
                 // Styling to prevent wrapping
                 val baseSize = 11f
